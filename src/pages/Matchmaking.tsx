@@ -91,7 +91,6 @@ export default function Matchmaking() {
   useEffect(() => {
     if (selectedMatch) {
       fetchConfirmedPlayers(selectedMatch);
-      checkSavedTeams(selectedMatch);
     } else {
       setConfirmedPlayers([]);
       setTeamA([]); setTeamB([]);
@@ -100,44 +99,79 @@ export default function Matchmaking() {
   }, [selectedMatch]);
 
   const fetchConfirmedPlayers = async (matchId: string) => {
-    const { data } = await supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'Voy');
-    if (data) setConfirmedPlayers(data.map(d => d.player));
+    // 1. Fetch real players from attendance
+    const { data: attendanceData } = await supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'Voy');
+    const realPlayers = attendanceData ? attendanceData.map(d => d.player) : [];
+
+    // 2. Fetch guests from database
+    const { data: guestsData } = await supabase.from('match_guests').select('*').eq('match_id', matchId);
+    const guestPlayers = guestsData ? guestsData.map(g => ({ ...g, isGuest: true, photo_url: null, nickname: null })) : [];
+
+    setConfirmedPlayers([...realPlayers, ...guestPlayers]);
+    
+    // 3. Check for saved teams AFTER players are loaded
+    await checkSavedTeams(matchId);
   };
 
   const checkSavedTeams = async (matchId: string) => {
     const { data } = await supabase.from('generated_teams').select('*').eq('match_id', matchId).single();
     if (data) {
-      setTeamA(data.team_a); setTeamB(data.team_b);
+      setTeamA(data.team_a || []); 
+      setTeamB(data.team_b || []);
       if (data.metadata?.formationA) setFormationA(data.metadata.formationA);
       if (data.metadata?.formationB) setFormationB(data.metadata.formationB);
       if (data.metadata?.colorA) setColorA(data.metadata.colorA);
       if (data.metadata?.colorB) setColorB(data.metadata.colorB);
-      setSaved(true); setTeamsGenerated(true);
+      setSaved(true); 
+      setTeamsGenerated(true);
     } else {
-      setTeamA([]); setTeamB([]); setSaved(false); setTeamsGenerated(false);
+      setTeamA([]); 
+      setTeamB([]); 
+      setSaved(false); 
+      setTeamsGenerated(false);
     }
   };
 
   // Add guest to the confirmed pool (pre-generation)
-  const addGuestToPool = () => {
-    if (!guestName.trim()) return;
-    const guest = {
-      id: `guest-${Date.now()}`,
+  const addGuestToPool = async () => {
+    if (!guestName.trim() || !selectedMatch) return;
+    const guestData = {
+      match_id: selectedMatch,
       name: guestName.trim() + ' (I)',
       rating: parseFloat(guestRating) || 5,
-      position: 'Invitado',
-      photo_url: null,
-      nickname: null,
-      isGuest: true,
+      position: 'Invitado'
     };
-    setConfirmedPlayers(prev => [...prev, guest]);
+    
+    // Guardamos en Supabase primero
+    const { data, error } = await supabase.from('match_guests').insert([guestData]).select().single();
+    
+    if (error) {
+      console.error(error);
+      alert('Error al guardar invitado');
+      return;
+    }
+
+    if (data) {
+      const guest = { ...data, isGuest: true, photo_url: null, nickname: null };
+      setConfirmedPlayers(prev => [...prev, guest]);
+    }
+
     setGuestName('');
     setGuestRating('5');
     setShowGuestForm(false);
   };
 
-  const removeFromPool = (id: string) => {
-    setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
+  const removeFromPool = async (id: string) => {
+    if (typeof id === 'string' && id.startsWith('guest-')) {
+       // Local temporary guest (not yet in DB or from non-persisted state)
+       setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
+       return;
+    }
+
+    const { error } = await supabase.from('match_guests').delete().eq('id', id);
+    if (!error) {
+      setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
+    }
   };
 
   const generateTeams = () => {
