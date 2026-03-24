@@ -174,16 +174,30 @@ export default function Matchmaking() {
     setShowGuestForm(false);
   };
 
-  const removeFromPool = async (id: string) => {
-    if (typeof id === 'string' && id.startsWith('guest-')) {
-       // Local temporary guest (not yet in DB or from non-persisted state)
-       setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
-       return;
-    }
+  const removeFromPool = async (player: any) => {
+    const id = player.id;
+    const isGuest = player.isGuest || player.name?.includes('(I)');
 
-    const { error } = await supabase.from('match_guests').delete().eq('id', id);
-    if (!error) {
-      setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
+    if (isGuest) {
+      if (typeof id === 'string' && id.startsWith('guest-')) {
+        setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
+        return;
+      }
+      const { error } = await supabase.from('match_guests').delete().eq('id', id);
+      if (!error) setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
+    } else {
+      // Regular player: delete their attendance record
+      if (!selectedMatch) return;
+      const { error } = await supabase.from('attendance')
+        .delete()
+        .eq('match_id', selectedMatch)
+        .eq('player_id', id);
+      if (!error) {
+        setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
+        setTeamA(prev => prev.filter(p => p.id !== id));
+        setTeamB(prev => prev.filter(p => p.id !== id));
+        setSaved(false);
+      }
     }
   };
 
@@ -468,18 +482,20 @@ export default function Matchmaking() {
                         <Star size={10} className="text-yellow-500 fill-yellow-500" />
                         <span className="text-xs font-black text-white/80">{player.rating}</span>
                       </div>
-                      {(player.isGuest || player.name.includes('(I)')) && isAdmin && (
+                      {isAdmin && (
                         <div className="flex gap-2">
-                          <button 
-                            onClick={() => {
-                              setEditingGuestId(player.id);
-                              setEditingGuestName(player.name.replace(/\(I\)$/i, '').trim());
-                            }}
-                            className="opacity-0 group-hover:opacity-100 text-soccer-green/50 hover:text-soccer-green transition-all"
-                          >
-                            <Edit2 size={12} />
-                          </button>
-                          <button onClick={() => removeFromPool(player.id)} className="opacity-0 group-hover:opacity-100 text-red-500/50 hover:text-red-500 transition-all">
+                          {(player.isGuest || player.name.includes('(I)')) && (
+                            <button
+                              onClick={() => {
+                                setEditingGuestId(player.id);
+                                setEditingGuestName(player.name.replace(/\(I\)$/i, '').trim());
+                              }}
+                              className="opacity-0 group-hover:opacity-100 text-soccer-green/50 hover:text-soccer-green transition-all"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          )}
+                          <button onClick={() => removeFromPool(player)} className="opacity-0 group-hover:opacity-100 text-red-500/50 hover:text-red-500 transition-all">
                             <X size={14} />
                           </button>
                         </div>
@@ -609,7 +625,7 @@ export default function Matchmaking() {
                             {team}
                           </div>
                           <div>
-                            <h3 className="font-headline text-lg font-black uppercase tracking-tighter" style={{ color: colorHex }}>Escuadrón {team}</h3>
+                            <h3 className="font-headline text-lg font-black uppercase tracking-tighter" style={{ color: colorHex }}>Equipo {team}</h3>
                             <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{players.length} Jugadores Seleccionados</p>
                           </div>
                         </div>
@@ -658,6 +674,14 @@ export default function Matchmaking() {
                                         className="text-soccer-green/60 hover:text-soccer-green flex-shrink-0 transition-colors"
                                       >
                                         <Edit2 size={11} />
+                                      </button>
+                                    )}
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => removeFromPool(p)}
+                                        className="opacity-0 group-hover/item:opacity-100 text-red-500/40 hover:text-red-500 flex-shrink-0 transition-all ml-1"
+                                      >
+                                        <X size={11} />
                                       </button>
                                     )}
                                   </div>
