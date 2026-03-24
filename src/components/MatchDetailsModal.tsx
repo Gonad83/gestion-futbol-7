@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, MapPin, Clock, Users, CheckCircle2, XCircle, HelpCircle, Trash2 } from 'lucide-react';
+import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
 
 interface MatchDetailsModalProps {
   isOpen: boolean;
