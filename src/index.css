@@ -208,7 +208,7 @@
 .card-photo {
   @apply w-full overflow-hidden z-10 flex items-center justify-center;
   flex: 1;
-  margin-top: 26px;
+  margin-top: 16px;
   margin-bottom: 2px;
 }
 

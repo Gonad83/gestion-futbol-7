@@ -731,7 +731,6 @@ function FifaCard({ player, color, index, isSelected }: { player: any, color: st
     <div className={`fifa-card-container fade-in ${isSelected ? 'scale-110 -translate-y-4 brightness-125 z-50' : 'z-10'}`} style={{ animationDelay: `${index * 50}ms` }}>
       <div className={`fifa-card ${cardColorClass} ${isSelected ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-transparent shadow-[0_0_30px_rgba(250,204,21,0.6)]' : ''}`}>
         <div className="card-top">
-          <div className="card-rating font-black uppercase">{Math.round(player.rating * 14)}</div>
           <div className="card-pos">{player.position?.split(' ')[0].substring(0, 3).toUpperCase() || 'INV'}</div>
         </div>
         <div className="card-photo">
