@@ -1,232 +1,162 @@
 {
-  "name": "⚽ MVP Voting Post-Match",
+  "name": "MVP Voting Post-Match (v2)",
   "nodes": [
     {
       "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "minutes",
-              "minutesInterval": 15
-            }
-          ]
-        }
+        "httpMethod": "POST",
+        "path": "match-finished-mvp",
+        "options": {}
       },
-      "id": "schedule-id",
-      "name": "Schedule cada 15 min",
-      "type": "n8n-nodes-base.scheduleTrigger",
+      "id": "18c2278e-6c84-486a-8b83-a9dcb8ecae63",
+      "name": "Webhook MVP Match Finished",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [100, 300]
+      "position": [
+        200,
+        300
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://wmcycxnydunfjnirmjuy.supabase.co/rest/v1/matches",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "select",
-              "value": "*"
-            },
-            {
-              "name": "status",
-              "value": "eq.Programado"
-            },
-            {
-              "name": "mvp_email_sent",
-              "value": "eq.false"
-            }
-          ]
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
-            }
-          ]
-        },
-        "options": {}
+        "amount": 30,
+        "unit": "minutes"
       },
-      "id": "fetch-matches-id",
-      "name": "Buscar Partidos Finalizados",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [300, 300]
+      "id": "f51b9e2c-7d34-4a5f-8e12-b9dcb8ecae64",
+      "name": "Wait 30 Minutes Post-Match",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        400,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "dateTime": [
+          "string": [
             {
-              "value1": "={{ $json.date }}",
-              "value2": "={{ $now.minus({ minutes: 90 }) }}"
+              "value1": "={{$node[\"Webhook MVP Match Finished\"].json[\"body\"][\"players\"]}}",
+              "operation": "notEmpty"
             }
           ]
         }
       },
-      "id": "filter-passed-id",
-      "name": "Filtrar Partidos Pasados",
-      "type": "n8n-nodes-base.filter",
-      "typeVersion": 2,
-      "position": [500, 300]
+      "id": "a1b2c3d4-e5f6-4a5b-9c8d-e7f8g9h0i1j2",
+      "name": "Has Players?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://wmcycxnydunfjnirmjuy.supabase.co/rest/v1/attendance",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "select",
-              "value": "player:players(name, email)"
-            },
-            {
-              "name": "match_id",
-              "value": "=eq.{{ $json.id }}"
-            },
-            {
-              "name": "status",
-              "value": "eq.Voy"
-            }
-          ]
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
-            }
-          ]
-        },
+        "fieldToSplitOut": "players",
         "options": {}
       },
-      "id": "fetch-players-id",
-      "name": "Buscar Jugadores que Asistieron",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [700, 300]
+      "id": "7890abcd-1234-4567-890a-bcdef0123456",
+      "name": "Split Players",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [
+        800,
+        300
+      ]
     },
     {
       "parameters": {
-        "sendTo": "={{ $json.player.email }}",
-        "subject": "=⚽ ¿Quién fue el MVP del partido?",
-        "emailType": "html",
-        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:white;padding:32px;border-radius:16px\">\n  <h1 style=\"color:#ffd700;margin-bottom:4px\">🌟 Vota al Mejor Jugador</h1>\n  <p style=\"font-size:18px;margin-top:8px\">Hola <b>{{ $json.player.name }}</b>, el partido ha terminado.</p>\n  <p style=\"font-size:16px;margin:24px 0 text-align:center\">¡Es hora de elegir al MVP del partido!</p>\n  <div style=\"text-align:center\">\n    <a href=\"https://tu-app.com/vote?match_id={{ $('Filtrar Partidos Pasados').first().json.id }}\"\n       style=\"background:#ffd700;color:#000;padding:16px 32px;text-decoration:none;border-radius:12px;display:inline-block;font-weight:bold;font-size:16px;box-shadow:0 4px 20px rgba(255,215,0,0.3)\">\n      ⭐ Votar Ahora\n    </a>\n  </div>\n  <p style=\"margin-top:32px;font-size:12px;color:#64748b\">Recuerda que no puedes votar por ti mismo. Solo cuentan los votos de quienes asistieron.</p>\n</div>",
-        "options": {}
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"name\"] || \"\"}}",
+              "operation": "notContains",
+              "value2": "(I)"
+            },
+            {
+              "value1": "={{$json[\"email\"]}}",
+              "operation": "notEmpty"
+            }
+          ]
+        }
       },
-      "id": "gmail-id",
-      "name": "Enviar Email MVP",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2,
-      "position": [900, 300]
+      "id": "abcd1234-efgh-5678-ijkl-901234567890",
+      "name": "Filter Real Players (No Guests)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ]
     },
     {
       "parameters": {
-        "method": "PATCH",
-        "url": "=https://wmcycxnydunfjnirmjuy.supabase.co/rest/v1/matches?id=eq.{{ $('Filtrar Partidos Pasados').first().json.id }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "json",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "mvp_email_sent",
-              "value": "true"
-            },
-            {
-              "name": "status",
-              "value": "Jugado"
-            }
-          ]
-        },
+        "fromEmail": "tu-email@gmail.com",
+        "toEmail": "={{$json[\"email\"]}}",
+        "subject": "⚽ ¡Elige al MVP del partido!",
+        "html": "<div style=\"font-family: sans-serif; max-width: 480px; margin: 0 auto; background: #0a0e14; color: #fff; padding: 32px; border-radius: 16px;\">\n  <h2 style=\"color: #44f3a9; margin-bottom: 8px;\">⚽ Mejor Jugador</h2>\n  <p style=\"color: rgba(255,255,255,0.6); line-height: 1.6;\">\n    ¡Buen partido equipo! Es hora de elegir al Mejor Jugador (**MVP**) del encuentro del día {{$node[\"Webhook MVP Match Finished\"].json[\"body\"][\"match\"][\"date\"] || \"hoy\"}}.\n  </p>\n  <a href=\"https://gestion-futbol-7.vercel.app/vote?match_id={{$node[\"Webhook MVP Match Finished\"].json[\"body\"][\"match\"][\"id\"]}}\" \n     style=\"display: inline-block; margin: 24px 0; padding: 14px 28px; background: #44f3a9; color: #003822; font-weight: 700; border-radius: 10px; text-decoration: none;\">\n    VOTAR AQUÍ\n  </a>\n  <p style=\"font-size: 12px; color: rgba(255,255,255,0.3);\">\n    Nota: Solo tienes 48 horas para votar. ¡Haz que tu voto cuente!\n  </p>\n</div>",
         "options": {}
       },
-      "id": "update-match-id",
-      "name": "Marcar Email como Enviado",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1100, 300]
+      "id": "99887766-5544-3322-1100-aabbccddeeff",
+      "name": "Send MVP Voting Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        280
+      ]
     }
   ],
   "connections": {
-    "Schedule cada 15 min": {
+    "Webhook MVP Match Finished": {
       "main": [
         [
           {
-            "node": "Buscar Partidos Finalizados",
+            "node": "Wait 30 Minutes Post-Match",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Buscar Partidos Finalizados": {
+    "Wait 30 Minutes Post-Match": {
       "main": [
         [
           {
-            "node": "Filtrar Partidos Pasados",
+            "node": "Has Players?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Filtrar Partidos Pasados": {
+    "Has Players?": {
       "main": [
         [
           {
-            "node": "Buscar Jugadores que Asistieron",
+            "node": "Split Players",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Buscar Jugadores que Asistieron": {
+    "Split Players": {
       "main": [
         [
           {
-            "node": "Enviar Email MVP",
+            "node": "Filter Real Players (No Guests)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Enviar Email MVP": {
+    "Filter Real Players (No Guests)": {
       "main": [
         [
           {
-            "node": "Marcar Email como Enviado",
+            "node": "Send MVP Voting Email",
             "type": "main",
             "index": 0
           }
@@ -234,8 +164,10 @@
       ]
     }
   },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  }
+  "settings": {},
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "f789",
+  "id": "new-mvp-voting-v2"
 }

@@ -83,7 +83,11 @@ export default function Matchmaking() {
     setLoading(true);
     try {
       const { data } = await supabase.from('matches').select('*').eq('status', 'Programado').order('date', { ascending: true });
-      if (data) setMatches(data);
+      if (data && data.length > 0) {
+        setMatches(data);
+        // Auto-select the first match (the closest one in time)
+        setSelectedMatch(data[0].id);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
