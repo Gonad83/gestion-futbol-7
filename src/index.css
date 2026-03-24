@@ -206,24 +206,30 @@
 }
 
 .card-photo {
-  @apply w-[75%] aspect-[4/5] bg-black/20 rounded-2xl mt-4 flex items-center justify-center overflow-hidden border border-white/10 z-10 shadow-inner;
+  @apply w-full overflow-hidden z-10 flex items-center justify-center;
+  flex: 1;
+  margin-top: 26px;
+  margin-bottom: 2px;
 }
 
 .card-photo img {
-  @apply w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-500;
+  @apply w-full h-full object-cover object-center grayscale-[20%] hover:grayscale-0 transition-all duration-500;
 }
 
 .card-bottom {
-  @apply mt-auto mb-5 z-30 w-full text-center px-1 flex flex-col gap-0.5;
+  @apply z-30 w-full text-center px-1 flex flex-col gap-0 pb-2;
 }
 
 .card-name {
-  @apply text-[10px] md:text-[13px] font-black text-white uppercase tracking-tighter;
+  @apply text-[9px] md:text-[12px] font-black text-white uppercase tracking-tighter leading-tight;
   text-shadow: 1px 2px 3px rgba(0,0,0,0.8);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .card-nickname {
-  @apply text-[8px] md:text-[10px] font-bold text-yellow-400 uppercase italic opacity-90;
+  @apply text-[7px] md:text-[9px] font-bold text-yellow-400 uppercase italic opacity-90 leading-tight;
   text-shadow: 1px 1px 2px rgba(0,0,0,1);
 }
 

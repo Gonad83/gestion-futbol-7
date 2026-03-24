@@ -172,6 +172,8 @@ export default function Matchmaking() {
     setGuestName('');
     setGuestRating('5');
     setShowGuestForm(false);
+  };
+
   const removeFromPool = async (id: string) => {
     if (typeof id === 'string' && id.startsWith('guest-')) {
        // Local temporary guest (not yet in DB or from non-persisted state)
@@ -194,17 +196,21 @@ export default function Matchmaking() {
       newName = `${newName} (I)`;
     }
 
-    // 1. Update match_guests table
-    const { error } = await supabase.from('match_guests').update({ name: newName }).eq('id', guestId);
-    
-    if (error) {
-      console.error(error);
-      alert('Error al actualizar nombre del invitado');
-      return;
+    // Identify if it's a real guest from the DB or a temp guest
+    const isTemp = typeof guestId === 'string' && guestId.startsWith('guest-');
+
+    if (!isTemp) {
+      // Update match_guests table ONLY if it's a persisted guest
+      const { error } = await supabase.from('match_guests').update({ name: newName }).eq('id', guestId);
+      if (error) {
+        console.error(error);
+        alert('Error al actualizar nombre del invitado');
+        return;
+      }
     }
 
-    // 2. Update local state
-    const updateNameInList = (list: any[]) => list.map(p => p.id === guestId ? { ...p, name: newName } : p);
+    // Update local state (affects both pool and teams)
+    const updateNameInList = (list: any[]) => list.map(p => p.id === guestId ? { ...p, name: newName, isGuest: true } : p);
     
     setConfirmedPlayers(prev => updateNameInList(prev));
     setTeamA(prev => updateNameInList(prev));
@@ -212,7 +218,7 @@ export default function Matchmaking() {
     
     setEditingGuestId(null);
     setEditingGuestName('');
-    setSaved(false); // Mark as unsaved so user knows teams metadata might need update
+    setSaved(false); 
   };
 
   const generateTeams = () => {
@@ -462,7 +468,7 @@ export default function Matchmaking() {
                         <Star size={10} className="text-yellow-500 fill-yellow-500" />
                         <span className="text-xs font-black text-white/80">{player.rating}</span>
                       </div>
-                      {player.isGuest && isAdmin && (
+                      {(player.isGuest || player.name.includes('(I)')) && isAdmin && (
                         <div className="flex gap-2">
                           <button 
                             onClick={() => {
@@ -614,49 +620,51 @@ export default function Matchmaking() {
                       </div>
                       
                       <div className="space-y-2">
-                        {players.map((p, pIdx) => (
+                        {players.map((p) => (
                           <div key={p.id} className="flex justify-between items-center px-4 py-3.5 rounded-2xl transition-all hover:translate-x-1 group/item" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                            <div className="flex items-center gap-4 truncate">
-                              <span className="text-[10px] font-black text-white/10 w-4 italic">{pIdx + 1}</span>
-                              <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 bg-black/20 group-hover/item:border-white/30 transition-all">
-                                {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover" alt={p.name} /> : <span className="text-[10px] font-black opacity-30">{p.name.charAt(0)}</span>}
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 bg-black/20 group-hover/item:border-white/30 transition-all flex-shrink-0">
+                                {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover object-center" alt={p.name} /> : <span className="text-[10px] font-black opacity-30">{p.name.charAt(0)}</span>}
                               </div>
-                              <span className="font-black text-xs text-white/90 uppercase tracking-tight truncate group-hover/item:text-white transition-colors">
-                                {p.isGuest && isAdmin && editingGuestId === p.id ? (
-                                  <div className="flex items-center gap-2">
-                                    <input 
+                              <div className="flex-1 min-w-0">
+                                {(p.isGuest || p.name.includes('(I)')) && isAdmin && editingGuestId === p.id ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <input
                                       type="text"
-                                      className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-[10px] w-32 outline-none text-white"
+                                      className="bg-black/40 border border-soccer-green/30 rounded-lg px-2 py-1 text-[10px] flex-1 min-w-0 outline-none text-white"
                                       value={editingGuestName}
                                       onChange={e => setEditingGuestName(e.target.value)}
                                       onKeyDown={e => e.key === 'Enter' && saveGuestName(p.id)}
                                       autoFocus
                                     />
-                                    <button onClick={() => saveGuestName(p.id)} className="text-soccer-green">
+                                    <button onClick={() => saveGuestName(p.id)} className="text-soccer-green flex-shrink-0">
                                       <Check size={14} />
+                                    </button>
+                                    <button onClick={() => setEditingGuestId(null)} className="text-slate-500 flex-shrink-0">
+                                      <X size={12} />
                                     </button>
                                   </div>
                                 ) : (
-                                  <span 
-                                    className={p.isGuest && isAdmin ? 'cursor-pointer hover:text-soccer-green' : ''}
-                                    onClick={() => {
-                                      if (p.isGuest && isAdmin) {
-                                        setEditingGuestId(p.id);
-                                        setEditingGuestName(p.name.replace(/\(I\)$/i, '').trim());
-                                      }
-                                    }}
-                                  >
-                                    {p.name}
-                                  </span>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="font-black text-xs text-white/90 uppercase tracking-tight truncate group-hover/item:text-white transition-colors">
+                                      {p.name}
+                                    </span>
+                                    {(p.isGuest || p.name.includes('(I)')) && isAdmin && (
+                                      <button
+                                        onClick={() => {
+                                          setEditingGuestId(p.id);
+                                          setEditingGuestName(p.name.replace(/\(I\)$/i, '').trim());
+                                        }}
+                                        className="text-soccer-green/60 hover:text-soccer-green flex-shrink-0 transition-colors"
+                                      >
+                                        <Edit2 size={11} />
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-bold text-white/30 uppercase italic">{p.position?.split(' ')[0]}</span>
-                              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 border border-white/5 group-hover/item:bg-white/10 transition-all">
-                                <span className="font-black text-xs" style={{ color: colorHex }}>{p.rating}</span>
                               </div>
                             </div>
+                            <span className="text-[10px] font-bold text-white/30 uppercase italic ml-2 flex-shrink-0">{p.position?.split(' ')[0]}</span>
                           </div>
                         ))}
                       </div>
@@ -717,6 +725,7 @@ export default function Matchmaking() {
 
 function FifaCard({ player, color, index, isSelected }: { player: any, color: string, index: number, isSelected?: boolean }) {
   const cardColorClass = color === 'emerald' ? 'emerald' : color === 'blue' ? 'blue' : color === 'white' ? 'white' : color === 'yellow' ? 'yellow' : color === 'red' ? 'red' : color === 'purple' ? 'purple' : color === 'lightblue' ? 'lightblue' : color === 'gold' ? 'gold' : 'blue';
+  const displayName = player.name.replace(/\s*\(I\)\s*$/i, '').trim();
 
   return (
     <div className={`fifa-card-container fade-in ${isSelected ? 'scale-110 -translate-y-4 brightness-125 z-50' : 'z-10'}`} style={{ animationDelay: `${index * 50}ms` }}>
@@ -727,12 +736,12 @@ function FifaCard({ player, color, index, isSelected }: { player: any, color: st
         </div>
         <div className="card-photo">
           {player.photo_url
-            ? <img src={player.photo_url} alt={player.name} className="object-top" />
-            : <div className="card-placeholder text-3xl font-bold text-white/10 italic">{player.name.charAt(0)}</div>
+            ? <img src={player.photo_url} alt={displayName} />
+            : <div className="card-placeholder font-bold text-white/20 italic">{displayName.charAt(0)}</div>
           }
         </div>
         <div className="card-bottom">
-          <div className="card-name tracking-tighter truncate">{player.name}</div>
+          <div className="card-name">{displayName}</div>
           {player.nickname && <div className="card-nickname italic">"{player.nickname}"</div>}
         </div>
       </div>
