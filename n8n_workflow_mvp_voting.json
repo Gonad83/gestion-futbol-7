@@ -1,0 +1,241 @@
+{
+  "name": "⚽ MVP Voting Post-Match",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule-id",
+      "name": "Schedule cada 15 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://wmcycxnydunfjnirmjuy.supabase.co/rest/v1/matches",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "status",
+              "value": "eq.Programado"
+            },
+            {
+              "name": "mvp_email_sent",
+              "value": "eq.false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-matches-id",
+      "name": "Buscar Partidos Finalizados",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "dateTime": [
+            {
+              "value1": "={{ $json.date }}",
+              "value2": "={{ $now.minus({ minutes: 90 }) }}"
+            }
+          ]
+        }
+      },
+      "id": "filter-passed-id",
+      "name": "Filtrar Partidos Pasados",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://wmcycxnydunfjnirmjuy.supabase.co/rest/v1/attendance",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "player:players(name, email)"
+            },
+            {
+              "name": "match_id",
+              "value": "=eq.{{ $json.id }}"
+            },
+            {
+              "name": "status",
+              "value": "eq.Voy"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-players-id",
+      "name": "Buscar Jugadores que Asistieron",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.player.email }}",
+        "subject": "=⚽ ¿Quién fue el MVP del partido?",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:white;padding:32px;border-radius:16px\">\n  <h1 style=\"color:#ffd700;margin-bottom:4px\">🌟 Vota al Mejor Jugador</h1>\n  <p style=\"font-size:18px;margin-top:8px\">Hola <b>{{ $json.player.name }}</b>, el partido ha terminado.</p>\n  <p style=\"font-size:16px;margin:24px 0 text-align:center\">¡Es hora de elegir al MVP del partido!</p>\n  <div style=\"text-align:center\">\n    <a href=\"https://tu-app.com/vote?match_id={{ $('Filtrar Partidos Pasados').first().json.id }}\"\n       style=\"background:#ffd700;color:#000;padding:16px 32px;text-decoration:none;border-radius:12px;display:inline-block;font-weight:bold;font-size:16px;box-shadow:0 4px 20px rgba(255,215,0,0.3)\">\n      ⭐ Votar Ahora\n    </a>\n  </div>\n  <p style=\"margin-top:32px;font-size:12px;color:#64748b\">Recuerda que no puedes votar por ti mismo. Solo cuentan los votos de quienes asistieron.</p>\n</div>",
+        "options": {}
+      },
+      "id": "gmail-id",
+      "name": "Enviar Email MVP",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://wmcycxnydunfjnirmjuy.supabase.co/rest/v1/matches?id=eq.{{ $('Filtrar Partidos Pasados').first().json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mvp_email_sent",
+              "value": "true"
+            },
+            {
+              "name": "status",
+              "value": "Jugado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-match-id",
+      "name": "Marcar Email como Enviado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 300]
+    }
+  ],
+  "connections": {
+    "Schedule cada 15 min": {
+      "main": [
+        [
+          {
+            "node": "Buscar Partidos Finalizados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Partidos Finalizados": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Partidos Pasados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Partidos Pasados": {
+      "main": [
+        [
+          {
+            "node": "Buscar Jugadores que Asistieron",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Jugadores que Asistieron": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email MVP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Email MVP": {
+      "main": [
+        [
+          {
+            "node": "Marcar Email como Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

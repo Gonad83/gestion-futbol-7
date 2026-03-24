@@ -1,0 +1,102 @@
+{
+  "name": "⚽ Confirmar Asistencia desde Email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "confirmar",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "Webhook Confirmar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "confirmar"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "tableId": "attendance",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "match_id",
+              "fieldValue": "={{ $json.query.match_id }}"
+            },
+            {
+              "fieldId": "player_id",
+              "fieldValue": "={{ $json.query.player_id }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.query.status }}"
+            }
+          ]
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "Supabase - Guardar Asistencia",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "2",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Asistencia Confirmada</title>\n</head>\n<body style=\"font-family:sans-serif;text-align:center;padding:60px 20px;background:#0f172a;color:white;min-height:100vh;margin:0\">\n  <div style=\"max-width:400px;margin:0 auto\">\n    <div style=\"font-size:64px;margin-bottom:16px\">✅</div>\n    <h2 style=\"color:#10b981;font-size:28px;margin-bottom:12px\">¡Asistencia registrada!</h2>\n    <p style=\"color:#94a3b8;font-size:16px\">Tu respuesta quedó guardada correctamente.</p>\n    <p style=\"color:#64748b;font-size:14px;margin-top:24px\">Nos vemos en la cancha. ⚽</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Confirmar": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Guardar Asistencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Guardar Asistencia": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,284 @@
+{
+  "name": "⚽ Pagos - Cobros y Recordatorios",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtDayOfMonth": 1,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-dia1",
+      "name": "Cron Día 1 - Generar Cobros",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 200]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "players",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Activo"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-players-id",
+      "name": "Obtener Jugadores Activos",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [320, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "payments",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "player_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldId": "amount",
+              "fieldValue": "=8000"
+            },
+            {
+              "fieldId": "month",
+              "fieldValue": "={{ new Date().getMonth() + 1 }}"
+            },
+            {
+              "fieldId": "year",
+              "fieldValue": "={{ new Date().getFullYear() }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "Pendiente"
+            }
+          ]
+        }
+      },
+      "id": "supabase-insert-payment-id",
+      "name": "Crear Registro de Pago",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [540, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtDayOfMonth": 15,
+              "triggerAtHour": 10,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-dia15",
+      "name": "Cron Día 15 - Recordatorios",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 500]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "payments",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Pendiente"
+            },
+            {
+              "keyName": "month",
+              "condition": "eq",
+              "keyValue": "={{ new Date().getMonth() + 1 }}"
+            },
+            {
+              "keyName": "year",
+              "condition": "eq",
+              "keyValue": "={{ new Date().getFullYear() }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-pending-id",
+      "name": "Obtener Pagos Pendientes",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [320, 500],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "players",
+        "id": "={{ $json.player_id }}"
+      },
+      "id": "supabase-get-player-info-id",
+      "name": "Obtener Info Jugador",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [540, 500],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=⚽ Recordatorio: Pago de Cuota - {{ new Date().toLocaleString('default', { month: 'long' }) }}",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:white;padding:32px;border-radius:16px\">\n  <h1 style=\"color:#f59e0b;margin-bottom:4px\">⚽ Recordatorio de Cuota</h1>\n  <p style=\"font-size:18px;margin-top:8px\">Hola <b>{{ $json.name }}</b>,</p>\n  <p style=\"font-size:16px;line-height:1.6\">Te recordamos que aún tienes pendiente el pago de la cuota de este mes.</p>\n  <div style=\"background:#1e293b;border-radius:12px;padding:20px;margin:24px 0;border:1px solid #334155\">\n    <p style=\"margin:8px 0\">💰 <b>Monto:</b> $8,000</p>\n    <p style=\"margin:8px 0\">📅 <b>Estado:</b> Pendiente</p>\n  </div>\n  <p style=\"font-size:20px;color:#10b981;font-weight:bold;text-align:center;margin:24px 0;font-style:italic\">¡VAMOS EQUIPO! ⚽<br>Real Ebolo FC campeón 2026</p>\n  <p style=\"font-size:14px;color:#94a3b8\">Si ya realizaste el pago, por favor ignora este mensaje o avísanos para actualizar el sistema.</p>\n</div>",
+        "options": {}
+      },
+      "id": "gmail-reminder-id",
+      "name": "Enviar Email Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [760, 500],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "payments",
+        "id": "={{ $('Obtener Pagos Pendientes').item.json.id }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "notified_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-update-notified-id",
+      "name": "Marcar como Notificado",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [980, 500],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron Día 1 - Generar Cobros": {
+      "main": [
+        [
+          {
+            "node": "Obtener Jugadores Activos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Jugadores Activos": {
+      "main": [
+        [
+          {
+            "node": "Crear Registro de Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron Día 15 - Recordatorios": {
+      "main": [
+        [
+          {
+            "node": "Obtener Pagos Pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Pagos Pendientes": {
+      "main": [
+        [
+          {
+            "node": "Obtener Info Jugador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Info Jugador": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Email Gmail": {
+      "main": [
+        [
+          {
+            "node": "Marcar como Notificado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

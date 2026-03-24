@@ -1,0 +1,457 @@
+{
+  "name": "⚽ Pagos - Cobros y Recordatorios (CON MANUAL)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtDayOfMonth": 1,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "cron-dia1",
+      "name": "Cron Día 1 - Generar Cobros",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 100]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pago-manual",
+        "options": {}
+      },
+      "id": "webhook-pago",
+      "name": "Webhook Pago Manual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 280],
+      "webhookId": "pago-manual"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "players",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Activo"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-active-players",
+      "name": "Obtener Jugadores Activos",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [340, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "player_id",
+              "value": "={{ $json.body?.player?.id || $json.id }}"
+            },
+            {
+              "name": "status",
+              "value": "Pendiente"
+            }
+          ],
+          "number": [
+            {
+              "name": "amount",
+              "value": "=8000"
+            },
+            {
+              "name": "month",
+              "value": "={{ new Date().getMonth() + 1 }}"
+            },
+            {
+              "name": "year",
+              "value": "={{ new Date().getFullYear() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-normalize-payment",
+      "name": "Normalizar Pago",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [560, 180]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "payments",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "player_id",
+              "fieldValue": "={{ $json.player_id }}"
+            },
+            {
+              "fieldId": "amount",
+              "fieldValue": "={{ $json.amount }}"
+            },
+            {
+              "fieldId": "month",
+              "fieldValue": "={{ $json.month }}"
+            },
+            {
+              "fieldId": "year",
+              "fieldValue": "={{ $json.year }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.status }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-create-payment",
+      "name": "Crear Registro de Pago",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [780, 180],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "players",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.player_id }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-player-cobro",
+      "name": "Obtener Info Jugador (Cobro)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1000, 180],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=⚽ Cuota Mensual {{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }} - Real Ebolo FC",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:white;padding:32px;border-radius:16px\">\n  <div style=\"text-align:center;margin-bottom:24px\">\n    <span style=\"font-size:48px\">⚽</span>\n    <h1 style=\"color:#f59e0b;margin:8px 0 4px\">Cuota Mensual Disponible</h1>\n    <p style=\"color:#94a3b8;margin:0\">{{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }}</p>\n  </div>\n  <p style=\"font-size:18px;margin-top:8px\">Hola <b>{{ $json.name }}</b>,</p>\n  <p style=\"font-size:16px;line-height:1.6;color:#cbd5e1\">Ya está disponible el cobro de la cuota mensual del equipo. Te pedimos que realices el pago a la brevedad para mantener tu cupo activo.</p>\n  <div style=\"background:#1e293b;border-radius:12px;padding:20px;margin:24px 0;border:1px solid #334155\">\n    <p style=\"margin:8px 0;font-size:16px\">💰 <b>Monto:</b> $8.000</p>\n    <p style=\"margin:8px 0;font-size:16px\">📅 <b>Mes:</b> {{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }}</p>\n    <p style=\"margin:8px 0;font-size:16px\">📌 <b>Estado:</b> <span style=\"color:#fbbf24\">Pendiente de pago</span></p>\n  </div>\n  <p style=\"font-size:14px;color:#64748b;margin-bottom:24px\">Si ya realizaste el pago, ignora este mensaje. En caso de dudas contacta al administrador del equipo.</p>\n  <div style=\"border-top:1px solid #1e293b;padding-top:24px;text-align:center\">\n    <p style=\"font-size:20px;color:#10b981;font-weight:bold;margin:0;font-style:italic\">¡VAMOS EQUIPO! ⚽</p>\n    <p style=\"color:#f59e0b;font-weight:bold;margin:4px 0 0\">Real Ebolo FC — Campeón 2026</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "gmail-cobro",
+      "name": "Enviar Email Cobro",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1220, 180],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtDayOfMonth": 15,
+              "triggerAtHour": 10,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "cron-dia15",
+      "name": "Cron Día 15 - Recordatorios",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 520]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "recordatorio-manual",
+        "options": {}
+      },
+      "id": "webhook-recordatorio",
+      "name": "Webhook Recordatorio Manual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 700],
+      "webhookId": "recordatorio-manual"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "payments",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Pendiente"
+            },
+            {
+              "keyName": "month",
+              "condition": "eq",
+              "keyValue": "={{ new Date().getMonth() + 1 }}"
+            },
+            {
+              "keyName": "year",
+              "condition": "eq",
+              "keyValue": "={{ new Date().getFullYear() }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-pending",
+      "name": "Obtener Pagos Pendientes",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [340, 520],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "players",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.player_id }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-player-info",
+      "name": "Obtener Info Jugador",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [560, 520],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "email",
+              "value": "={{ $json.body?.player?.email || $json.email }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.body?.player?.name || $json.name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-normalize-reminder",
+      "name": "Normalizar Recordatorio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [780, 600]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=⏰ RECORDATORIO: Cuota Pendiente {{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }} - Real Ebolo FC",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:white;padding:32px;border-radius:16px\">\n  <div style=\"text-align:center;margin-bottom:24px\">\n    <span style=\"font-size:48px\">⏰</span>\n    <h1 style=\"color:#ef4444;margin:8px 0 4px\">Cuota Aún Pendiente</h1>\n    <p style=\"color:#94a3b8;margin:0\">{{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }}</p>\n  </div>\n  <p style=\"font-size:18px;margin-top:8px\">Hola <b>{{ $json.name }}</b>,</p>\n  <p style=\"font-size:16px;line-height:1.6;color:#cbd5e1\">Te recordamos que <b style=\"color:#ef4444\">todavía no registramos tu pago</b> de la cuota de este mes. Ya vamos por el día 15 — ¡no te quedes atrás!</p>\n  <div style=\"background:#1e293b;border-radius:12px;padding:20px;margin:24px 0;border:1px solid #ef4444;border-opacity:0.3\">\n    <p style=\"margin:8px 0;font-size:16px\">💰 <b>Monto:</b> $8.000</p>\n    <p style=\"margin:8px 0;font-size:16px\">📅 <b>Mes:</b> {{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }}</p>\n    <p style=\"margin:8px 0;font-size:16px\">⚠️ <b>Estado:</b> <span style=\"color:#ef4444;font-weight:bold\">PENDIENTE</span></p>\n  </div>\n  <p style=\"font-size:15px;line-height:1.6;color:#fbbf24;background:#1e293b;padding:16px;border-radius:8px;border-left:4px solid #f59e0b\">\n    Por favor regulariza tu pago lo antes posible. Si ya lo realizaste y aparece este mensaje, avísale al administrador para que actualice tu estado.\n  </p>\n  <div style=\"border-top:1px solid #1e293b;padding-top:24px;text-align:center;margin-top:24px\">\n    <p style=\"font-size:20px;color:#10b981;font-weight:bold;margin:0;font-style:italic\">¡VAMOS EQUIPO! ⚽</p>\n    <p style=\"color:#f59e0b;font-weight:bold;margin:4px 0 0\">Real Ebolo FC — Campeón 2026</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "gmail-recordatorio",
+      "name": "Enviar Email Recordatorio",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1000, 600],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron Día 1 - Generar Cobros": {
+      "main": [
+        [
+          {
+            "node": "Obtener Jugadores Activos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Pago Manual": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Jugadores Activos": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Pago": {
+      "main": [
+        [
+          {
+            "node": "Crear Registro de Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Registro de Pago": {
+      "main": [
+        [
+          {
+            "node": "Obtener Info Jugador (Cobro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Info Jugador (Cobro)": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email Cobro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron Día 15 - Recordatorios": {
+      "main": [
+        [
+          {
+            "node": "Obtener Pagos Pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Recordatorio Manual": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Pagos Pendientes": {
+      "main": [
+        [
+          {
+            "node": "Obtener Info Jugador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Info Jugador": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Recordatorio": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,254 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Manrope', system-ui, sans-serif;
+    @apply bg-dark-bg text-white antialiased min-h-screen selection:bg-soccer-green/30 selection:text-white;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(68, 243, 169, 0.1) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 0% 100%, rgba(154, 203, 255, 0.05) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Lexend', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(28, 32, 38, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    @apply rounded-2xl p-6 relative overflow-hidden transition-all duration-500;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .glass-card::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
+  }
+
+  .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(68, 243, 169, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #44f3a9 0%, #00d68f 100%);
+    @apply text-[#003822] font-bold py-2.5 px-6 rounded-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 4px 20px rgba(68, 243, 169, 0.25);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #5fffc0 0%, #27e199 100%);
+    box-shadow: 0 4px 30px rgba(68, 243, 169, 0.4);
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    @apply hover:bg-white/10 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-300 active:scale-95 backdrop-blur-sm flex items-center justify-center gap-2;
+  }
+
+  .input-field {
+    background: rgba(49, 53, 60, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    @apply w-full rounded-xl px-4 py-3 text-white placeholder-white/25 focus:outline-none focus:border-soccer-green/50 transition-all;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .input-field:focus {
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(68, 243, 169, 0.12);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(68, 243, 169, 0.2);
+    @apply rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(68, 243, 169, 0.35);
+  }
+
+  /* KPI stat display */
+  .stat-display {
+    font-family: 'Lexend', system-ui, sans-serif;
+    @apply text-5xl font-black tracking-tight;
+    letter-spacing: -0.02em;
+  }
+
+  /* Surface card variants */
+  .surface-card {
+    background: #1c2026;
+    @apply rounded-2xl p-6 relative overflow-hidden transition-all duration-300;
+  }
+
+  .surface-card-high {
+    background: #262a31;
+    @apply rounded-xl p-4 relative overflow-hidden transition-all duration-300;
+  }
+}
+
+/* Micro-animations */
+.fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.scale-in {
+  animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* FIFA Cards Premium Styling */
+.fifa-card-container {
+  perspective: 1200px;
+}
+
+.fifa-card {
+  @apply relative w-[75px] h-[105px] md:w-[85px] md:h-[120px] lg:w-[100px] lg:h-[140px] xl:w-[110px] xl:h-[155px] rounded-lg shadow-2xl overflow-hidden transition-all duration-500 cursor-pointer flex flex-col items-center py-2;
+  clip-path: polygon(50% 0%, 100% 12%, 100% 88%, 50% 100%, 0% 88%, 0% 12%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.fifa-card::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/40 pointer-events-none z-20;
+}
+
+.fifa-card:hover {
+  @apply -translate-y-3 scale-110 z-50;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(68, 243, 169, 0.3);
+}
+
+.fifa-card.emerald {
+  background: linear-gradient(145deg, #064e3b 0%, #10b981 40%, #059669 60%, #064e3b 100%);
+  @apply border-emerald-400/30;
+}
+
+.fifa-card.blue {
+  background: linear-gradient(145deg, #1e3a8a 0%, #3b82f6 40%, #2563eb 60%, #1e3a8a 100%);
+  @apply border-blue-400/30;
+}
+
+.fifa-card.gold {
+  background: linear-gradient(145deg, #78350f 0%, #f59e0b 40%, #d97706 60%, #78350f 100%);
+  @apply border-yellow-400/30;
+}
+
+.fifa-card.white {
+  background: white !important;
+  @apply border-slate-300;
+}
+
+.fifa-card.yellow {
+  background: linear-gradient(145deg, #854d0e 0%, #facc15 40%, #eab308 60%, #854d0e 100%);
+  @apply border-yellow-300/30;
+}
+
+.fifa-card.lightblue {
+  background: linear-gradient(145deg, #0c4a6e 0%, #0ea5e9 40%, #0284c7 60%, #0c4a6e 100%);
+  @apply border-sky-400/30;
+}
+
+.fifa-card.white .card-name, .fifa-card.white .card-rating, .fifa-card.white .card-pos,
+.fifa-card.yellow .card-name, .fifa-card.yellow .card-rating, .fifa-card.yellow .card-pos,
+.fifa-card.lightblue .card-name, .fifa-card.lightblue .card-rating, .fifa-card.lightblue .card-pos {
+  @apply text-slate-900;
+  text-shadow: none;
+}
+
+.fifa-card.black {
+  background: linear-gradient(145deg, #000000 0%, #334155 40%, #1e293b 60%, #000000 100%);
+  @apply border-slate-700/50;
+}
+
+.fifa-card.red {
+  background: linear-gradient(145deg, #7f1d1d 0%, #ef4444 40%, #dc2626 60%, #7f1d1d 100%);
+  @apply border-red-400/30;
+}
+
+.fifa-card.purple {
+  background: linear-gradient(145deg, #4c1d95 0%, #a855f7 40%, #8b5cf6 60%, #4c1d95 100%);
+  @apply border-purple-400/30;
+}
+
+.card-top {
+  @apply absolute top-5 left-3.5 flex flex-col items-center leading-none z-30;
+}
+
+.card-rating {
+  @apply text-xl md:text-3xl font-black text-white italic -mb-1 tracking-tighter;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+}
+
+.card-pos {
+  @apply text-[9px] md:text-[11px] font-black text-white/90 uppercase tracking-widest;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.card-photo {
+  @apply w-[75%] aspect-[4/5] bg-black/20 rounded-2xl mt-4 flex items-center justify-center overflow-hidden border border-white/10 z-10 shadow-inner;
+}
+
+.card-photo img {
+  @apply w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-500;
+}
+
+.card-bottom {
+  @apply mt-auto mb-5 z-30 w-full text-center px-1 flex flex-col gap-0.5;
+}
+
+.card-name {
+  @apply text-[10px] md:text-[13px] font-black text-white uppercase tracking-tighter;
+  text-shadow: 1px 2px 3px rgba(0,0,0,0.8);
+}
+
+.card-nickname {
+  @apply text-[8px] md:text-[10px] font-bold text-yellow-400 uppercase italic opacity-90;
+  text-shadow: 1px 1px 2px rgba(0,0,0,1);
+}
+
+/* Tactical Pitch */
+.pitch-player {
+  @apply absolute transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)];
+  transform: translate(-50%, -50%);
+}
+
+.pitch-team-label {
+  @apply absolute top-4 font-black text-[12px] uppercase tracking-[0.3em] text-white/20;
+}
+
+/* Pulse Glow */
+.status-pulse {
+  @apply relative flex h-3 w-3;
+}
+.status-pulse-dot {
+  @apply animate-ping absolute inline-flex h-full w-full rounded-full opacity-75;
+}
+.status-pulse-inner {
+  @apply relative inline-flex rounded-full h-3 w-3;
+}
+
+/* Neon glow utility */
+.glow-green {
+  box-shadow: 0 0 20px rgba(68, 243, 169, 0.3);
+}
