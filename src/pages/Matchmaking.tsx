@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
-import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check } from 'lucide-react';
 
 export default function Matchmaking() {
   const [loading, setLoading] = useState(true);
@@ -18,6 +18,8 @@ export default function Matchmaking() {
   const [swapSelection, setSwapSelection] = useState<{ team: 'A' | 'B', index: number } | null>(null);
   const [saved, setSaved] = useState(false);
   const [teamsGenerated, setTeamsGenerated] = useState(false);
+  const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
+  const [editingGuestName, setEditingGuestName] = useState('');
 
   // Guest form (pre-generation pool)
   const [showGuestForm, setShowGuestForm] = useState(false);
@@ -85,11 +87,15 @@ export default function Matchmaking() {
       const { data } = await supabase.from('matches').select('*').eq('status', 'Programado').order('date', { ascending: true });
       if (data && data.length > 0) {
         setMatches(data);
-        // Auto-select the first match (the closest one in time)
+        // setSelectedMatch will trigger another useEffect which calls fetchConfirmedPlayers
         setSelectedMatch(data[0].id);
+      } else {
+        setLoading(false);
       }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (e) { 
+      console.error(e); 
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -99,22 +105,27 @@ export default function Matchmaking() {
       setConfirmedPlayers([]);
       setTeamA([]); setTeamB([]);
       setTeamsGenerated(false);
+      // If we are here and not loading, we can stop loading
     }
   }, [selectedMatch]);
 
   const fetchConfirmedPlayers = async (matchId: string) => {
-    // 1. Fetch real players from attendance
-    const { data: attendanceData } = await supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'Voy');
-    const realPlayers = attendanceData ? attendanceData.map(d => d.player) : [];
+    try {
+      // 1. Fetch real players from attendance
+      const { data: attendanceData } = await supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'Voy');
+      const realPlayers = attendanceData ? attendanceData.map(d => d.player) : [];
 
-    // 2. Fetch guests from database
-    const { data: guestsData } = await supabase.from('match_guests').select('*').eq('match_id', matchId);
-    const guestPlayers = guestsData ? guestsData.map(g => ({ ...g, isGuest: true, photo_url: null, nickname: null })) : [];
+      // 2. Fetch guests from database
+      const { data: guestsData } = await supabase.from('match_guests').select('*').eq('match_id', matchId);
+      const guestPlayers = guestsData ? guestsData.map(g => ({ ...g, isGuest: true, photo_url: null, nickname: null })) : [];
 
-    setConfirmedPlayers([...realPlayers, ...guestPlayers]);
-    
-    // 3. Check for saved teams AFTER players are loaded
-    await checkSavedTeams(matchId);
+      setConfirmedPlayers([...realPlayers, ...guestPlayers]);
+      
+      // 3. Check for saved teams
+      await checkSavedTeams(matchId);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const checkSavedTeams = async (matchId: string) => {
@@ -129,10 +140,8 @@ export default function Matchmaking() {
       setSaved(true); 
       setTeamsGenerated(true);
     } else {
-      setTeamA([]); 
-      setTeamB([]); 
-      setSaved(false); 
-      setTeamsGenerated(false);
+      setTeamA([]); setTeamB([]); 
+      setSaved(false); setTeamsGenerated(false);
     }
   };
 
@@ -163,8 +172,6 @@ export default function Matchmaking() {
     setGuestName('');
     setGuestRating('5');
     setShowGuestForm(false);
-  };
-
   const removeFromPool = async (id: string) => {
     if (typeof id === 'string' && id.startsWith('guest-')) {
        // Local temporary guest (not yet in DB or from non-persisted state)
@@ -176,6 +183,36 @@ export default function Matchmaking() {
     if (!error) {
       setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
     }
+  };
+
+  const saveGuestName = async (guestId: string) => {
+    if (!editingGuestName.trim() || !selectedMatch) return;
+    
+    // Ensure it ends with (I) if it doesn't already
+    let newName = editingGuestName.trim();
+    if (!newName.toLowerCase().endsWith('(i)')) {
+      newName = `${newName} (I)`;
+    }
+
+    // 1. Update match_guests table
+    const { error } = await supabase.from('match_guests').update({ name: newName }).eq('id', guestId);
+    
+    if (error) {
+      console.error(error);
+      alert('Error al actualizar nombre del invitado');
+      return;
+    }
+
+    // 2. Update local state
+    const updateNameInList = (list: any[]) => list.map(p => p.id === guestId ? { ...p, name: newName } : p);
+    
+    setConfirmedPlayers(prev => updateNameInList(prev));
+    setTeamA(prev => updateNameInList(prev));
+    setTeamB(prev => updateNameInList(prev));
+    
+    setEditingGuestId(null);
+    setEditingGuestName('');
+    setSaved(false); // Mark as unsaved so user knows teams metadata might need update
   };
 
   const generateTeams = () => {
@@ -201,7 +238,6 @@ export default function Matchmaking() {
     setSaved(false); setTeamsGenerated(true);
   };
 
-  const backToRoster = () => { setTeamsGenerated(false); setTeamA([]); setTeamB([]); setSaved(false); };
 
   const saveTeams = async () => {
     if (!selectedMatch || !isAdmin) return;
@@ -255,393 +291,421 @@ export default function Matchmaking() {
 
   const getAvg = (team: any[]) => team.length === 0 ? '0.0' : (team.reduce((a, p) => a + (p.rating || 0), 0) / team.length).toFixed(1);
 
-  const canGenerate = confirmedPlayers.length >= 10;
 
-  if (loading) {
+  if (loading && !selectedMatch) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 rounded-full border-2 border-t-soccer-green border-r-soccer-green/20 border-b-soccer-green/10 border-l-soccer-green/5 animate-spin" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <RefreshCw className="animate-spin text-soccer-green" size={40} />
+        <p className="text-slate-400 font-medium animate-pulse tracking-wide">Cargando pizarra táctica...</p>
       </div>
     );
   }
 
   return (
-    <div className="fade-in pb-20 md:pb-0 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Táctica</p>
-          <h1 className="font-headline text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
-              <ShieldAlert size={18} />
-            </div>
-            Matchmaking
-          </h1>
+    <div className="space-y-6 max-w-7xl mx-auto pb-20 fade-in">
+      {/* Header & Match Selection */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-soccer-green/10 rounded-xl border border-soccer-green/20">
+            <Users className="text-soccer-green" size={22} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-soccer-green uppercase tracking-[0.2em] mb-0.5">Estrategia</p>
+            <h1 className="text-2xl font-black text-white tracking-tight uppercase italic">Matchmaking</h1>
+          </div>
         </div>
 
-        <select
-          className="input-field max-w-xs"
-          value={selectedMatch}
-          onChange={(e) => { setSelectedMatch(e.target.value); setTeamsGenerated(false); }}
-        >
-          <option value="">— Selecciona un partido —</option>
-          {matches.map(m => (
-            <option key={m.id} value={m.id}>
-              {format(new Date(m.date), 'dd/MM/yyyy')} · {m.location}
-            </option>
-          ))}
-        </select>
+        <div className="relative group w-full md:w-auto">
+          <select 
+            className="input-field bg-slate-900/40 backdrop-blur-xl border-glass-border min-w-[280px] appearance-none cursor-pointer hover:border-soccer-green/30 transition-all pr-10"
+            value={selectedMatch}
+            onChange={(e) => {
+              setLoading(true);
+              setSelectedMatch(e.target.value);
+            }}
+          >
+            {matches.length === 0 && <option value="">No hay partidos programados</option>}
+            {matches.map(m => (
+              <option key={m.id} value={m.id} className="bg-slate-900 text-white">
+                ⚽ {format(new Date(m.date), 'dd/MM/yyyy')} — {m.location}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+            <RefreshCw size={14} className={loading ? 'animate-spin text-soccer-green' : ''} />
+          </div>
+        </div>
       </div>
 
       {!selectedMatch ? (
-        <div className="text-center py-20 rounded-2xl" style={{ background: '#1c2026', border: '1px dashed rgba(255,255,255,0.08)' }}>
-          <ShieldAlert size={40} className="mx-auto mb-4 opacity-20" />
-          <h3 className="font-headline text-lg font-bold text-white mb-2">Selecciona un partido</h3>
-          <p className="text-white/35 text-sm max-w-sm mx-auto">Elige un partido del menú para ver la nómina y armar los equipos.</p>
-        </div>
-      ) : !teamsGenerated ? (
-        /* ── ROSTER VIEW ── */
-        <div className="space-y-5">
-          {/* Stats bar */}
-          <div
-            className="flex items-center justify-between px-5 py-4 rounded-2xl"
-            style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
-                <Users size={17} />
-              </div>
-              <div>
-                <p className="text-white font-bold text-lg leading-none">{confirmedPlayers.length} jugadores</p>
-                <p className="text-white/35 text-xs mt-0.5">
-                  {confirmedPlayers.filter(p => p.isGuest).length > 0
-                    ? `${confirmedPlayers.filter(p => !p.isGuest).length} confirmados · ${confirmedPlayers.filter(p => p.isGuest).length} invitados`
-                    : 'confirmados para este partido'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {isAdmin && (
-                <button
-                  onClick={() => setShowGuestForm(!showGuestForm)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-                  style={{ background: 'rgba(255,208,139,0.1)', color: '#ffd08b', border: '1px solid rgba(255,208,139,0.2)' }}
-                >
-                  <UserPlus size={15} />
-                  Agregar Invitado
-                </button>
-              )}
-              <button
-                onClick={generateTeams}
-                disabled={!canGenerate}
-                className="btn-primary py-2 px-5 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <RefreshCw size={15} />
-                Generar Equipos
-              </button>
-            </div>
+        <div className="glass-card p-16 text-center flex flex-col items-center gap-6 border-dashed border-2 border-glass-border/40 bg-white/2">
+          <div className="w-20 h-20 rounded-3xl bg-slate-800/50 flex items-center justify-center text-slate-500 shadow-inner">
+            <ShieldAlert size={40} className="opacity-40" />
           </div>
-
-          {/* Min players warning */}
-          {confirmedPlayers.length < 10 && confirmedPlayers.length > 0 && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(255,208,139,0.06)', border: '1px solid rgba(255,208,139,0.15)', color: '#ffd08b' }}>
-              <span className="text-base">⚠️</span>
-              Faltan {10 - confirmedPlayers.length} jugador{10 - confirmedPlayers.length !== 1 ? 'es' : ''} para el mínimo 5 vs 5. Agrega invitados para completar.
-            </div>
-          )}
-
-          {/* Guest form */}
-          {showGuestForm && isAdmin && (
-            <div className="flex flex-col sm:flex-row gap-3 items-end p-4 rounded-2xl fade-in" style={{ background: '#262a31', border: '1px solid rgba(255,208,139,0.15)' }}>
-              <div className="flex-1 w-full">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre del invitado</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Ej: Juan Pérez"
-                  value={guestName}
-                  onChange={e => setGuestName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addGuestToPool()}
-                  autoFocus
-                />
-              </div>
-              <div className="w-full sm:w-32">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Rating (1–7)</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  min="1" max="7" step="1"
-                  value={guestRating}
-                  onChange={e => setGuestRating(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <button onClick={addGuestToPool} className="btn-primary flex-1 sm:flex-none py-3 px-5 text-sm">Agregar</button>
-                <button onClick={() => { setShowGuestForm(false); setGuestName(''); }} className="btn-secondary py-3 px-4 text-sm">
-                  <X size={15} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Roster 2 columns */}
-          {confirmedPlayers.length === 0 ? (
-            <div className="text-center py-16 rounded-2xl" style={{ background: '#1c2026', border: '1px dashed rgba(255,255,255,0.08)' }}>
-              <Users size={36} className="mx-auto mb-3 opacity-20" />
-              <p className="text-white/40">No hay jugadores confirmados para este partido.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {confirmedPlayers.map((player, idx) => (
-                <div
-                  key={player.id}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all group"
-                  style={{
-                    background: player.isGuest ? 'rgba(255,208,139,0.06)' : '#1c2026',
-                    border: `1px solid ${player.isGuest ? 'rgba(255,208,139,0.15)' : 'rgba(255,255,255,0.05)'}`,
-                  }}
-                >
-                  {/* Number */}
-                  <span className="text-[10px] font-black text-white/20 w-5 text-center flex-shrink-0">{idx + 1}</span>
-
-                  {/* Avatar */}
-                  <div
-                    className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden text-sm font-black"
-                    style={{
-                      background: player.isGuest ? 'rgba(255,208,139,0.15)' : '#262a31',
-                      border: `1.5px solid ${player.isGuest ? 'rgba(255,208,139,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                      color: player.isGuest ? '#ffd08b' : 'rgba(255,255,255,0.4)'
-                    }}
-                  >
-                    {player.photo_url
-                      ? <img src={player.photo_url} className="w-full h-full object-cover" alt={player.name} />
-                      : player.name.charAt(0)
-                    }
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-semibold text-sm truncate leading-tight">{player.name}</p>
-                    <p className="text-[10px] truncate" style={{ color: player.isGuest ? '#ffd08b' : 'rgba(255,255,255,0.3)' }}>
-                      {player.position || 'Sin posición'}
-                    </p>
-                  </div>
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Star size={11} className="fill-current" style={{ color: '#ffd08b' }} />
-                    <span className="text-xs font-bold text-white/60">{player.rating}</span>
-                  </div>
-
-                  {/* Remove guest */}
-                  {player.isGuest && isAdmin && (
-                    <button
-                      onClick={() => removeFromPool(player.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-white/30 hover:text-red-400"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {confirmedPlayers.length >= 10 && (
-            <div className="flex justify-center pt-2">
-              <button onClick={generateTeams} className="btn-primary px-10 py-3">
-                <RefreshCw size={16} />
-                Generar Equipos ({confirmedPlayers.length} jugadores)
-              </button>
-            </div>
-          )}
+          <div className="space-y-2">
+            <h3 className="text-xl font-black text-white uppercase italic">Calendario Vacío</h3>
+            <p className="text-slate-400 max-w-xs mx-auto text-sm leading-relaxed">Primero debes agendar un partido en el calendario para poder organizar los equipos tácticos.</p>
+          </div>
         </div>
       ) : (
-        /* ── TEAMS VIEW ── */
-        <div className="space-y-6">
-          {/* Action bar */}
-          <div
-            className="flex items-center justify-between px-5 py-4 rounded-2xl"
-            style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}
-          >
+        <div className="grid grid-cols-1 gap-8 animate-in fade-in duration-700">
+          {/* Main Controls Overlay */}
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-black/40 backdrop-blur-2xl p-4 rounded-[2rem] border border-glass-border shadow-2xl">
             <div className="flex items-center gap-3">
-              <button
-                onClick={backToRoster}
-                className="btn-secondary py-2 px-4 text-sm"
-              >
-                ← Nómina
-              </button>
-              <span className="text-white/40 text-sm">{confirmedPlayers.length} jugadores · {teamA.length} vs {teamB.length}</span>
-            </div>
-            {isAdmin && (
-              <div className="flex gap-2">
-                <button onClick={generateTeams} className="btn-secondary py-2 px-4 text-sm flex items-center gap-2">
-                  <RefreshCw size={15} /> Re-generar
-                </button>
-                <button
-                  onClick={saveTeams}
-                  disabled={saved || teamA.length === 0}
-                  className={`btn-primary py-2 px-4 text-sm flex items-center gap-2 ${saved ? 'opacity-50 cursor-not-allowed' : ''}`}
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-white/5 rounded-2xl border border-white/5">
+                <Users size={16} className="text-soccer-green" />
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-tighter">Nómina:</span>
+                <span className="text-sm font-black text-white min-w-[2ch]">{confirmedPlayers.length}</span>
+              </div>
+              
+              {!teamsGenerated && isAdmin && (
+                <button 
+                  onClick={() => setShowGuestForm(!showGuestForm)}
+                  className={`btn-glass text-xs flex items-center gap-2 px-4 py-2.5 rounded-2xl border-white/10 ${showGuestForm ? 'bg-white/10' : ''}`}
                 >
-                  {saved ? <CheckCircle2 size={15} /> : <Save size={15} />}
-                  {saved ? 'Guardado' : 'Guardar'}
+                  <UserPlus size={14} />
+                  <span>{showGuestForm ? 'Cancelar' : 'Invitados'}</span>
                 </button>
-              </div>
-            )}
-          </div>
-
-          {/* Formation & Color selectors */}
-          <div
-            className="flex flex-col gap-3 items-center py-3 px-6 rounded-3xl mx-auto max-w-fit"
-            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)' }}
-          >
-            <div className="flex items-center gap-3 flex-wrap justify-center">
-              <span className="text-[9px] font-black text-white/30 tracking-widest uppercase">Táctica</span>
-              <div className="w-px h-3 bg-white/10" />
-              <span className="text-[9px] font-black tracking-tighter" style={{ color: '#44f3a9' }}>A:</span>
-              <div className="flex gap-1">
-                {getMatchFormations().map((f: any) => (
-                  <button key={f.value} onClick={() => { setFormationA(f.value); setSaved(false); }} title={f.name}
-                    className="text-[9px] px-2 py-0.5 rounded-full transition-all"
-                    style={formationA === f.value
-                      ? { background: '#44f3a9', color: '#003822', boxShadow: '0 0 10px rgba(68,243,169,0.4)' }
-                      : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
-                    {f.value}
-                  </button>
-                ))}
-              </div>
-              <div className="w-px h-3 bg-white/10" />
-              <span className="text-[9px] font-black tracking-tighter text-blue-400">B:</span>
-              <div className="flex gap-1">
-                {getMatchFormations().map((f: any) => (
-                  <button key={f.value} onClick={() => { setFormationB(f.value); setSaved(false); }} title={f.name}
-                    className="text-[9px] px-2 py-0.5 rounded-full transition-all"
-                    style={formationB === f.value
-                      ? { background: '#3b82f6', color: '#fff', boxShadow: '0 0 10px rgba(59,130,246,0.4)' }
-                      : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
-                    {f.value}
-                  </button>
-                ))}
-              </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-3 flex-wrap justify-center pt-2 w-full" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <span className="text-[9px] font-black text-white/30 tracking-widest uppercase">Camisetas</span>
-              <div className="w-px h-3 bg-white/10" />
-              <span className="text-[9px] font-black" style={{ color: '#44f3a9' }}>A:</span>
-              <div className="flex gap-1">
-                {JERSEY_COLORS.map(c => (
-                  <button key={c.value} onClick={() => { setColorA(c.value); setSaved(false); }}
-                    className={`w-4 h-4 rounded-full border-2 transition-all ${c.class} ${colorA === c.value ? 'scale-125 border-white' : 'border-transparent opacity-40 hover:opacity-100'}`}
-                    title={c.name} />
-                ))}
-              </div>
-              <div className="w-px h-3 bg-white/10" />
-              <span className="text-[9px] font-black text-blue-400">B:</span>
-              <div className="flex gap-1">
-                {JERSEY_COLORS.map(c => (
-                  <button key={c.value} onClick={() => { setColorB(c.value); setSaved(false); }}
-                    className={`w-4 h-4 rounded-full border-2 transition-all ${c.class} ${colorB === c.value ? 'scale-125 border-white' : 'border-transparent opacity-40 hover:opacity-100'}`}
-                    title={c.name} />
-                ))}
-              </div>
+            <div className="flex gap-3">
+              {isAdmin && (
+                <>
+                  <button 
+                    onClick={generateTeams}
+                    disabled={confirmedPlayers.length < 2 || loading}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white transition-all border border-white/5"
+                  >
+                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                    <span>{saved ? 'Reordenar' : 'Generar'}</span>
+                  </button>
+                  <button 
+                    onClick={saveTeams}
+                    disabled={!teamsGenerated || loading}
+                    className={`flex items-center gap-2 px-8 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl ${
+                      saved 
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                        : 'bg-soccer-green text-black hover:bg-soccer-green-light shadow-soccer-green/20'
+                    }`}
+                  >
+                    {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
+                    <span>{saved ? 'Listo' : 'Guardar'}</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          <p className="text-center text-[9px] text-white/25 font-medium">💡 Click en dos cartas para intercambiar posiciones</p>
+          {!teamsGenerated ? (
+            /* ── ROSTER VIEW ── */
+            <div className="space-y-6">
+              {showGuestForm && isAdmin && (
+                <div className="flex flex-col sm:flex-row gap-4 items-end p-6 rounded-3xl fade-in bg-white/5 border border-white/10 backdrop-blur-xl">
+                  <div className="flex-1 w-full space-y-2">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">Nuevo Invitado</label>
+                    <input
+                      type="text"
+                      className="input-field bg-black/20"
+                      placeholder="Nombre del fenómeno"
+                      value={guestName}
+                      onChange={e => setGuestName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addGuestToPool()}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="w-full sm:w-32 space-y-2">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">Rating (1–7)</label>
+                    <input
+                      type="number"
+                      className="input-field bg-black/20"
+                      min="1" max="7" step="1"
+                      value={guestRating}
+                      onChange={e => setGuestRating(e.target.value)}
+                    />
+                  </div>
+                  <button onClick={addGuestToPool} className="btn-primary py-3.5 px-8 text-xs font-black uppercase tracking-widest w-full sm:w-auto">
+                    Añadir
+                  </button>
+                </div>
+              )}
 
-          {/* Pitch */}
-          <div className="relative w-full aspect-[16/10] md:aspect-[16/8] rounded-[2.5rem] overflow-hidden border-4 p-4 group"
-            style={{ background: '#064e3b', borderColor: '#0a0e14', boxShadow: '0 40px 80px -20px rgba(0,0,0,0.8)' }}>
-            <div className="absolute inset-0 opacity-15 pointer-events-none"
-              style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10%, rgba(255,255,255,0.04) 10%, rgba(255,255,255,0.04) 20%)', backgroundSize: '200% 100%' }} />
-            <div className="absolute inset-x-6 inset-y-6 border border-white/20 rounded-3xl pointer-events-none" />
-            <div className="absolute left-1/2 top-6 bottom-6 w-px bg-white/15 pointer-events-none" />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 md:w-52 md:h-52 border border-white/15 rounded-full pointer-events-none" />
-            <div className="absolute left-6 top-1/2 -translate-y-1/2 w-16 h-36 md:w-28 md:h-56 border border-white/15 border-l-0 rounded-r-xl pointer-events-none" />
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 w-16 h-36 md:w-28 md:h-56 border border-white/15 border-r-0 rounded-l-xl pointer-events-none" />
-            <div className="pitch-team-label left-10">Equipo A</div>
-            <div className="pitch-team-label right-10">Equipo B</div>
-            {teamA.map((p, i) => (
-              <div key={p.id} className="pitch-player" style={getPosition(i, 'A', teamA.length, formationA)} onClick={() => handleSwap('A', i)}>
-                <FifaCard player={p} color={i === 0 ? 'gold' : colorA} index={i} isSelected={swapSelection?.team === 'A' && swapSelection?.index === i} />
-              </div>
-            ))}
-            {teamB.map((p, i) => (
-              <div key={p.id} className="pitch-player" style={getPosition(i, 'B', teamB.length, formationB)} onClick={() => handleSwap('B', i)}>
-                <FifaCard player={p} color={i === 0 ? 'gold' : colorB} index={i} isSelected={swapSelection?.team === 'B' && swapSelection?.index === i} />
-              </div>
-            ))}
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {confirmedPlayers.map((player) => (
+                  <div
+                    key={player.id}
+                    className="flex items-center gap-4 px-5 py-4 rounded-3xl transition-all hover:translate-y-[-2px] hover:shadow-xl bg-slate-900/40 border border-white/5 hover:border-white/10 group"
+                  >
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden bg-slate-800 border-2 border-white/10">
+                        {player.photo_url
+                          ? <img src={player.photo_url} className="w-full h-full object-cover" alt={player.name} />
+                          : <span className="text-white/40 font-black">{player.name.charAt(0)}</span>
+                        }
+                      </div>
+                      {player.isGuest && (
+                        <div className="absolute -top-2 -right-2 bg-yellow-500 text-black p-1 rounded-lg">
+                          <UserPlus size={10} />
+                        </div>
+                      )}
+                    </div>
 
-          {/* Team lists */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {(['A', 'B'] as const).map(team => {
-              const players = team === 'A' ? teamA : teamB;
-              const color = team === 'A' ? colorA : colorB;
-              const colorHex = color === 'emerald' ? '#10b981' : color === 'blue' ? '#3b82f6' : color === 'white' ? '#fff' : color === 'yellow' ? '#eab308' : color === 'red' ? '#ef4444' : color === 'purple' ? '#a855f7' : color === 'lightblue' ? '#38bdf8' : '#1e293b';
-              return (
-                <div key={team} className="glass-card" style={team === 'A' ? { borderLeft: `3px solid ${colorHex}` } : { borderRight: `3px solid ${colorHex}` }}>
-                  <div className="flex justify-between items-center mb-4 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-headline text-lg font-black uppercase" style={{ color: colorHex }}>Equipo {team}</h3>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-black text-sm uppercase tracking-tight truncate leading-none mb-1">{player.name}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">{player.position || 'Invitado'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-black/30 rounded-xl border border-white/5">
+                        <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                        <span className="text-xs font-black text-white/80">{player.rating}</span>
+                      </div>
+                      {player.isGuest && isAdmin && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              setEditingGuestId(player.id);
+                              setEditingGuestName(player.name.replace(/\(I\)$/i, '').trim());
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-soccer-green/50 hover:text-soccer-green transition-all"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button onClick={() => removeFromPool(player.id)} className="opacity-0 group-hover:opacity-100 text-red-500/50 hover:text-red-500 transition-all">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Inline Edit Modal/Input for Pool */}
+                    {editingGuestId === player.id && (
+                      <div className="absolute inset-0 z-50 bg-slate-900 rounded-3xl flex items-center gap-3 px-5 border-2 border-soccer-green/50">
+                        <input 
+                          type="text"
+                          className="flex-1 bg-transparent border-none outline-none text-white font-black text-sm uppercase italic"
+                          value={editingGuestName}
+                          onChange={e => setEditingGuestName(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && saveGuestName(player.id)}
+                          autoFocus
+                        />
+                        <button onClick={() => saveGuestName(player.id)} className="text-soccer-green">
+                          <Check size={18} />
+                        </button>
+                        <button onClick={() => setEditingGuestId(null)} className="text-slate-500">
+                          <X size={18} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* ── TEAMS VIEW ── */
+            <div className="space-y-8">
+              {/* Formation & Color selectors */}
+              <div className="flex flex-col gap-4 items-center py-4 px-8 rounded-[2.5rem] mx-auto max-w-fit bg-black/40 border border-white/5 backdrop-blur-3xl shadow-2xl">
+                <div className="flex items-center gap-6 flex-wrap justify-center">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest italic">Táctica</span>
+                    <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl">
+                      {['A', 'B'].map((t: any) => (
+                        <div key={t} className="flex items-center gap-2 px-3">
+                          <span className={`text-[10px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
+                          <div className="flex gap-1">
+                            {getMatchFormations().map((f: any) => (
+                              <button key={f.value} onClick={() => { t === 'A' ? setFormationA(f.value) : setFormationB(f.value); setSaved(false); }}
+                                className={`text-[10px] px-2.5 py-1 rounded-xl font-bold transition-all border ${
+                                  (t === 'A' ? formationA : formationB) === f.value
+                                    ? (t === 'A' ? 'bg-soccer-green text-black border-soccer-green shadow-[0_0_15px_rgba(68,243,169,0.3)]' : 'bg-blue-600 text-white border-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]')
+                                    : 'bg-white/5 text-white/40 border-transparent hover:bg-white/10'
+                                }`}>
+                                {f.value}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-white/5" />
+
+                <div className="flex items-center gap-6 flex-wrap justify-center">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest italic">Identidad</span>
+                    <div className="flex gap-4">
+                      {['A', 'B'].map((t: any) => (
+                        <div key={t} className="flex items-center gap-3 px-3 py-1.5 bg-white/5 rounded-2xl">
+                          <span className={`text-[10px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
+                          <div className="flex gap-2">
+                            {JERSEY_COLORS.map(c => (
+                              <button key={c.value} onClick={() => { t === 'A' ? setColorA(c.value) : setColorB(c.value); setSaved(false); }}
+                                className={`w-5 h-5 rounded-lg border-2 transition-all ${c.class} shadow-lg ${
+                                  (t === 'A' ? colorA : colorB) === c.value ? 'scale-125 border-white ring-2 ring-white/20' : 'border-transparent opacity-30 hover:opacity-100'
+                                }`} />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pitch */}
+              <div className="relative w-full aspect-[16/10] md:aspect-[16/8] rounded-[3rem] overflow-hidden border-[6px] p-6 group shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)]"
+                style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)', borderColor: '#0f172a' }}>
+                <div className="absolute inset-0 opacity-20 pointer-events-none"
+                  style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10%, rgba(255,255,255,0.05) 10%, rgba(255,255,255,0.05) 20%)', backgroundSize: '200% 100%' }} />
+                <div className="absolute inset-8 border-2 border-white/20 rounded-[2rem] pointer-events-none" />
+                <div className="absolute left-1/2 top-8 bottom-8 w-0.5 bg-white/20 pointer-events-none" />
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 md:w-64 md:h-64 border-2 border-white/20 rounded-full pointer-events-none" />
+                <div className="absolute left-8 top-1/2 -translate-y-1/2 w-20 h-44 md:w-36 md:h-72 border-2 border-white/20 border-l-0 rounded-r-2xl pointer-events-none" />
+                <div className="absolute right-8 top-1/2 -translate-y-1/2 w-20 h-44 md:w-36 md:h-72 border-2 border-white/20 border-r-0 rounded-l-2xl pointer-events-none" />
+                
+                <div className="pitch-team-label left-12 top-10 flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${JERSEY_COLORS.find(c => c.value === colorA)?.class}`} />
+                  EQUIPO A
+                </div>
+                <div className="pitch-team-label right-12 top-10 flex items-center gap-2">
+                  EQUIPO B
+                  <div className={`w-3 h-3 rounded-full ${JERSEY_COLORS.find(c => c.value === colorB)?.class}`} />
+                </div>
+
+                {teamA.map((p, i) => (
+                  <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'A', teamA.length, formationA)} onClick={() => handleSwap('A', i)}>
+                    <FifaCard player={p} color={i === 0 ? 'gold' : colorA} index={i} isSelected={swapSelection?.team === 'A' && swapSelection?.index === i} />
+                  </div>
+                ))}
+                {teamB.map((p, i) => (
+                  <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'B', teamB.length, formationB)} onClick={() => handleSwap('B', i)}>
+                    <FifaCard player={p} color={i === 0 ? 'gold' : colorB} index={i} isSelected={swapSelection?.team === 'B' && swapSelection?.index === i} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Team lists side by side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {(['A', 'B'] as const).map(team => {
+                  const players = team === 'A' ? teamA : teamB;
+                  const color = team === 'A' ? colorA : colorB;
+                  const colorHex = color === 'emerald' ? '#10b981' : color === 'blue' ? '#3b82f6' : color === 'white' ? '#fff' : color === 'yellow' ? '#eab308' : color === 'red' ? '#ef4444' : color === 'purple' ? '#a855f7' : color === 'lightblue' ? '#38bdf8' : '#1e293b';
+                  return (
+                    <div key={team} className="glass-card overflow-hidden group/card shadow-2xl transition-all hover:bg-white/[0.03]" style={{ borderTop: `4px solid ${colorHex}` }}>
+                      <div className="flex justify-between items-center mb-6 px-2">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black italic shadow-lg ${team === 'A' ? 'bg-soccer-green text-black' : 'bg-blue-600 text-white'}`}>
+                            {team}
+                          </div>
+                          <div>
+                            <h3 className="font-headline text-lg font-black uppercase tracking-tighter" style={{ color: colorHex }}>Escuadrón {team}</h3>
+                            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{players.length} Jugadores Seleccionados</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-xl font-black text-white italic">{getAvg(players)}</span>
+                          <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Rating Promedio</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {players.map((p, pIdx) => (
+                          <div key={p.id} className="flex justify-between items-center px-4 py-3.5 rounded-2xl transition-all hover:translate-x-1 group/item" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                            <div className="flex items-center gap-4 truncate">
+                              <span className="text-[10px] font-black text-white/10 w-4 italic">{pIdx + 1}</span>
+                              <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 bg-black/20 group-hover/item:border-white/30 transition-all">
+                                {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover" alt={p.name} /> : <span className="text-[10px] font-black opacity-30">{p.name.charAt(0)}</span>}
+                              </div>
+                              <span className="font-black text-xs text-white/90 uppercase tracking-tight truncate group-hover/item:text-white transition-colors">
+                                {p.isGuest && isAdmin && editingGuestId === p.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <input 
+                                      type="text"
+                                      className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-[10px] w-32 outline-none text-white"
+                                      value={editingGuestName}
+                                      onChange={e => setEditingGuestName(e.target.value)}
+                                      onKeyDown={e => e.key === 'Enter' && saveGuestName(p.id)}
+                                      autoFocus
+                                    />
+                                    <button onClick={() => saveGuestName(p.id)} className="text-soccer-green">
+                                      <Check size={14} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className={p.isGuest && isAdmin ? 'cursor-pointer hover:text-soccer-green' : ''}
+                                    onClick={() => {
+                                      if (p.isGuest && isAdmin) {
+                                        setEditingGuestId(p.id);
+                                        setEditingGuestName(p.name.replace(/\(I\)$/i, '').trim());
+                                      }
+                                    }}
+                                  >
+                                    {p.name}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-bold text-white/30 uppercase italic">{p.position?.split(' ')[0]}</span>
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 border border-white/5 group-hover/item:bg-white/10 transition-all">
+                                <span className="font-black text-xs" style={{ color: colorHex }}>{p.rating}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
                       {isAdmin && (
                         <button
                           onClick={() => { setShowGuestModal({ team }); setGuestModalName(''); setGuestModalRating('5'); }}
-                          className="text-[9px] px-2 py-1 rounded-lg font-bold transition-all"
-                          style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+                          className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-white/5 text-[10px] font-black uppercase tracking-[0.3em] text-white/20 hover:text-white/60 hover:border-white/20 hover:bg-white/[0.02] transition-all"
                         >
-                          + Invitado
+                          + Integrar Invitado
                         </button>
                       )}
                     </div>
-                    <span className="text-xs font-bold text-white/50 px-3 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                      {getAvg(players)} ⭐
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {players.map(p => (
-                      <div key={p.id} className="flex justify-between items-center p-3 rounded-xl transition-all hover:bg-white/3" style={{ background: 'rgba(0,0,0,0.2)' }}>
-                        <div className="flex items-center gap-3 truncate">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden text-xs font-bold flex-shrink-0"
-                            style={{ background: '#31353c', color: 'rgba(255,255,255,0.5)' }}>
-                            {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover" alt={p.name} /> : p.name.charAt(0)}
-                          </div>
-                          <span className="font-semibold text-white text-sm truncate">{p.name}</span>
-                        </div>
-                        <span className="font-black text-sm flex-shrink-0" style={{ color: colorHex }}>{p.rating}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Post-generation guest modal */}
       {showGuestModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)' }}>
-          <div className="glass-card w-full max-w-sm">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="font-headline text-xl font-bold text-white">Invitado · Equipo {showGuestModal.team}</h3>
-              <button onClick={() => setShowGuestModal(null)} className="text-white/30 hover:text-white transition-colors"><X size={20} /></button>
-            </div>
-            <div className="space-y-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)' }}>
+          <div className="glass-card w-full max-w-sm border-2 border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)] p-8">
+            <div className="flex justify-between items-center mb-8">
               <div>
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-1.5">Nombre</label>
-                <input type="text" className="input-field" placeholder="Ej: Juan Pérez" value={guestModalName}
+                <p className="text-[10px] font-black text-soccer-green uppercase tracking-widest mb-1">Nueva incorporación</p>
+                <h3 className="font-headline text-2xl font-black text-white italic uppercase tracking-tighter">Invitado · Equipo {showGuestModal.team}</h3>
+              </div>
+              <button onClick={() => setShowGuestModal(null)} className="p-2 rounded-xl bg-white/5 text-white/30 hover:text-white hover:bg-white/10 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block italic">Ficha Técnica · Nombre</label>
+                <input type="text" className="input-field bg-black/40 border-white/10" placeholder="Ej: Juan Pérez" value={guestModalName}
                   onChange={e => setGuestModalName(e.target.value)} autoFocus />
               </div>
-              <div>
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-1.5">Rating (1–7)</label>
-                <input type="number" className="input-field" min="1" max="7" value={guestModalRating}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block italic">Habilidad · Rating (1–7)</label>
+                <input type="number" className="input-field bg-black/40 border-white/10" min="1" max="7" value={guestModalRating}
                   onChange={e => setGuestModalRating(e.target.value)} />
               </div>
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => setShowGuestModal(null)} className="btn-secondary flex-1">Cancelar</button>
-                <button onClick={() => addGuestToTeam(showGuestModal.team)} className="btn-primary flex-1">Agregar</button>
+              <div className="flex gap-3 pt-4">
+                <button onClick={() => setShowGuestModal(null)} className="flex-1 py-4 rounded-2xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 transition-all">Cancelar</button>
+                <button onClick={() => addGuestToTeam(showGuestModal.team)} className="flex-1 py-4 rounded-2xl bg-soccer-green text-[10px] font-black uppercase tracking-widest text-black shadow-xl shadow-soccer-green/20 hover:scale-[1.02] transition-all">Incorporar</button>
               </div>
             </div>
           </div>
@@ -652,22 +716,24 @@ export default function Matchmaking() {
 }
 
 function FifaCard({ player, color, index, isSelected }: { player: any, color: string, index: number, isSelected?: boolean }) {
+  const cardColorClass = color === 'emerald' ? 'emerald' : color === 'blue' ? 'blue' : color === 'white' ? 'white' : color === 'yellow' ? 'yellow' : color === 'red' ? 'red' : color === 'purple' ? 'purple' : color === 'lightblue' ? 'lightblue' : color === 'gold' ? 'gold' : 'blue';
+
   return (
     <div className={`fifa-card-container fade-in ${isSelected ? 'scale-110 -translate-y-4 brightness-125 z-50' : 'z-10'}`} style={{ animationDelay: `${index * 50}ms` }}>
-      <div className={`fifa-card ${color} ${isSelected ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-transparent shadow-[0_0_30px_rgba(250,204,21,0.6)]' : ''}`}>
+      <div className={`fifa-card ${cardColorClass} ${isSelected ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-transparent shadow-[0_0_30px_rgba(250,204,21,0.6)]' : ''}`}>
         <div className="card-top">
-          <div className="card-rating font-black uppercase">{player.rating * 14}</div>
-          <div className="card-pos">{player.position?.split(' ')[0].substring(0, 3).toUpperCase()}</div>
+          <div className="card-rating font-black uppercase">{Math.round(player.rating * 14)}</div>
+          <div className="card-pos">{player.position?.split(' ')[0].substring(0, 3).toUpperCase() || 'INV'}</div>
         </div>
         <div className="card-photo">
           {player.photo_url
             ? <img src={player.photo_url} alt={player.name} className="object-top" />
-            : <div className="card-placeholder text-3xl font-bold text-white/20">{player.name.charAt(0)}</div>
+            : <div className="card-placeholder text-3xl font-bold text-white/10 italic">{player.name.charAt(0)}</div>
           }
         </div>
         <div className="card-bottom">
-          <div className="card-name">{player.name}</div>
-          {player.nickname && <div className="card-nickname">"{player.nickname}"</div>}
+          <div className="card-name tracking-tighter truncate">{player.name}</div>
+          {player.nickname && <div className="card-nickname italic">"{player.nickname}"</div>}
         </div>
       </div>
     </div>
