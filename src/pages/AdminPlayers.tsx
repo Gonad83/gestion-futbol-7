@@ -119,7 +119,7 @@ export default function AdminPlayers() {
         const bajas = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'No voy')).map(p => p.name).join(', ');
         const pendientes = players.filter(p => p.status === 'Activo' && !attendances.some(a => a.player_id === p.id)).map(p => p.name).join(', ');
         
-        await fetch(url, { 
+        const response = await fetch(url, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
           body: JSON.stringify({ 
@@ -131,6 +131,12 @@ export default function AdminPlayers() {
             pendientes_count: pendientes.split(', ').length
           }) 
         });
+
+        if (response.ok) {
+          alert('Lista final enviada correctamente a n8n.');
+        } else {
+          alert(`Error en n8n: ${response.status} ${response.statusText}. Verifica que el flujo esté activo.`);
+        }
       } else if (type === 'test') {
         await fetch(url, { 
           method: 'POST', 
