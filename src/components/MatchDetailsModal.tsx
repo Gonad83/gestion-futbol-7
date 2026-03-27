@@ -317,38 +317,63 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                   </span>
                 </h3>
 
-                <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
                   {attendances.length === 0 ? (
                     <p className="text-slate-500 text-sm italic text-center py-4">Nadie ha confirmado asistencia todavía.</p>
                   ) : (
-                    attendances.sort((a,b) => {
-                      const order = { 'Voy': 1, 'No voy': 2 };
-                      return order[a.status as keyof typeof order] - order[b.status as keyof typeof order];
-                    }).map(att => (
-                      <div key={att.id} className="flex items-center justify-between p-2.5 rounded-lg bg-black/20 border border-glass-border">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-700 overflow-hidden flex-shrink-0 border border-slate-600">
-                            {att.player?.photo_url ? (
-                              <img src={att.player.photo_url} alt={att.player.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400">
-                                {att.player?.name?.charAt(0) || '?'}
+                    <>
+                      {/* CONFIRMADOS */}
+                      <div className="space-y-2">
+                        {attendances.filter(a => a.status === 'Voy').map(att => (
+                          <div key={att.id} className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-slate-700 overflow-hidden flex-shrink-0 border border-emerald-500/20">
+                                {att.player?.photo_url ? (
+                                  <img src={att.player.photo_url} alt={att.player.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-emerald-400/50">
+                                    {att.player?.name?.charAt(0) || '?'}
+                                  </div>
+                                )}
                               </div>
-                            )}
+                              <div>
+                                <p className="text-sm font-medium text-white leading-tight">{att.player?.name}</p>
+                                {att.player?.nickname && <p className="text-[10px] text-slate-400">"{att.player.nickname}"</p>}
+                              </div>
+                            </div>
+                            <CheckCircle2 size={16} className="text-emerald-500" />
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-white leading-tight">{att.player?.name}</p>
-                            {att.player?.nickname && <p className="text-[10px] text-slate-400">"{att.player.nickname}"</p>}
+                        ))}
+                      </div>
+
+                      {/* BAJAS */}
+                      {attendances.some(a => a.status === 'No voy') && (
+                        <div className="pt-4 border-t border-glass-border">
+                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-red-400/70 mb-3 px-1">Bajas del Partido</h4>
+                          <div className="space-y-2">
+                            {attendances.filter(a => a.status === 'No voy').map(att => (
+                              <div key={att.id} className="flex items-center justify-between p-2.5 rounded-lg bg-red-500/5 border border-red-500/10 opacity-70">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-slate-800 overflow-hidden flex-shrink-0 border border-red-500/10">
+                                    {att.player?.photo_url ? (
+                                      <img src={att.player.photo_url} alt={att.player.name} className="w-full h-full object-cover grayscale" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-xs font-bold text-red-400/30">
+                                        {att.player?.name?.charAt(0) || '?'}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-300 leading-tight line-through decoration-red-500/50">{att.player?.name}</p>
+                                  </div>
+                                </div>
+                                <XCircle size={16} className="text-red-500/50" />
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${
-                          att.status === 'Voy' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                          'bg-red-500/10 text-red-400 border border-red-500/20'
-                        }`}>
-                          {att.status === 'Voy' ? 'Confirmo' : 'No puedo'}
-                        </span>
-                      </div>
-                    ))
+                      )}
+                    </>
                   )}
                 </div>
               </div>
