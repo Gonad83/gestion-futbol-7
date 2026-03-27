@@ -105,7 +105,8 @@ export default function AdminPlayers() {
     }
     
     if (!url) { 
-      alert(`Configura la URL correspondiente en el .env (VITE_N8N_${type.toUpperCase()}_URL)`); 
+      const envVarName = type === 'lista' ? 'VITE_N8N_LISTA_FINAL_URL' : `VITE_N8N_${type.toUpperCase()}_URL`;
+      alert(`Configura la URL correspondiente en el .env (${envVarName})`); 
       return; 
     }
 
