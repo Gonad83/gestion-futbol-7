@@ -12,7 +12,7 @@ export default function AdminPlayers() {
   const [nextMatch, setNextMatch] = useState<any>(null);
   const [attendances, setAttendances] = useState<any[]>([]);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [sending, setSending] = useState<'pago' | 'recordatorio' | null>(null);
+  const [sending, setSending] = useState<'pago' | 'recordatorio' | 'lista' | 'test' | null>(null);
 
   const [teamSettings, setTeamSettings] = useState({ team_name: 'Fútbol 7', logo_url: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -95,26 +95,61 @@ export default function AdminPlayers() {
     } catch (e) { alert('Error técnico al conectar con n8n.'); }
   };
 
-  const sendBulkNotification = async (type: 'pago' | 'recordatorio') => {
-    const url = type === 'pago' ? import.meta.env.VITE_N8N_PAYMENT_URL : import.meta.env.VITE_N8N_REMINDER_URL;
-    if (!url) { alert(`Configura VITE_N8N_${type === 'pago' ? 'PAYMENT' : 'REMINDER'}_URL en el .env`); return; }
+  const sendBulkNotification = async (type: 'pago' | 'recordatorio' | 'lista' | 'test') => {
+    let url = '';
+    switch(type) {
+      case 'pago': url = import.meta.env.VITE_N8N_PAYMENT_URL; break;
+      case 'recordatorio': url = import.meta.env.VITE_N8N_REMINDER_URL; break;
+      case 'lista': url = import.meta.env.VITE_N8N_LISTA_FINAL_URL; break;
+      case 'test': url = import.meta.env.VITE_N8N_TEST_MAIL_URL; break;
+    }
+    
+    if (!url) { 
+      alert(`Configura la URL correspondiente en el .env (VITE_N8N_${type.toUpperCase()}_URL)`); 
+      return; 
+    }
 
-    const targets = players.filter(p => p.notify !== false && p.status === 'Activo');
-    if (targets.length === 0) { alert('No hay jugadores activos con notificaciones activadas.'); return; }
-
-    const label = type === 'pago' ? 'cobro' : 'recordatorio';
-    if (!confirm(`¿Enviar ${label} a ${targets.length} jugadores activos con notificaciones activadas?`)) return;
+    if (type !== 'test' && !confirm(`¿Estás seguro de enviar ${type === 'lista' ? 'la lista final' : 'el ' + type} a todo el equipo?`)) return;
 
     setSending(type);
-    let success = 0, errors = 0;
-    for (const player of targets) {
-      try {
-        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player }) });
-        if (res.ok) success++; else errors++;
-      } catch { errors++; }
+    try {
+      // Para la lista enviamos los datos procesados, para recordatorios individuales el loop de antes
+      if (type === 'lista') {
+        const confirmados = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'Voy')).map(p => p.name).join(', ');
+        const bajas = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'No voy')).map(p => p.name).join(', ');
+        const pendientes = players.filter(p => p.status === 'Activo' && !attendances.some(a => a.player_id === p.id)).map(p => p.name).join(', ');
+        
+        await fetch(url, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ 
+            lista_confirmados: confirmados,
+            lista_bajas: bajas,
+            lista_pendientes: pendientes,
+            confirmados_count: confirmados.split(', ').length,
+            bajas_count: bajas.split(', ').length,
+            pendientes_count: pendientes.split(', ').length
+          }) 
+        });
+      } else if (type === 'test') {
+        await fetch(url, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ email: 'garaosd@gmail.com' }) 
+        });
+        alert('Mail de prueba enviado a garaosd@gmail.com');
+      } else {
+        // Lógica original para pagos y recordatorios masivos
+        const targets = players.filter(p => p.notify !== false && p.status === 'Activo');
+        for (const player of targets) {
+          await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player }) });
+        }
+      }
+      if (type !== 'test') alert('¡Acción completada con éxito!');
+    } catch (e) {
+      alert('Error al conectar con n8n.');
     }
     setSending(null);
-    alert(`${label.charAt(0).toUpperCase() + label.slice(1)} enviado a ${success} jugadores.${errors > 0 ? ` ${errors} fallaron.` : ''}`);
   };
 
   const saveTeamSettings = async (e: React.FormEvent) => {
@@ -162,6 +197,48 @@ export default function AdminPlayers() {
         <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel</p>
         <h1 className="font-headline text-3xl font-black text-white tracking-tight">Administrar Equipo</h1>
         <p className="text-white/35 text-sm mt-1">Gestiona plantilla, notificaciones y perfil del equipo.</p>
+      </div>
+
+      {/* Acciones Maestras de Equipo - MODIFICADO POSICION */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button 
+          onClick={() => sendBulkNotification('recordatorio')}
+          disabled={sending !== null}
+          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4"
+          style={{ borderLeft: '3px solid #9acbff' }}
+        >
+          <div className="text-left">
+            <h3 className="font-bold text-white text-sm">📢 Enviar Recordatorio</h3>
+            <p className="text-[10px] text-white/40">Solo a los que faltan confirmar</p>
+          </div>
+          {sending === 'recordatorio' ? <Loader2 className="animate-spin text-soccer-green" /> : <BellRing size={20} className="text-[#9acbff] group-hover:scale-110 transition-transform" />}
+        </button>
+
+        <button 
+          onClick={() => sendBulkNotification('lista')}
+          disabled={sending !== null}
+          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4"
+          style={{ borderLeft: '3px solid #f59e0b' }}
+        >
+          <div className="text-left">
+            <h3 className="font-bold text-white text-sm">📋 Enviar Lista Final</h3>
+            <p className="text-[10px] text-white/40">Resumen para todo el equipo</p>
+          </div>
+          {sending === 'lista' ? <Loader2 className="animate-spin text-soccer-green" /> : <Send size={20} className="text-[#f59e0b] group-hover:scale-110 transition-transform" />}
+        </button>
+
+        <button 
+          onClick={() => sendBulkNotification('test')}
+          disabled={sending !== null}
+          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4"
+          style={{ borderLeft: '3px solid #44f3a9' }}
+        >
+          <div className="text-left">
+            <h3 className="font-bold text-white text-sm">🧪 Enviar Prueba</h3>
+            <p className="text-[10px] text-white/40">Solo a: garaosd@gmail.com</p>
+          </div>
+          {sending === 'test' ? <Loader2 className="animate-spin text-soccer-green" /> : <Camera size={20} className="text-[#44f3a9] group-hover:scale-110 transition-transform" />}
+        </button>
       </div>
 
       {/* Perfil del equipo */}
