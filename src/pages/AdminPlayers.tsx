@@ -140,7 +140,24 @@ export default function AdminPlayers() {
         alert('Mail de prueba enviado a garaosd@gmail.com');
       } else {
         // Lógica original para pagos y recordatorios masivos
-        const targets = players.filter(p => p.notify !== false && p.status === 'Activo');
+        let targets = players.filter(p => p.notify !== false && p.status === 'Activo');
+        
+        // Si es recordatorio, solo a los que NO han confirmado (status != 'Voy')
+        if (type === 'recordatorio') {
+          targets = targets.filter(p => !attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
+        }
+
+        if (targets.length === 0) {
+          alert('No hay jugadores que cumplan el criterio para esta notificación.');
+          setSending(null);
+          return;
+        }
+
+        if (!confirm(`¿Enviar ${type === 'pago' ? 'cobro de cuota' : 'recordatorio de partido'} a ${targets.length} jugadores?`)) {
+          setSending(null);
+          return;
+        }
+
         for (const player of targets) {
           await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player }) });
         }
