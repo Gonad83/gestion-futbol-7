@@ -116,20 +116,24 @@ export default function AdminPlayers() {
     try {
       // Para la lista enviamos los datos procesados, para recordatorios individuales el loop de antes
       if (type === 'lista') {
-        const confirmados = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'Voy')).map(p => p.name).join(', ');
-        const bajas = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'No voy')).map(p => p.name).join(', ');
-        const pendientes = players.filter(p => p.status === 'Activo' && !attendances.some(a => a.player_id === p.id)).map(p => p.name).join(', ');
+        const confirmedPlayers = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
+        const declinedPlayers = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'No voy'));
+        const pendingPlayers = players.filter(p => p.status === 'Activo' && !attendances.some(a => a.player_id === p.id));
+
+        const confirmadosNames = confirmedPlayers.map(p => p.name).join(', ') || 'Ninguno';
+        const bajasNames = declinedPlayers.map(p => p.name).join(', ') || 'Ninguno';
+        const pendientesNames = pendingPlayers.map(p => p.name).join(', ') || 'Ninguno';
         
         const response = await fetch(url, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
           body: JSON.stringify({ 
-            lista_confirmados: confirmados,
-            lista_bajas: bajas,
-            lista_pendientes: pendientes,
-            confirmados_count: confirmados.split(', ').length,
-            bajas_count: bajas.split(', ').length,
-            pendientes_count: pendientes.split(', ').length
+            lista_confirmados: confirmadosNames,
+            lista_bajas: bajasNames,
+            lista_pendientes: pendientesNames,
+            confirmados_count: confirmedPlayers.length,
+            bajas_count: declinedPlayers.length,
+            pendientes_count: pendingPlayers.length
           }) 
         });
 
