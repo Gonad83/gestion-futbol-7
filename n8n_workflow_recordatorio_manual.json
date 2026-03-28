@@ -1,0 +1,142 @@
+{
+  "name": "⚽ Recordatorio Manual de Pagos",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "recordatorio-manual",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Recordatorio Manual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 100],
+      "webhookId": "recordatorio-manual"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "payments",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Pendiente"
+            },
+            {
+              "keyName": "month",
+              "condition": "eq",
+              "keyValue": "={{ new Date().getMonth() + 1 }}"
+            },
+            {
+              "keyName": "year",
+              "condition": "eq",
+              "keyValue": "={{ new Date().getFullYear() }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-pending",
+      "name": "Obtener Pagos Pendientes (Mes Actual)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [320, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "players",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.player_id }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-player-info",
+      "name": "Obtener Info Jugador",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [540, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=⏰ RECORDATORIO URGENTE: Cuota Pendiente {{ new Date().toLocaleString('es-ES', { month: 'long' }) }} - Real Ebolo FC",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:white;padding:32px;border-radius:16px\">\n  <div style=\"text-align:center;margin-bottom:24px\">\n    <span style=\"font-size:48px\">⏰</span>\n    <h1 style=\"color:#ef4444;margin:8px 0 4px\">Regulariza tu Pago</h1>\n    <p style=\"color:#94a3b8;margin:0\">{{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }}</p>\n  </div>\n  <p style=\"font-size:18px;margin-top:8px\">Hola <b>{{ $json.name }}</b>,</p>\n  <p style=\"font-size:16px;line-height:1.6;color:#cbd5e1\">Este es un recordatorio manual enviado por el administrador. Aún no registramos tu pago para este mes.</p>\n  <div style=\"background:#1e293b;border-radius:12px;padding:20px;margin:24px 0;border:1px solid #ef4444;border-opacity:0.3\">\n    <p style=\"margin:8px 0;font-size:16px\">💰 <b>Monto:</b> $8.000</p>\n    <p style=\"margin:8px 0;font-size:16px\">📅 <b>Mes:</b> {{ new Date().toLocaleString('es-ES', { month: 'long' }) }}</p>\n    <p style=\"margin:8px 0;font-size:16px\">⚠️ <b>Estado:</b> <span style=\"color:#ef4444;font-weight:bold\">PENDIENTE</span></p>\n  </div>\n  <div style=\"border-top:1px solid #1e293b;padding-top:24px;text-align:center;margin-top:24px\">\n    <p style=\"font-size:20px;color:#10b981;font-weight:bold;margin:0;font-style:italic\">¡VAMOS EQUIPO! ⚽</p>\n    <p style=\"color:#f59e0b;font-weight:bold;margin:4px 0 0\">Real Ebolo FC</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "gmail-recordatorio",
+      "name": "Enviar Email Recordatorio",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [760, 100],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Recordatorio Manual": {
+      "main": [
+        [
+          {
+            "node": "Obtener Pagos Pendientes (Mes Actual)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Pagos Pendientes (Mes Actual)": {
+      "main": [
+        [
+          {
+            "node": "Obtener Info Jugador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Info Jugador": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

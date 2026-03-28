@@ -9,6 +9,7 @@ export default function Matchmaking() {
   const [matches, setMatches] = useState<any[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<string>('');
   const [confirmedPlayers, setConfirmedPlayers] = useState<any[]>([]);
+  const [declinedPlayers, setDeclinedPlayers] = useState<any[]>([]);
   const [teamA, setTeamA] = useState<any[]>([]);
   const [teamB, setTeamB] = useState<any[]>([]);
   const [formationA, setFormationA] = useState('3-2-1');
@@ -115,13 +116,18 @@ export default function Matchmaking() {
       const { data: attendanceData } = await supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'Voy');
       const realPlayers = attendanceData ? attendanceData.map(d => d.player) : [];
 
-      // 2. Fetch guests from database
+      // 2. Fetch "No voy" players
+      const { data: declinedData } = await supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'No voy');
+      const noVoy = declinedData ? declinedData.map(d => d.player) : [];
+      setDeclinedPlayers(noVoy);
+
+      // 3. Fetch guests from database
       const { data: guestsData } = await supabase.from('match_guests').select('*').eq('match_id', matchId);
       const guestPlayers = guestsData ? guestsData.map(g => ({ ...g, isGuest: true, photo_url: null, nickname: null })) : [];
 
       setConfirmedPlayers([...realPlayers, ...guestPlayers]);
       
-      // 3. Check for saved teams
+      // 4. Check for saved teams
       await checkSavedTeams(matchId);
     } finally {
       setLoading(false);
@@ -524,6 +530,29 @@ export default function Matchmaking() {
                   </div>
                 ))}
               </div>
+
+              {/* Bajas Section */}
+              {declinedPlayers.length > 0 && (
+                <div className="pt-8 space-y-4">
+                  <div className="flex items-center gap-3 px-4">
+                    <X size={16} className="text-red-500" />
+                    <h3 className="font-headline font-bold text-white/50 uppercase tracking-widest text-sm italic">Bajas Confirmadas ({declinedPlayers.length})</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {declinedPlayers.map(player => (
+                      <div key={player.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/2 border border-white/5 grayscale opacity-60">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-800 border border-white/10 flex-shrink-0">
+                          {player.photo_url 
+                            ? <img src={player.photo_url} className="w-full h-full object-cover" alt={player.name} />
+                            : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white/20">{player.name.charAt(0)}</div>
+                          }
+                        </div>
+                        <span className="text-xs font-bold text-white/40 truncate">{player.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* ── TEAMS VIEW ── */

@@ -1,0 +1,55 @@
+{
+  "name": "⚽ Test de Email (Gmail)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test-mail",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Test Mail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 100],
+      "webhookId": "test-mail"
+    },
+    {
+      "parameters": {
+        "sendTo": "admin@realebolo.com",
+        "subject": "=⚽ TEST: Conexión Gmail - Real Ebolo FC",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:400px;margin:0 auto;background:#111827;color:white;padding:32px;border-radius:24px;text-align:center\">\n  <h1 style=\"color:#10b981\">¡Éxito! ✅</h1>\n  <p>Si recibes este correo, tu configuración de Gmail en n8n es correcta.</p>\n  <p style=\"font-size:12px;color:#4b5563\">Prueba realizada el {{ new Date().toLocaleString() }}</p>\n</div>",
+        "options": {}
+      },
+      "id": "gmail-test",
+      "name": "Enviar Email Test",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [320, 100],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Test Mail": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
+import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle } from 'lucide-react';
 
 interface MatchDetailsModalProps {
   isOpen: boolean;
@@ -299,8 +299,14 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                       </div>
                     </>
                   ) : (
-                    <div className="text-center p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-sm">
-                      Pide al administrador que enlace tu cuenta con tu perfil de jugador para poder confirmar asistencia.
+                    <div className="text-center p-5 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+                       <div className="flex items-center justify-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-widest">
+                         <Circle size={14} className="animate-pulse" /> Registro Pendiente
+                       </div>
+                       <p className="text-amber-200/60 text-xs">
+                         Tu cuenta no está vinculada a ningún perfil de jugador. 
+                         Contacta al administrador para que enlace tu email con tu ficha de jugador.
+                       </p>
                     </div>
                   )}
                 </div>

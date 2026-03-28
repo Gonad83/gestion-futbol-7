@@ -20,6 +20,7 @@ export default function Dashboard() {
     balance: 0,
     activePlayers: 0,
     totalPlayers: 0,
+    declinedCount: 0,
     topParticipations: [] as TopPlayer[],
     topMvp: [] as TopPlayer[],
   });
@@ -40,14 +41,22 @@ export default function Dashboard() {
 
       const nextMatch = matches?.[0] || null;
       let confirmedCount = 0;
+      let declinedCount = 0;
 
       if (nextMatch) {
-        const { count } = await supabase
+        const { count: confCount } = await supabase
           .from('attendance')
           .select('*', { count: 'exact', head: true })
           .eq('match_id', nextMatch.id)
           .eq('status', 'Voy');
-        confirmedCount = count || 0;
+        confirmedCount = confCount || 0;
+
+        const { count: decCount } = await supabase
+          .from('attendance')
+          .select('*', { count: 'exact', head: true })
+          .eq('match_id', nextMatch.id)
+          .eq('status', 'No voy');
+        declinedCount = decCount || 0;
       }
 
       const currentMonth = new Date().getMonth() + 1;
@@ -132,7 +141,17 @@ export default function Dashboard() {
         // Table not yet created
       }
 
-      setStats({ nextMatch, confirmedCount, morosos: morososWithDetails, balance, activePlayers: activePlayersList.length, totalPlayers: allPlayers?.length || 0, topParticipations, topMvp });
+      setStats({ 
+        nextMatch, 
+        confirmedCount, 
+        declinedCount,
+        morosos: morososWithDetails, 
+        balance, 
+        activePlayers: activePlayersList.length, 
+        totalPlayers: allPlayers?.length || 0, 
+        topParticipations, 
+        topMvp 
+      });
     } catch (e) {
       console.error('Error loading dashboard data:', e);
     } finally {
@@ -276,17 +295,20 @@ export default function Dashboard() {
 
                 <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.04)' }}>
                   <div className="flex justify-between items-center mb-2.5">
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Confirmados</span>
-                    <span className="text-[10px] font-black" style={{ color: '#44f3a9' }}>{stats.confirmedCount}/14</span>
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Confirmados / Bajas</span>
+                    <div className="flex items-center gap-2">
+                       <span className="text-[10px] font-black" style={{ color: '#44f3a9' }}>{stats.confirmedCount} Voy</span>
+                       <span className="text-[10px] font-black" style={{ color: '#f87171' }}>{stats.declinedCount} No Voy</span>
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-1000"
-                      style={{
-                        width: `${Math.min(100, (stats.confirmedCount / 14) * 100)}%`,
-                        background: 'linear-gradient(90deg, #27e199, #44f3a9)',
-                        boxShadow: '0 0 8px rgba(68,243,169,0.4)'
-                      }}
+                  <div className="h-2 rounded-full bg-slate-800 overflow-hidden flex">
+                    <div 
+                      className="h-full bg-soccer-green transition-all duration-1000" 
+                      style={{ width: `${Math.min((stats.confirmedCount / 14) * 100, 100)}%` }}
+                    />
+                    <div 
+                      className="h-full bg-red-400/30 transition-all duration-1000" 
+                      style={{ width: `${Math.min((stats.declinedCount / 14) * 100, 100)}%` }}
                     />
                   </div>
                 </div>

@@ -17,7 +17,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; border: string }
 };
 
 export default function MyProfile() {
-  const { playerProfile } = useAuth();
+  const { playerProfile, refreshProfile } = useAuth();
   const [formData, setFormData] = useState<any>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -78,6 +78,7 @@ export default function MyProfile() {
 
       if (error) throw error;
 
+      await refreshProfile();
       setSaved(true);
       setPhotoFile(null);
       setTimeout(() => setSaved(false), 3000);

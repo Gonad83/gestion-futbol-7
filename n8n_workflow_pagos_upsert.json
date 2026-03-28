@@ -1,0 +1,171 @@
+{
+  "name": "⚽ Pagos - UPSERT (Optimizado)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtDayOfMonth": 1,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "cron-dia1",
+      "name": "Cron Día 1 - Generar Cobros",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 100]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "players",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Activo"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-active-players",
+      "name": "Obtener Jugadores Activos",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [340, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.VITE_SUPABASE_URL }}/rest/v1/payments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $env.VITE_SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.VITE_SUPABASE_ANON_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "player_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "amount",
+              "value": "8000"
+            },
+            {
+              "name": "month",
+              "value": "={{ new Date().getMonth() + 1 }}"
+            },
+            {
+              "name": "year",
+              "value": "={{ new Date().getFullYear() }}"
+            },
+            {
+              "name": "status",
+              "value": "Pendiente"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-upsert-payment",
+      "name": "Upsert Pago (Supabase)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [560, 100],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=⚽ Cuota Mensual {{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }} - Real Ebolo FC",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:white;padding:32px;border-radius:16px\">\n  <div style=\"text-align:center;margin-bottom:24px\">\n    <span style=\"font-size:48px\">⚽</span>\n    <h1 style=\"color:#f59e0b;margin:8px 0 4px\">Cuota Mensual Disponible</h1>\n    <p style=\"color:#94a3b8;margin:0\">{{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }}</p>\n  </div>\n  <p style=\"font-size:18px;margin-top:8px\">Hola <b>{{ $json.name }}</b>,</p>\n  <p style=\"font-size:16px;line-height:1.6;color:#cbd5e1\">Ya está disponible el cobro de la cuota mensual del equipo. Te pedimos que realices el pago a la brevedad para mantener tu cupo activo.</p>\n  <div style=\"background:#1e293b;border-radius:12px;padding:20px;margin:24px 0;border:1px solid #334155\">\n    <p style=\"margin:8px 0;font-size:16px\">💰 <b>Monto:</b> $8.000</p>\n    <p style=\"margin:8px 0;font-size:16px\">📅 <b>Mes:</b> {{ new Date().toLocaleString('es-ES', { month: 'long' }) }} {{ new Date().getFullYear() }}</p>\n    <p style=\"margin:8px 0;font-size:16px\">📌 <b>Estado:</b> <span style=\"color:#fbbf24\">Pendiente de pago</span></p>\n  </div>\n  <p style=\"font-size:14px;color:#64748b;margin-bottom:24px\">Si ya realizaste el pago, ignora este mensaje. En caso de dudas contacta al administrador del equipo.</p>\n  <div style=\"border-top:1px solid #1e293b;padding-top:24px;text-align:center\">\n    <p style=\"font-size:20px;color:#10b981;font-weight:bold;margin:0;font-style:italic\">¡VAMOS EQUIPO! ⚽</p>\n    <p style=\"color:#f59e0b;font-weight:bold;margin:4px 0 0\">Real Ebolo FC — Campeón 2026</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "gmail-cobro",
+      "name": "Enviar Email Cobro",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [780, 100],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron Día 1 - Generar Cobros": {
+      "main": [
+        [
+          {
+            "node": "Obtener Jugadores Activos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Jugadores Activos": {
+      "main": [
+        [
+          {
+            "node": "http-upsert-payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "http-upsert-payment": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email Cobro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

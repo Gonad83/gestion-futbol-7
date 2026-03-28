@@ -1,0 +1,212 @@
+{
+  "name": "⚽ Lista Final de Matchmaking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lista-final",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Lista Final",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 100],
+      "webhookId": "lista-final"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "matches",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Programado"
+            }
+          ]
+        },
+        "options": {
+          "sort": [
+            {
+              "column": "date",
+              "direction": "asc"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-next-match",
+      "name": "Obtener Próximo Partido",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [320, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "attendance",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "match_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "Voy"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-attendance",
+      "name": "Obtener Confirmados",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [540, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "players",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.player_id }}"
+            }
+          ]
+        }
+      },
+      "id": "supabase-get-player-info",
+      "name": "Obtener Nombres",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [760, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-cred-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "aggregate",
+        "aggregateValues": [
+          {
+            "operation": "list",
+            "name": "player_names",
+            "value": "={{ $json.name }}"
+          }
+        ]
+      },
+      "id": "item-lists-summary",
+      "name": "Crear Lista",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [980, 100]
+    },
+    {
+      "parameters": {
+        "sendTo": "admin@realebolo.com",
+        "subject": "=⚽ LISTA FINAL: Partido {{ $node[\"Obtener Próximo Partido\"].json[\"date\"] }}",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#111827;color:white;padding:32px;border-radius:24px;border:1px solid #374151\">\n  <h1 style=\"color:#10b981;margin:0\">Nómina Final 📋</h1>\n  <p style=\"color:#94a3b8\">Confirmados para el próximo encuentro.</p>\n  \n  <div style=\"background:#1f2937;padding:24px;border-radius:16px;margin:24px 0\">\n    <ul style=\"list-style:none;padding:0;margin:0\">\n      {{ $json.player_names.join('<li style=\"padding:12px 0;border-bottom:1px solid #374151\">⚽ ') }}\n    </ul>\n  </div>\n\n  <p style=\"font-size:12px;color:#4b5563;text-align:center\">¡Vamos Real Ebolo! ⚽</p>\n</div>",
+        "options": {}
+      },
+      "id": "gmail-lista",
+      "name": "Enviar Lista Final",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1200, 100],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Lista Final": {
+      "main": [
+        [
+          {
+            "node": "Obtener Próximo Partido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Próximo Partido": {
+      "main": [
+        [
+          {
+            "node": "Obtener Confirmados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Confirmados": {
+      "main": [
+        [
+          {
+            "node": "Obtener Nombres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Nombres": {
+      "main": [
+        [
+          {
+            "node": "Crear Lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Lista": {
+      "main": [
+        [
+          {
+            "node": "Enviar Lista Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

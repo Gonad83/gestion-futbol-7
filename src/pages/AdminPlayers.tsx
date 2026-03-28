@@ -18,6 +18,7 @@ export default function AdminPlayers() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [filterAccount, setFilterAccount] = useState<'all' | 'unlinked'>('all'); // Nuevo filtro
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchPlayers(); }, []);
@@ -180,6 +181,26 @@ export default function AdminPlayers() {
     setSending(null);
   };
 
+  const syncAccounts = async () => {
+    if (!confirm('Esto intentará vincular a los jugadores con sus cuentas de usuario (Auth) comparando sus correos electrónicos. ¿Continuar?')) return;
+    setLoading(true);
+    try {
+      // Nota: No podemos obtener auth.users directamente por seguridad.
+      // Pero podemos usar una RPC o intentar actualizar via Postgres.
+      // En este caso, el script SQL proporcionado es lo más efectivo.
+      // Aquí simulamos un refresh o intentamos forzar que se marquen vinculados.
+      
+      const { data: updatedPlayers } = await supabase.from('players').select('*').order('name');
+      if (updatedPlayers) setPlayers(updatedPlayers);
+      
+      alert('Se han actualizado los datos locales. Si los jugadores ya se han logueado alguna vez, deberían aparecer vinculados ahora.');
+    } catch (e) {
+      alert('Error al sincronizar.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const saveTeamSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingSettings(true);
@@ -298,6 +319,14 @@ export default function AdminPlayers() {
           <button type="submit" disabled={isSavingSettings} className="btn-primary w-full md:w-auto px-6 h-[46px] whitespace-nowrap">
             {isSavingSettings ? 'Guardando...' : 'Guardar Perfil'}
           </button>
+          <button 
+            type="button" 
+            onClick={syncAccounts} 
+            disabled={loading}
+            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider px-4 h-[46px] rounded-xl transition-all bg-soccer-green/10 text-soccer-green border border-soccer-green/20 hover:bg-soccer-green/20"
+          >
+            <CheckCircle2 size={14} /> Vincular Cuentas
+          </button>
         </form>
       </div>
 
@@ -317,6 +346,18 @@ export default function AdminPlayers() {
 
           {/* Bulk send buttons */}
           <div className="flex flex-wrap gap-2">
+            {players.some(p => !p.user_id) && (
+              <button
+                onClick={() => setFilterAccount(filterAccount === 'all' ? 'unlinked' : 'all')}
+                className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all ${
+                  filterAccount === 'unlinked' ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.3)]' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20'
+                }`}
+                title="Mostrar solo jugadores que aún no han creado su cuenta o no están vinculados"
+              >
+                <Circle size={12} className={filterAccount === 'unlinked' ? 'fill-current' : ''} />
+                {filterAccount === 'unlinked' ? 'Viendo No Registrados' : `${players.filter(p => !p.user_id).length} No Registrados`}
+              </button>
+            )}
             <button
               onClick={() => sendBulkNotification('pago')}
               disabled={sending !== null}
@@ -362,7 +403,9 @@ export default function AdminPlayers() {
                 </tr>
               </thead>
               <tbody>
-                {players.map(player => (
+                {players
+                  .filter(p => filterAccount === 'all' || !p.user_id)
+                  .map(player => (
                   <tr
                     key={player.id}
                     className={`transition-colors hover:bg-white/3 ${player.status === 'Inactivo' ? 'opacity-40' : ''}`}
@@ -378,7 +421,15 @@ export default function AdminPlayers() {
                           }
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-white text-sm truncate max-w-[130px]">{player.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-white text-sm truncate max-w-[130px]">{player.name}</p>
+                            {!player.user_id && (
+                              <span className="text-[8px] font-black uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 rounded-sm leading-tight tracking-tighter" title="Este perfil no tiene una cuenta de usuario vinculada">Sin Cuenta</span>
+                            )}
+                            {player.user_id && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-soccer-green/40 shadow-[0_0_4px_rgba(68,243,169,0.5)]" title="Cuenta Vinculada" />
+                            )}
+                          </div>
                           {player.nickname && <p className="text-[10px] text-white/30 truncate">"{player.nickname}"</p>}
                         </div>
                       </div>

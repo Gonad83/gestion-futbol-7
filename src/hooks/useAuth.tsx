@@ -8,6 +8,7 @@ interface AuthContextType {
   isAdmin: boolean;
   playerProfile: any | null;
   setIsAdmin: (isAdmin: boolean) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,7 +16,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAdmin: false,
   playerProfile: null,
-  setIsAdmin: () => {}
+  setIsAdmin: () => {},
+  refreshProfile: async () => {}
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -64,33 +66,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const checkRole = async (authUser: User) => {
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 4000)
+        setTimeout(() => reject(new Error('timeout')), 8000) // Aumentamos a 8s
       );
 
-      const dataPromise = Promise.all([
-        supabase.from('users').select('role').eq('id', authUser.id).single(),
-        supabase.from('players').select('*').ilike('email', authUser.email ?? '').maybeSingle()
-      ]);
+      const dataPromise = (async () => {
+        // Buscamos por email
+        const { data: player, error: playerError } = await supabase
+          .from('players')
+          .select('*')
+          .ilike('email', authUser.email ?? '')
+          .maybeSingle();
 
-      const [roleResult, playerResult] = await Promise.race([dataPromise, timeoutPromise]) as any;
+        if (playerError) throw playerError;
 
-      setIsAdmin(roleResult?.data?.role === 'admin');
-      setPlayerProfile(playerResult?.data ?? null);
+        // Si encontramos jugador pero no tiene user_id vinculado, lo vinculamos ahora
+        if (player && !player.user_id) {
+          await supabase
+            .from('players')
+            .update({ user_id: authUser.id })
+            .eq('id', player.id);
+          player.user_id = authUser.id; // Actualizamos objeto local
+        }
+
+        const { data: roleData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', authUser.id)
+          .single();
+
+        return { role: roleData?.role, player };
+      })();
+
+      const result = await Promise.race([dataPromise, timeoutPromise]) as any;
+
+      setIsAdmin(result.role === 'admin');
+      if (result.player) {
+        setPlayerProfile(result.player);
+      }
     } catch (e: any) {
       if (e.message === 'timeout') {
-        console.warn('Role check timed out after 4s. Defaulting to non-admin.');
+        console.warn('Role check timed out. Manteniendo perfil actual si existe.');
       } else {
         console.error('Role check error:', e);
       }
-      setIsAdmin(false);
-      setPlayerProfile(null);
+      // NO reseteamos a null el perfil aquí para evitar el flash de "Sin perfil" por red lenta
     } finally {
       setLoading(false);
     }
   };
 
+  const refreshProfile = async () => {
+    if (user) await checkRole(user);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, playerProfile, setIsAdmin }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, playerProfile, setIsAdmin, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
