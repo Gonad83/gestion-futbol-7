@@ -36,6 +36,7 @@ export default function Dashboard() {
         .from('matches')
         .select('*')
         .eq('status', 'Programado')
+        .gte('date', new Date().toISOString()) // Solo mostrar partidos futuros
         .order('date', { ascending: true })
         .limit(1);
 
@@ -196,8 +197,8 @@ export default function Dashboard() {
           },
           {
             label: 'Próximo Partido',
-            value: stats.nextMatch ? format(new Date(stats.nextMatch.date), 'dd MMM', { locale: es }) : '—',
-            sub: stats.nextMatch ? getMatchTimeLabel(stats.nextMatch.date) : 'Sin partidos',
+            value: stats.nextMatch ? format(new Date(stats.nextMatch.date), 'dd MMM', { locale: es }) : 'Por programar',
+            sub: stats.nextMatch ? getMatchTimeLabel(stats.nextMatch.date) : 'Sin partidos próximos',
             icon: <CalendarDays size={18} />,
             color: '#9acbff',
             link: '/calendar'
@@ -205,7 +206,7 @@ export default function Dashboard() {
           {
             label: 'Confirmados',
             value: stats.confirmedCount,
-            sub: 'para el próximo partido',
+            sub: stats.nextMatch ? 'para el próximo partido' : 'Sin partido programado',
             icon: <Trophy size={18} />,
             color: '#ffd08b',
             link: '/matchmaking'
@@ -319,9 +320,12 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="text-center py-10 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
-              <p className="text-white/40 mb-4">No hay partidos programados.</p>
-              <Link to="/calendar" className="btn-primary inline-flex text-sm">Programar Partido</Link>
+            <div className="text-center py-12 rounded-2xl relative overflow-hidden" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #44f3a9 0%, transparent 70%)' }} />
+              <CalendarDays size={48} className="mx-auto text-white/10 mb-4" />
+              <h3 className="font-headline text-xl font-bold text-white mb-2">Sin partidos próximos</h3>
+              <p className="text-white/40 mb-6 text-sm max-w-xs mx-auto">No hay eventos programados en el calendario por ahora.</p>
+              <Link to="/calendar" className="btn-primary inline-flex text-sm px-8">Programar Partido</Link>
             </div>
           )}
         </div>
