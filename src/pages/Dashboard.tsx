@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star } from 'lucide-react';
+import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 type TopPlayer = { id: string; count: number; name: string; nickname: string; photo_url: string };
@@ -25,6 +25,7 @@ export default function Dashboard() {
     topMvp: [] as TopPlayer[],
     allPlayers: [] as any[],
   });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -179,12 +180,26 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col xl:flex-row gap-6 pb-20 md:pb-0">
-      <div className="flex-1 fade-in space-y-6">
+    <div className="fade-in pb-20 md:pb-0 space-y-6 relative overflow-x-hidden">
       {/* Header */}
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel de Control</p>
-        <h1 className="font-headline text-3xl font-black text-white tracking-tight">Resumen del Equipo</h1>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel de Control</p>
+          <h1 className="text-3xl md:text-4xl font-headline font-black text-white italic tracking-tight uppercase">
+            Real Ebolo <span className="text-soccer-green">FC</span>
+          </h1>
+        </div>
+        
+        <button 
+          onClick={() => setIsSidebarOpen(true)}
+          className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-soccer-green/30 transition-all group self-start md:self-auto"
+        >
+          <Users size={18} className="text-soccer-green group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-bold uppercase tracking-wider">Ver Plantilla</span>
+          <div className="w-5 h-5 rounded-full bg-soccer-green/20 flex items-center justify-center ml-1">
+            <span className="text-[10px] text-soccer-green font-black">{stats.allPlayers.length}</span>
+          </div>
+        </button>
       </div>
 
       {/* KPI Row */}
@@ -538,71 +553,90 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
 
-    {/* Sidebar - Players List */}
-      <div className="hidden xl:block w-80 shrink-0">
-        <div className="glass-card h-[calc(100vh-120px)] sticky top-6 flex flex-col">
-          <div className="flex items-center justify-between mb-6">
+      {/* Drawer Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Drawer */}
+      <div 
+        className={`fixed top-0 right-0 h-full w-[350px] max-w-[90vw] bg-[#15191e] border-l border-white/10 z-[101] shadow-2xl transition-transform duration-500 ease-out transform ${
+          isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="h-full flex flex-col p-6">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
-                <Users size={20} />
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg shadow-soccer-green/10" style={{ background: 'linear-gradient(135deg, rgba(68,243,169,0.2) 0%, rgba(68,243,169,0.05) 100%)', color: '#44f3a9' }}>
+                <Users size={22} />
               </div>
-              <h2 className="font-headline font-bold text-white text-lg">Plantilla</h2>
+              <div>
+                <h2 className="font-headline font-bold text-white text-xl leading-tight">Plantilla</h2>
+                <p className="text-[10px] text-white/30 uppercase tracking-[0.2em]">{stats.allPlayers.length} Jugadores Totales</p>
+              </div>
             </div>
-            <span className="text-[10px] font-black px-2 py-1 rounded bg-white/5 text-white/40 uppercase">
-              {stats.allPlayers.length} Total
-            </span>
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
+            >
+              <X size={20} className="text-white/40" />
+            </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
             {stats.allPlayers
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((player) => (
                 <Link
                   key={player.id}
                   to={isAdmin ? `/admin?player=${player.id}` : '#'}
-                  className="flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 group"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-white/[0.03] border border-transparent hover:border-white/5 group"
                 >
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 border-2 border-white/5 group-hover:border-soccer-green/30 transition-colors flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800 ring-2 ring-white/5 group-hover:ring-soccer-green/30 transition-all flex items-center justify-center shadow-lg">
                       {player.photo_url ? (
                         <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-sm font-black text-white/20">{player.name.charAt(0)}</span>
+                        <span className="text-lg font-black text-white/20">{player.name.charAt(0)}</span>
                       )}
                     </div>
                     {player.status === 'Activo' && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-soccer-green border-2 border-[#15191e]" title="Activo" />
+                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-soccer-green border-[3px] border-[#15191e] shadow-sm" title="Activo" />
                     )}
                     {player.status === 'Lesionado' && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-orange-400 border-2 border-[#15191e]" title="Lesionado" />
+                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-orange-400 border-[3px] border-[#15191e] shadow-sm" title="Lesionado" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-white text-sm truncate group-hover:text-soccer-green transition-colors">{player.name}</p>
-                    <div className="flex items-center gap-2">
-                       <p className="text-[10px] text-white/30 truncate uppercase tracking-wider">{player.nickname || 'Sin apodo'}</p>
-                       <span className={`text-[8px] font-bold px-1.5 rounded-sm ${
-                         player.status === 'Activo' ? 'text-soccer-green/60 bg-soccer-green/5' : 
-                         player.status === 'Lesionado' ? 'text-orange-400/60 bg-orange-400/5' : 
+                    <p className="font-bold text-white text-[15px] truncate group-hover:text-soccer-green transition-colors">{player.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                       <p className="text-[11px] text-white/30 truncate uppercase tracking-widest">{player.nickname || 'Sin apodo'}</p>
+                       <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                         player.status === 'Activo' ? 'text-soccer-green/80 bg-soccer-green/10' : 
+                         player.status === 'Lesionado' ? 'text-orange-400/80 bg-orange-400/10' : 
                          'text-white/20 bg-white/5'
                        }`}>
                          {player.status}
                        </span>
                     </div>
                   </div>
-                  <ArrowRight size={12} className="text-white/0 group-hover:text-soccer-green transition-all -translate-x-2 group-hover:translate-x-0" />
+                  <ArrowRight size={14} className="text-white/0 group-hover:text-soccer-green transition-all -translate-x-3 group-hover:translate-x-0" />
                 </Link>
               ))}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-white/5">
+          <div className="mt-8 pt-6 border-t border-white/5">
             <Link 
               to="/players" 
-              className="flex items-center justify-center gap-2 py-3 rounded-xl bg-soccer-green/10 text-soccer-green text-xs font-bold hover:bg-soccer-green/20 transition-all uppercase tracking-widest"
+              onClick={() => setIsSidebarOpen(false)}
+              className="flex items-center justify-center gap-3 py-4 rounded-2xl bg-soccer-green text-[#0a0c10] text-sm font-black hover:bg-[#39d091] transition-all uppercase tracking-[0.15em] shadow-lg shadow-soccer-green/20"
             >
-              Gestionar Plantilla <ArrowRight size={14} />
+              <Users size={18} /> Gestionar Equipo
             </Link>
           </div>
         </div>
