@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,18 +20,25 @@ export default function Calendar() {
 
   const fetchMatches = async () => {
     setLoading(true);
-    const start = startOfMonth(currentDate);
-    const end = endOfMonth(currentDate);
-    
-    // Fetch matches for current month
-    const { data } = await supabase
-      .from('matches')
-      .select('*')
-      .gte('date', start.toISOString())
-      .lte('date', end.toISOString());
+    try {
+      const start = startOfMonth(currentDate);
+      const end = endOfMonth(currentDate);
       
-    if (data) setMatches(data);
-    setLoading(false);
+      const { data } = (await withTimeout(
+        supabase
+          .from('matches')
+          .select('*')
+          .gte('date', start.toISOString())
+          .lte('date', end.toISOString()) as any,
+        10000
+      )) as any;
+        
+      if (data) setMatches(data);
+    } catch (e) {
+      console.error('Error fetching calendar matches:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const days = eachDayOfInterval({

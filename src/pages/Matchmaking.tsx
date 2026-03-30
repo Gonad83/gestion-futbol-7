@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check } from 'lucide-react';
@@ -85,10 +85,16 @@ export default function Matchmaking() {
   const fetchMatches = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase.from('matches').select('*').eq('status', 'Programado').order('date', { ascending: true });
+      const { data } = (await withTimeout(
+        supabase
+          .from('matches')
+          .select('*')
+          .eq('status', 'Programado')
+          .order('date', { ascending: true }) as any,
+        10000
+      )) as any;
       if (data && data.length > 0) {
         setMatches(data);
-        // setSelectedMatch will trigger another useEffect which calls fetchConfirmedPlayers
         setSelectedMatch(data[0].id);
       } else {
         setLoading(false);
@@ -113,22 +119,33 @@ export default function Matchmaking() {
   const fetchConfirmedPlayers = async (matchId: string) => {
     try {
       // 1. Fetch real players from attendance
-      const { data: attendanceData } = await supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'Voy');
-      const realPlayers = attendanceData ? attendanceData.map(d => d.player) : [];
+      const { data: attendanceData } = (await withTimeout(
+        supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'Voy') as any,
+        10000
+      )) as any;
+      const realPlayers = attendanceData ? attendanceData.map((d: any) => d.player) : [];
 
       // 2. Fetch "No voy" players
-      const { data: declinedData } = await supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'No voy');
-      const noVoy = declinedData ? declinedData.map(d => d.player) : [];
+      const { data: declinedData } = (await withTimeout(
+        supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'No voy') as any,
+        10000
+      )) as any;
+      const noVoy = declinedData ? declinedData.map((d: any) => d.player) : [];
       setDeclinedPlayers(noVoy);
 
       // 3. Fetch guests from database
-      const { data: guestsData } = await supabase.from('match_guests').select('*').eq('match_id', matchId);
-      const guestPlayers = guestsData ? guestsData.map(g => ({ ...g, isGuest: true, photo_url: null, nickname: null })) : [];
+      const { data: guestsData } = (await withTimeout(
+        supabase.from('match_guests').select('*').eq('match_id', matchId) as any,
+        10000
+      )) as any;
+      const guestPlayers = guestsData ? guestsData.map((g: any) => ({ ...g, isGuest: true, photo_url: null, nickname: null })) : [];
 
       setConfirmedPlayers([...realPlayers, ...guestPlayers]);
       
       // 4. Check for saved teams
       await checkSavedTeams(matchId);
+    } catch (e) {
+      console.error('Error in fetchConfirmedPlayers:', e);
     } finally {
       setLoading(false);
     }

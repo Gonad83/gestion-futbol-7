@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withTimeout } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -27,29 +27,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [playerProfile, setPlayerProfile] = useState<any | null>(null);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.warn('Supabase auth session search timed out. Forcing loading to false.');
-      setLoading(false);
-    }, 5000);
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      clearTimeout(timeout);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkRole(session.user);
-      } else {
+    // Definimos una función para orquestar la carga de la sesión
+    const initializeAuth = async () => {
+      try {
+        // Obtenemos la sesión con un timeout de 5 segundos
+        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 5000, 'timeout_session');
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await checkRole(session.user);
+        } else {
+          setLoading(false);
+        }
+      } catch (err: any) {
+        if (err.message === 'timeout_session') {
+          console.warn('Supabase auth session search timed out. Forcing loading to false.');
+        } else {
+          console.error('Error fetching session:', err);
+        }
         setLoading(false);
       }
-    }).catch(err => {
-      console.error('Error fetching session:', err);
-      clearTimeout(timeout);
-      setLoading(false);
-    });
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkRole(session.user);
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const authUser = session?.user ?? null;
+      setUser(authUser);
+      
+      if (authUser) {
+        await checkRole(authUser);
       } else {
         setIsAdmin(false);
         setPlayerProfile(null);
@@ -58,24 +65,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => {
-      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);
 
   const checkRole = async (authUser: User) => {
     try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 8000) // Aumentamos a 8s
-      );
-
       const dataPromise = (async () => {
-        // Buscamos por email
-        const { data: player, error: playerError } = await supabase
-          .from('players')
-          .select('*')
-          .ilike('email', authUser.email ?? '')
-          .maybeSingle();
+        // Buscamos por email con un timeout de 8 segundos
+        const { data: player, error: playerError } = (await withTimeout(
+          supabase
+            .from('players')
+            .select('*')
+            .ilike('email', authUser.email ?? '')
+            .maybeSingle() as any,
+          8000
+        )) as any;
 
         if (playerError) throw playerError;
 
@@ -85,31 +90,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .from('players')
             .update({ user_id: authUser.id })
             .eq('id', player.id);
-          player.user_id = authUser.id; // Actualizamos objeto local
+          player.user_id = authUser.id;
         }
 
-        const { data: roleData } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', authUser.id)
-          .single();
+        const { data: roleData } = (await withTimeout(
+          supabase
+            .from('users')
+            .select('role')
+            .eq('id', authUser.id)
+            .single() as any,
+          5000
+        )) as any;
 
         return { role: roleData?.role, player };
       })();
 
-      const result = await Promise.race([dataPromise, timeoutPromise]) as any;
+      const result = await dataPromise;
 
       setIsAdmin(result.role === 'admin');
       if (result.player) {
         setPlayerProfile(result.player);
       }
     } catch (e: any) {
-      if (e.message === 'timeout') {
-        console.warn('Role check timed out. Manteniendo perfil actual si existe.');
-      } else {
-        console.error('Role check error:', e);
-      }
-      // NO reseteamos a null el perfil aquí para evitar el flash de "Sin perfil" por red lenta
+      console.error('Role check error or timeout:', e);
+      // No reseteamos a null el perfil aquí por seguridad
     } finally {
       setLoading(false);
     }

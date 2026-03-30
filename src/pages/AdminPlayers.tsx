@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withTimeout } from '../lib/supabase';
 import { Star, Edit2, Trash2, Bell, BellOff, Eye, EyeOff, CheckCircle2, Circle, DollarSign, BellRing, Camera, Upload, Send, Loader2 } from 'lucide-react';
 import PlayerModal from '../components/PlayerModal';
 
@@ -24,24 +24,47 @@ export default function AdminPlayers() {
   useEffect(() => { fetchPlayers(); }, []);
 
   const fetchPlayers = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('players').select('*').order('name');
-    if (data) setPlayers(data);
+    try {
+      setLoading(true);
+      const { data } = (await withTimeout(
+        supabase.from('players').select('*').order('name') as any,
+        10000
+      )) as any;
+      if (data) setPlayers(data);
 
-    const { data: matches } = await supabase.from('matches').select('*').gte('date', new Date().toISOString()).order('date').limit(1);
-    if (matches && matches.length > 0) {
-      setNextMatch(matches[0]);
-      const { data: att } = await supabase.from('attendance').select('*').eq('match_id', matches[0].id);
-      if (att) setAttendances(att);
+      const { data: matches } = (await withTimeout(
+        supabase
+          .from('matches')
+          .select('*')
+          .gte('date', new Date().toISOString())
+          .order('date')
+          .limit(1) as any,
+        8000
+      )) as any;
+
+      if (matches && matches.length > 0) {
+        setNextMatch(matches[0]);
+        const { data: att } = (await withTimeout(
+          supabase.from('attendance').select('*').eq('match_id', matches[0].id) as any,
+          5000
+        )) as any;
+        if (att) setAttendances(att);
+      }
+
+      const { data: settings } = (await withTimeout(
+        supabase.from('team_settings').select('*').eq('id', 1).single() as any,
+        5000
+      )) as any;
+
+      if (settings) {
+        setTeamSettings({ team_name: settings.team_name || 'Fútbol 7', logo_url: settings.logo_url || '' });
+        setPhotoPreview(settings.logo_url || '');
+      }
+    } catch (e) {
+      console.error('Error in AdminPlayers fetch:', e);
+    } finally {
+      setLoading(false);
     }
-
-    const { data: settings } = await supabase.from('team_settings').select('*').eq('id', 1).single();
-    if (settings) {
-      setTeamSettings({ team_name: settings.team_name || 'Fútbol 7', logo_url: settings.logo_url || '' });
-      setPhotoPreview(settings.logo_url || '');
-    }
-
-    setLoading(false);
   };
 
   const toggleAttendance = async (playerId: string) => {

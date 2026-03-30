@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withTimeout } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,109 +34,130 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('status', 'Programado')
-        .gte('date', new Date().toISOString()) // Solo mostrar partidos futuros
-        .order('date', { ascending: true })
-        .limit(1);
+      const { data: matches } = (await withTimeout(
+        supabase
+          .from('matches')
+          .select('*')
+          .eq('status', 'Programado')
+          .gte('date', new Date().toISOString())
+          .order('date', { ascending: true })
+          .limit(1) as any,
+        8000
+      )) as any;
 
       const nextMatch = matches?.[0] || null;
       let confirmedCount = 0;
       let declinedCount = 0;
 
       if (nextMatch) {
-        const { count: confCount } = await supabase
-          .from('attendance')
-          .select('*', { count: 'exact', head: true })
-          .eq('match_id', nextMatch.id)
-          .eq('status', 'Voy');
+        const { count: confCount } = (await withTimeout(
+          supabase
+            .from('attendance')
+            .select('*', { count: 'exact', head: true })
+            .eq('match_id', nextMatch.id)
+            .eq('status', 'Voy') as any,
+          5000
+        )) as any;
         confirmedCount = confCount || 0;
 
-        const { count: decCount } = await supabase
-          .from('attendance')
-          .select('*', { count: 'exact', head: true })
-          .eq('match_id', nextMatch.id)
-          .eq('status', 'No voy');
+        const { count: decCount } = (await withTimeout(
+          supabase
+            .from('attendance')
+            .select('*', { count: 'exact', head: true })
+            .eq('match_id', nextMatch.id)
+            .eq('status', 'No voy') as any,
+          5000
+        )) as any;
         declinedCount = decCount || 0;
       }
 
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
 
-      const { data: allPlayers } = await supabase.from('players').select('id, name, nickname, status, photo_url');
-      const activePlayersList = allPlayers?.filter(p => p.status === 'Activo') || [];
+      const { data: allPlayers } = (await withTimeout(
+        supabase.from('players').select('id, name, nickname, status, photo_url') as any,
+        8000
+      )) as any;
+      const activePlayersList = allPlayers?.filter((p: any) => p.status === 'Activo') || [];
 
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('player_id, month, year, amount, status');
+      const { data: payments } = (await withTimeout(
+        supabase
+          .from('payments')
+          .select('player_id, month, year, amount, status') as any,
+        8000
+      )) as any;
 
-      const morososWithDetails = activePlayersList.map(player => {
-        const playerPayments = payments?.filter(p => p.player_id === player.id) || [];
+      const morososWithDetails = activePlayersList.map((player: any) => {
+        const playerPayments = payments?.filter((p: any) => p.player_id === player.id) || [];
         const paidMonths = new Set(
-          playerPayments.filter(p => p.status === 'Pagado').map(p => `${p.year}-${p.month}`)
+          playerPayments.filter((p: any) => p.status === 'Pagado').map((p: any) => `${p.year}-${p.month}`)
         );
-        let pendingInfo = playerPayments.filter(p =>
+        let pendingInfo = playerPayments.filter((p: any) =>
           p.status === 'Pendiente' &&
           (p.year < currentYear || (p.year === currentYear && p.month <= currentMonth)) &&
           !paidMonths.has(`${p.year}-${p.month}`) &&
           p.month > 2
         );
         const hasCurrentMonthPaid = paidMonths.has(`${currentYear}-${currentMonth}`);
-        const hasCurrentMonthPending = pendingInfo.some(p => p.month === currentMonth && p.year === currentYear);
+        const hasCurrentMonthPending = pendingInfo.some((p: any) => p.month === currentMonth && p.year === currentYear);
         if (!hasCurrentMonthPaid && !hasCurrentMonthPending && currentMonth > 2) {
           pendingInfo.push({ player_id: player.id, month: currentMonth, year: currentYear, amount: 8000, status: 'Pendiente' });
         }
         const uniquePending = Array.from(
-          new Map(pendingInfo.map(p => [`${p.year}-${p.month}`, p])).values()
-        ).sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
+          new Map(pendingInfo.map((p: any) => [`${p.year}-${p.month}`, p])).values()
+        ).sort((a: any, b: any) => a.year !== b.year ? a.year - b.year : a.month - b.month);
         return { ...player, pendingPayments: uniquePending };
-      }).filter(p => p.pendingPayments.length > 0);
+      }).filter((p: any) => p.pendingPayments.length > 0);
 
-      const { data: payData } = await supabase.from('payments').select('amount').eq('status', 'Pagado');
-      const { data: expData } = await supabase.from('expenses').select('amount');
-      const { data: incomeData } = await supabase.from('cash_incomes').select('amount');
+      const { data: payData } = (await withTimeout(supabase.from('payments').select('amount').eq('status', 'Pagado') as any)) as any;
+      const { data: expData } = (await withTimeout(supabase.from('expenses').select('amount') as any)) as any;
+      const { data: incomeData } = (await withTimeout(supabase.from('cash_incomes').select('amount') as any)) as any;
 
-      const totalIncome = (payData ?? []).reduce((acc, p) => acc + Number(p.amount), 0);
-      const totalExp = (expData ?? []).reduce((acc, p) => acc + Number(p.amount), 0);
-      const totalManualIncomes = (incomeData ?? []).reduce((acc, i) => acc + Number(i.amount), 0);
+      const totalIncome = (payData ?? []).reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+      const totalExp = (expData ?? []).reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+      const totalManualIncomes = (incomeData ?? []).reduce((acc: number, i: any) => acc + Number(i.amount), 0);
       const balance = totalIncome + totalManualIncomes - totalExp;
 
       // Top Participaciones
-      const { data: allAttendance } = await supabase
-        .from('attendance')
-        .select('player_id')
-        .eq('status', 'Voy');
+      const { data: allAttendance } = (await withTimeout(
+        supabase
+          .from('attendance')
+          .select('player_id')
+          .eq('status', 'Voy') as any,
+        8000
+      )) as any;
 
       const participationCounts: Record<string, number> = {};
-      allAttendance?.forEach(a => {
+      allAttendance?.forEach((a: any) => {
         if (a.player_id) participationCounts[a.player_id] = (participationCounts[a.player_id] || 0) + 1;
       });
       const topParticipations: TopPlayer[] = Object.entries(participationCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([id, count]) => {
-          const p = allPlayers?.find(pl => pl.id === id);
+          const p = allPlayers?.find((pl: any) => pl.id === id);
           return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
         });
 
       // Top MVP Votos
       let topMvp: TopPlayer[] = [];
       try {
-        const { data: mvpVotes, error: mvpError } = await supabase
-          .from('match_mvp_votes')
-          .select('voted_player_id');
+        const { data: mvpVotes, error: mvpError } = (await withTimeout(
+          supabase
+            .from('match_mvp_votes')
+            .select('voted_player_id') as any,
+          5000
+        )) as any;
         if (!mvpError && mvpVotes && mvpVotes.length > 0) {
           const mvpCounts: Record<string, number> = {};
-          mvpVotes.forEach(v => {
+          mvpVotes.forEach((v: any) => {
             if (v.voted_player_id) mvpCounts[v.voted_player_id] = (mvpCounts[v.voted_player_id] || 0) + 1;
           });
           topMvp = Object.entries(mvpCounts)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3)
             .map(([id, count]) => {
-              const p = allPlayers?.find(pl => pl.id === id);
+              const p = allPlayers?.find((pl: any) => pl.id === id);
               return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
             });
         }

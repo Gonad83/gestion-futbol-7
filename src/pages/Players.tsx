@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Plus, Edit2, Star, X } from 'lucide-react';
 import PlayerModal from '../components/PlayerModal';
@@ -31,16 +31,24 @@ export default function Players() {
 
   const fetchPlayers = async () => {
     setLoading(true);
-    const { data } = await supabase.from('players').select('*');
-    if (data) {
-      const sorted = data.filter(p => p.status !== 'Inactivo').sort((a, b) => {
-        const wa = getPositionWeight(a.position), wb = getPositionWeight(b.position);
-        if (wa !== wb) return wa - wb;
-        return a.name.localeCompare(b.name);
-      });
-      setPlayers(sorted);
+    try {
+      const { data } = (await withTimeout(
+        supabase.from('players').select('*') as any,
+        10000
+      )) as any;
+      if (data) {
+        const sorted = data.filter((p: any) => p.status !== 'Inactivo').sort((a: any, b: any) => {
+          const wa = getPositionWeight(a.position), wb = getPositionWeight(b.position);
+          if (wa !== wb) return wa - wb;
+          return a.name.localeCompare(b.name);
+        });
+        setPlayers(sorted);
+      }
+    } catch (e) {
+      console.error('Error fetching players:', e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleEdit = (player: any) => { setSelectedPlayer(player); setIsModalOpen(true); };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Calculator, TrendingUp, TrendingDown, DollarSign, Plus, ChevronLeft, ChevronRight, ArrowUpCircle, Pencil, Check, X, Search, Trash2 } from 'lucide-react';
 
@@ -35,23 +35,23 @@ export default function Finance() {
   useEffect(() => { fetchData(); }, [selectedMonth, selectedYear]);
 
   const fetchData = async () => {
-    setLoading(true);
-
-    const [
-      { data: payData },
-      { data: players },
-      { data: allPaid },
-      { data: expData },
-      { data: incomeData },
-      { data: settingsData }
-    ] = await Promise.all([
-      supabase.from('payments').select('*, player:players(name, nickname)').eq('month', selectedMonth).eq('year', selectedYear),
-      supabase.from('players').select('id, name, nickname, status').eq('status', 'Activo'),
-      supabase.from('payments').select('amount').eq('status', 'Pagado'),
-      supabase.from('expenses').select('*').order('date', { ascending: false }),
-      supabase.from('cash_incomes').select('*').order('date', { ascending: false }),
-      supabase.from('team_settings').select('id, quota_amount').limit(1).single()
-    ]);
+    try {
+      setLoading(true);
+      const [
+        { data: payData },
+        { data: players },
+        { data: allPaid },
+        { data: expData },
+        { data: incomeData },
+        { data: settingsData }
+      ] = (await Promise.all([
+        withTimeout(supabase.from('payments').select('*, player:players(name, nickname)').eq('month', selectedMonth).eq('year', selectedYear) as any, 10000),
+        withTimeout(supabase.from('players').select('id, name, nickname, status').eq('status', 'Activo') as any, 10000),
+        withTimeout(supabase.from('payments').select('amount').eq('status', 'Pagado') as any, 10000),
+        withTimeout(supabase.from('expenses').select('*').order('date', { ascending: false }) as any, 10000),
+        withTimeout(supabase.from('cash_incomes').select('*').order('date', { ascending: false }) as any, 10000),
+        withTimeout(supabase.from('team_settings').select('id, quota_amount').limit(1).single() as any, 10000)
+      ])) as any;
 
     const quota = Number(settingsData?.quota_amount ?? 8000);
     setQuotaAmount(quota);
@@ -60,10 +60,10 @@ export default function Finance() {
     let mergedPayments: any[] = [];
     if (players) {
       const safePayData = payData || [];
-      mergedPayments = players.map(p => {
+      mergedPayments = players.map((p: any) => {
         const playerPayments = safePayData.filter((py: any) => py.player_id === p.id);
         // Prioritize Pagado, else highest amount, else first
-        playerPayments.sort((a, b) => {
+        playerPayments.sort((a: any, b: any) => {
           if (a.status === 'Pagado' && b.status !== 'Pagado') return -1;
           if (b.status === 'Pagado' && a.status !== 'Pagado') return 1;
           return Number(b.amount) - Number(a.amount);
@@ -91,10 +91,14 @@ export default function Finance() {
     }
 
     setPayments(mergedPayments);
-    setAllPaidAmount((allPaid ?? []).reduce((acc, p) => acc + Number(p.amount), 0));
+    setAllPaidAmount((allPaid ?? []).reduce((acc: number, p: any) => acc + Number(p.amount), 0));
     setExpenses(expData ?? []);
     setCashIncomes(incomeData ?? []);
-    setLoading(false);
+    } catch (e) {
+      console.error('Error fetching finance data:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const totalCashIncomes = cashIncomes.reduce((acc, i) => acc + Number(i.amount), 0);

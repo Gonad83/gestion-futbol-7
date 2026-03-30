@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 
@@ -14,15 +14,19 @@ export default function Layout() {
   const [isLogoZoomed, setIsLogoZoomed] = useState(false);
   const [teamSettings, setTeamSettings] = useState({ team_name: 'Fútbol 7', logo_url: '' });
 
-  useState(() => {
+  useEffect(() => {
     const fetchTeamSettings = async () => {
-      const { data } = await supabase.from('team_settings').select('*').eq('id', 1).single();
-      if (data) {
-        setTeamSettings({ team_name: data.team_name, logo_url: data.logo_url || '' });
+      try {
+        const { data } = await supabase.from('team_settings').select('*').eq('id', 1).maybeSingle();
+        if (data) {
+          setTeamSettings({ team_name: data.team_name, logo_url: data.logo_url || '' });
+        }
+      } catch (e) {
+        console.error('Error fetching team settings:', e);
       }
     };
     fetchTeamSettings();
-  });
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
