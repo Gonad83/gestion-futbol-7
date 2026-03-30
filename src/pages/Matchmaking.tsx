@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
-import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check, Send } from 'lucide-react';
 
 export default function Matchmaking() {
   const [loading, setLoading] = useState(true);
@@ -18,6 +18,7 @@ export default function Matchmaking() {
   const [colorB, setColorB] = useState('white');
   const [swapSelection, setSwapSelection] = useState<{ team: 'A' | 'B', index: number } | null>(null);
   const [saved, setSaved] = useState(false);
+  const [sendingList, setSendingList] = useState(false);
   const [teamsGenerated, setTeamsGenerated] = useState(false);
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
   const [editingGuestName, setEditingGuestName] = useState('');
@@ -293,6 +294,35 @@ export default function Matchmaking() {
     } catch (e) { console.error(e); alert('Error al guardar'); }
   };
 
+  const handleSendFinalList = async () => {
+    if (!selectedMatch || !isAdmin) return;
+    setSendingList(true);
+    try {
+      const match = matches.find(m => m.id === selectedMatch);
+      const webhookUrl = import.meta.env.VITE_N8N_LISTA_FINAL_URL || import.meta.env.VITE_N8N_WEBHOOK_URL;
+      if (!webhookUrl) {
+        alert('No hay URL de webhook configurada (VITE_N8N_LISTA_FINAL_URL).');
+        return;
+      }
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'final_list',
+          match,
+          teamA: { players: teamA, formation: formationA, color: colorA },
+          teamB: { players: teamB, formation: formationB, color: colorB },
+        }),
+      });
+      alert('Lista final enviada correctamente.');
+    } catch (e) {
+      console.error(e);
+      alert('Error al enviar la lista final');
+    } finally {
+      setSendingList(false);
+    }
+  };
+
   // Post-generation: add guest to specific team
   const addGuestToTeam = (team: 'A' | 'B') => {
     if (!guestModalName.trim()) return;
@@ -423,18 +453,28 @@ export default function Matchmaking() {
                     <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                     <span>{saved ? 'Reordenar' : 'Generar'}</span>
                   </button>
-                  <button 
+                  <button
                     onClick={saveTeams}
                     disabled={!teamsGenerated || loading}
                     className={`flex items-center gap-2 px-8 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl ${
-                      saved 
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                      saved
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         : 'bg-soccer-green text-black hover:bg-soccer-green-light shadow-soccer-green/20'
                     }`}
                   >
                     {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
                     <span>{saved ? 'Listo' : 'Guardar'}</span>
                   </button>
+                  {saved && (
+                    <button
+                      onClick={handleSendFinalList}
+                      disabled={sendingList}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30"
+                    >
+                      <Send size={16} />
+                      <span>{sendingList ? 'Enviando...' : 'Enviar Lista'}</span>
+                    </button>
+                  )}
                 </>
               )}
             </div>

@@ -3,7 +3,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X } from 'lucide-react';
+import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 type TopPlayer = { id: string; count: number; name: string; nickname: string; photo_url: string };
@@ -21,11 +21,11 @@ export default function Dashboard() {
     activePlayers: 0,
     totalPlayers: 0,
     declinedCount: 0,
+    pendingCount: 0,
     topParticipations: [] as TopPlayer[],
     topMvp: [] as TopPlayer[],
     allPlayers: [] as any[],
   });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -42,7 +42,7 @@ export default function Dashboard() {
           .gte('date', new Date().toISOString())
           .order('date', { ascending: true })
           .limit(1) as any,
-        8000
+        20000
       )) as any;
 
       const nextMatch = matches?.[0] || null;
@@ -56,7 +56,7 @@ export default function Dashboard() {
             .select('*', { count: 'exact', head: true })
             .eq('match_id', nextMatch.id)
             .eq('status', 'Voy') as any,
-          5000
+          15000
         )) as any;
         confirmedCount = confCount || 0;
 
@@ -66,7 +66,7 @@ export default function Dashboard() {
             .select('*', { count: 'exact', head: true })
             .eq('match_id', nextMatch.id)
             .eq('status', 'No voy') as any,
-          5000
+          15000
         )) as any;
         declinedCount = decCount || 0;
       }
@@ -109,9 +109,9 @@ export default function Dashboard() {
         return { ...player, pendingPayments: uniquePending };
       }).filter((p: any) => p.pendingPayments.length > 0);
 
-      const { data: payData } = (await withTimeout(supabase.from('payments').select('amount').eq('status', 'Pagado') as any)) as any;
-      const { data: expData } = (await withTimeout(supabase.from('expenses').select('amount') as any)) as any;
-      const { data: incomeData } = (await withTimeout(supabase.from('cash_incomes').select('amount') as any)) as any;
+      const { data: payData } = (await withTimeout(supabase.from('payments').select('amount').eq('status', 'Pagado') as any, 15000)) as any;
+      const { data: expData } = (await withTimeout(supabase.from('expenses').select('amount') as any, 15000)) as any;
+      const { data: incomeData } = (await withTimeout(supabase.from('cash_incomes').select('amount') as any, 15000)) as any;
 
       const totalIncome = (payData ?? []).reduce((acc: number, p: any) => acc + Number(p.amount), 0);
       const totalExp = (expData ?? []).reduce((acc: number, p: any) => acc + Number(p.amount), 0);
@@ -165,15 +165,20 @@ export default function Dashboard() {
         // Table not yet created
       }
 
-      setStats({ 
-        nextMatch, 
-        confirmedCount, 
+      const pendingCount = nextMatch
+        ? Math.max(0, activePlayersList.length - confirmedCount - declinedCount)
+        : 0;
+
+      setStats({
+        nextMatch,
+        confirmedCount,
         declinedCount,
-        morosos: morososWithDetails, 
-        balance, 
-        activePlayers: activePlayersList.length, 
-        totalPlayers: allPlayers?.length || 0, 
-        topParticipations, 
+        pendingCount,
+        morosos: morososWithDetails,
+        balance,
+        activePlayers: activePlayersList.length,
+        totalPlayers: allPlayers?.length || 0,
+        topParticipations,
         topMvp,
         allPlayers: allPlayers || []
       });
@@ -210,17 +215,6 @@ export default function Dashboard() {
             Real Ebolo <span className="text-soccer-green">FC</span>
           </h1>
         </div>
-        
-        <button 
-          onClick={() => setIsSidebarOpen(true)}
-          className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-soccer-green/30 transition-all group self-start md:self-auto"
-        >
-          <Users size={18} className="text-soccer-green group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-bold uppercase tracking-wider">Ver Plantilla</span>
-          <div className="w-5 h-5 rounded-full bg-soccer-green/20 flex items-center justify-center ml-1">
-            <span className="text-[10px] text-soccer-green font-black">{stats.allPlayers.length}</span>
-          </div>
-        </button>
       </div>
 
       {/* KPI Row */}
@@ -335,21 +329,40 @@ export default function Dashboard() {
 
                 <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.04)' }}>
                   <div className="flex justify-between items-center mb-2.5">
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Confirmados / Bajas</span>
-                    <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-black" style={{ color: '#44f3a9' }}>{stats.confirmedCount} Voy</span>
-                       <span className="text-[10px] font-black" style={{ color: '#f87171' }}>{stats.declinedCount} No Voy</span>
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Asistencia</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-black" style={{ color: '#44f3a9' }}>{stats.confirmedCount} Voy</span>
+                      <span className="text-[10px] font-black" style={{ color: '#f87171' }}>{stats.declinedCount} No Voy</span>
+                      <span className="text-[10px] font-black" style={{ color: '#fbbf24' }}>{stats.pendingCount} Pendiente</span>
                     </div>
                   </div>
                   <div className="h-2 rounded-full bg-slate-800 overflow-hidden flex">
-                    <div 
-                      className="h-full bg-soccer-green transition-all duration-1000" 
-                      style={{ width: `${Math.min((stats.confirmedCount / 14) * 100, 100)}%` }}
+                    <div
+                      className="h-full bg-soccer-green transition-all duration-1000"
+                      style={{ width: `${Math.min((stats.confirmedCount / stats.activePlayers) * 100, 100)}%` }}
                     />
-                    <div 
-                      className="h-full bg-red-400/30 transition-all duration-1000" 
-                      style={{ width: `${Math.min((stats.declinedCount / 14) * 100, 100)}%` }}
+                    <div
+                      className="h-full bg-red-400/50 transition-all duration-1000"
+                      style={{ width: `${Math.min((stats.declinedCount / stats.activePlayers) * 100, 100)}%` }}
                     />
+                    <div
+                      className="h-full bg-amber-400/30 transition-all duration-1000"
+                      style={{ width: `${Math.min((stats.pendingCount / stats.activePlayers) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-soccer-green" />
+                      <span className="text-[9px] text-white/30">Confirmados</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-red-400/50" />
+                      <span className="text-[9px] text-white/30">Bajas</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-amber-400/30" />
+                      <span className="text-[9px] text-white/30">Sin respuesta</span>
+                    </div>
                   </div>
                 </div>
 
@@ -575,93 +588,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Drawer Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] transition-opacity duration-300"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Drawer */}
-      <div 
-        className={`fixed top-0 right-0 h-full w-[350px] max-w-[90vw] bg-[#15191e] border-l border-white/10 z-[101] shadow-2xl transition-transform duration-500 ease-out transform ${
-          isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="h-full flex flex-col p-6">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg shadow-soccer-green/10" style={{ background: 'linear-gradient(135deg, rgba(68,243,169,0.2) 0%, rgba(68,243,169,0.05) 100%)', color: '#44f3a9' }}>
-                <Users size={22} />
-              </div>
-              <div>
-                <h2 className="font-headline font-bold text-white text-xl leading-tight">Plantilla</h2>
-                <p className="text-[10px] text-white/30 uppercase tracking-[0.2em]">{stats.allPlayers.length} Jugadores Totales</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsSidebarOpen(false)}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
-            >
-              <X size={20} className="text-white/40" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-            {stats.allPlayers
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((player) => (
-                <Link
-                  key={player.id}
-                  to={isAdmin ? `/admin?player=${player.id}` : '#'}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-white/[0.03] border border-transparent hover:border-white/5 group"
-                >
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800 ring-2 ring-white/5 group-hover:ring-soccer-green/30 transition-all flex items-center justify-center shadow-lg">
-                      {player.photo_url ? (
-                        <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-lg font-black text-white/20">{player.name.charAt(0)}</span>
-                      )}
-                    </div>
-                    {player.status === 'Activo' && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-soccer-green border-[3px] border-[#15191e] shadow-sm" title="Activo" />
-                    )}
-                    {player.status === 'Lesionado' && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-orange-400 border-[3px] border-[#15191e] shadow-sm" title="Lesionado" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-white text-[15px] truncate group-hover:text-soccer-green transition-colors">{player.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                       <p className="text-[11px] text-white/30 truncate uppercase tracking-widest">{player.nickname || 'Sin apodo'}</p>
-                       <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
-                         player.status === 'Activo' ? 'text-soccer-green/80 bg-soccer-green/10' : 
-                         player.status === 'Lesionado' ? 'text-orange-400/80 bg-orange-400/10' : 
-                         'text-white/20 bg-white/5'
-                       }`}>
-                         {player.status}
-                       </span>
-                    </div>
-                  </div>
-                  <ArrowRight size={14} className="text-white/0 group-hover:text-soccer-green transition-all -translate-x-3 group-hover:translate-x-0" />
-                </Link>
-              ))}
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-white/5">
-            <Link 
-              to="/players" 
-              onClick={() => setIsSidebarOpen(false)}
-              className="flex items-center justify-center gap-3 py-4 rounded-2xl bg-soccer-green text-[#0a0c10] text-sm font-black hover:bg-[#39d091] transition-all uppercase tracking-[0.15em] shadow-lg shadow-soccer-green/20"
-            >
-              <Users size={18} /> Gestionar Equipo
-            </Link>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

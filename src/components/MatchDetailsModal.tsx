@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle } from 'lucide-react';
+import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell } from 'lucide-react';
 
 interface MatchDetailsModalProps {
   isOpen: boolean;
@@ -122,6 +122,44 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
     }
   };
 
+  const handleSendReminder = async () => {
+    if (!match?.id || !isAdmin) return;
+    setLoading(true);
+    try {
+      const { data: activePlayers } = await supabase
+        .from('players')
+        .select('id, name, email')
+        .eq('status', 'Activo')
+        .eq('notify', true)
+        .not('email', 'is', null);
+
+      const respondedIds = attendances.map((a) => a.player_id);
+      const pendingPlayers = activePlayers?.filter((p) => !respondedIds.includes(p.id)) || [];
+
+      if (pendingPlayers.length === 0) {
+        alert('Todos los jugadores ya han respondido.');
+        return;
+      }
+
+      const webhookUrl = import.meta.env.VITE_N8N_REMINDER_URL || import.meta.env.VITE_N8N_WEBHOOK_URL;
+      if (webhookUrl) {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'reminder', match, players: pendingPlayers }),
+        });
+        alert(`Recordatorio enviado a ${pendingPlayers.length} jugador(es) sin responder.`);
+      } else {
+        alert('No hay URL de webhook configurada (VITE_N8N_REMINDER_URL).');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error al enviar recordatorio');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!match?.id || !isAdmin) return;
     if (!confirm('¿Eliminar este partido? También se borrarán las asistencias registradas.')) return;
@@ -228,6 +266,11 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                   {match?.id && (
                     <button type="button" onClick={handleDelete} disabled={loading} className="w-full mt-2 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
                       <Trash2 size={15} /> Eliminar Partido
+                    </button>
+                  )}
+                  {match?.id && match.status === 'Programado' && (
+                    <button type="button" onClick={handleSendReminder} disabled={loading} className="w-full mt-2 py-2 rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
+                      <Bell size={15} /> Enviar Recordatorio
                     </button>
                   )}
                 </form>
