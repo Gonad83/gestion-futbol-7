@@ -23,6 +23,7 @@ export default function Dashboard() {
     declinedCount: 0,
     topParticipations: [] as TopPlayer[],
     topMvp: [] as TopPlayer[],
+    allPlayers: [] as any[],
   });
 
   useEffect(() => {
@@ -151,7 +152,8 @@ export default function Dashboard() {
         activePlayers: activePlayersList.length, 
         totalPlayers: allPlayers?.length || 0, 
         topParticipations, 
-        topMvp 
+        topMvp,
+        allPlayers: allPlayers || []
       });
     } catch (e) {
       console.error('Error loading dashboard data:', e);
@@ -177,7 +179,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="fade-in pb-20 md:pb-0 space-y-6">
+    <div className="flex flex-col xl:flex-row gap-6 pb-20 md:pb-0">
+      <div className="flex-1 fade-in space-y-6">
       {/* Header */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel de Control</p>
@@ -330,24 +333,30 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Top Participaciones */}
+        {/* MVP Podium - Moved up */}
         <div className="lg:col-span-2 glass-card relative overflow-hidden flex flex-col">
-          <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,208,139,0.05) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+          <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.05) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
 
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,208,139,0.1)', color: '#ffd08b' }}>
-              <Trophy size={16} />
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,215,0,0.1)', color: '#ffd700' }}>
+                <Star size={16} />
+              </div>
+              <h2 className="font-headline font-bold text-white">Mejor Jugador</h2>
             </div>
-            <h2 className="font-headline font-bold text-white">Top Participaciones</h2>
+            <Link to="/vote" className="text-xs font-semibold flex items-center gap-1 hover:opacity-80 transition-opacity" style={{ color: '#ffd700' }}>
+              Votar <ArrowRight size={13} />
+            </Link>
           </div>
 
-          <div className="flex-1 flex flex-col gap-3">
-            {stats.topParticipations.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center py-8 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
-                <p className="text-white/30 text-sm">Sin datos de partidos aún.</p>
-              </div>
-            ) : (
-              stats.topParticipations.map((player, i) => (
+          {stats.topMvp.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center py-8 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+              <p className="text-white/30 text-sm mb-1">Sin votos aún.</p>
+              <p className="text-white/20 text-xs text-center">Los votos se activan<br />después de cada partido.</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col gap-3">
+              {stats.topMvp.map((player, i) => (
                 <div
                   key={player.id}
                   className="flex items-center gap-3 p-3 rounded-xl"
@@ -377,12 +386,12 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="font-headline font-black text-xl leading-none" style={{ color: RANK_COLORS[i] }}>{player.count}</p>
-                    <p className="text-[9px] text-white/30 uppercase tracking-wider">partidos</p>
+                    <p className="text-[9px] text-white/30 uppercase tracking-wider">votos</p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -476,30 +485,24 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* MVP Podium */}
-        <div className="glass-card relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.05) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+        {/* Top Participaciones - Moved down */}
+        <div className="glass-card relative overflow-hidden flex flex-col">
+          <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,208,139,0.05) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
 
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,215,0,0.1)', color: '#ffd700' }}>
-                <Star size={16} />
-              </div>
-              <h2 className="font-headline font-bold text-white">Mejor Jugador</h2>
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,208,139,0.1)', color: '#ffd08b' }}>
+              <Trophy size={16} />
             </div>
-            <Link to="/vote" className="text-xs font-semibold flex items-center gap-1 hover:opacity-80 transition-opacity" style={{ color: '#ffd700' }}>
-              Votar <ArrowRight size={13} />
-            </Link>
+            <h2 className="font-headline font-bold text-white">Participaciones</h2>
           </div>
 
-          {stats.topMvp.length === 0 ? (
-            <div className="text-center py-8 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
-              <p className="text-white/30 text-sm mb-1">Sin votos aún.</p>
-              <p className="text-white/20 text-xs">Los votos se activan<br />después de cada partido.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {stats.topMvp.map((player, i) => (
+          <div className="space-y-3">
+            {stats.topParticipations.length === 0 ? (
+              <div className="text-center py-8 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+                <p className="text-white/30 text-sm">Sin datos aún.</p>
+              </div>
+            ) : (
+              stats.topParticipations.map((player, i) => (
                 <div
                   key={player.id}
                   className="flex items-center gap-3 p-3 rounded-xl"
@@ -509,32 +512,99 @@ export default function Dashboard() {
                   }}
                 >
                   <span
-                    className="font-headline font-black text-xl w-6 text-center flex-shrink-0"
+                    className="font-headline font-black text-lg w-6 text-center flex-shrink-0"
                     style={{ color: RANK_COLORS[i] }}
                   >
                     {i + 1}
                   </span>
                   <div
-                    className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+                    className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
                     style={{ background: '#31353c', border: `1.5px solid ${RANK_COLORS[i]}40` }}
                   >
                     {player.photo_url
                       ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                      : <span className="text-sm font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{player.name.charAt(0)}</span>
+                      : <span className="text-xs font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{player.name.charAt(0)}</span>
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm truncate leading-tight">{player.name}</p>
-                    {player.nickname && <p className="text-[10px] text-white/30 truncate">"{player.nickname}"</p>}
+                    <p className="font-semibold text-white text-xs truncate leading-tight">{player.name}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-headline font-black text-xl leading-none" style={{ color: RANK_COLORS[i] }}>{player.count}</p>
-                    <p className="text-[9px] text-white/30 uppercase tracking-wider">votos</p>
+                    <p className="font-headline font-black text-lg leading-none" style={{ color: RANK_COLORS[i] }}>{player.count}</p>
                   </div>
                 </div>
-              ))}
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Sidebar - Players List */}
+      <div className="hidden xl:block w-80 shrink-0">
+        <div className="glass-card h-[calc(100vh-120px)] sticky top-6 flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
+                <Users size={20} />
+              </div>
+              <h2 className="font-headline font-bold text-white text-lg">Plantilla</h2>
             </div>
-          )}
+            <span className="text-[10px] font-black px-2 py-1 rounded bg-white/5 text-white/40 uppercase">
+              {stats.allPlayers.length} Total
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+            {stats.allPlayers
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((player) => (
+                <Link
+                  key={player.id}
+                  to={isAdmin ? `/admin?player=${player.id}` : '#'}
+                  className="flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 group"
+                >
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 border-2 border-white/5 group-hover:border-soccer-green/30 transition-colors flex items-center justify-center">
+                      {player.photo_url ? (
+                        <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-black text-white/20">{player.name.charAt(0)}</span>
+                      )}
+                    </div>
+                    {player.status === 'Activo' && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-soccer-green border-2 border-[#15191e]" title="Activo" />
+                    )}
+                    {player.status === 'Lesionado' && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-orange-400 border-2 border-[#15191e]" title="Lesionado" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-white text-sm truncate group-hover:text-soccer-green transition-colors">{player.name}</p>
+                    <div className="flex items-center gap-2">
+                       <p className="text-[10px] text-white/30 truncate uppercase tracking-wider">{player.nickname || 'Sin apodo'}</p>
+                       <span className={`text-[8px] font-bold px-1.5 rounded-sm ${
+                         player.status === 'Activo' ? 'text-soccer-green/60 bg-soccer-green/5' : 
+                         player.status === 'Lesionado' ? 'text-orange-400/60 bg-orange-400/5' : 
+                         'text-white/20 bg-white/5'
+                       }`}>
+                         {player.status}
+                       </span>
+                    </div>
+                  </div>
+                  <ArrowRight size={12} className="text-white/0 group-hover:text-soccer-green transition-all -translate-x-2 group-hover:translate-x-0" />
+                </Link>
+              ))}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-white/5">
+            <Link 
+              to="/players" 
+              className="flex items-center justify-center gap-2 py-3 rounded-xl bg-soccer-green/10 text-soccer-green text-xs font-bold hover:bg-soccer-green/20 transition-all uppercase tracking-widest"
+            >
+              Gestionar Plantilla <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
       </div>
     </div>
