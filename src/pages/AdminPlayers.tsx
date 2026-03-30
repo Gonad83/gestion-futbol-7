@@ -94,6 +94,11 @@ export default function AdminPlayers() {
     setTogglingId(null);
   };
 
+  const changeStatus = async (player: any, newStatus: string) => {
+    await supabase.from('players').update({ status: newStatus }).eq('id', player.id);
+    setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, status: newStatus } : p));
+  };
+
   const handleDelete = async (player: any) => {
     if (!confirm(`¿Eliminar a ${player.name}? Esta acción no se puede deshacer.`)) return;
     await supabase.from('attendance').delete().eq('player_id', player.id);
@@ -475,9 +480,15 @@ export default function AdminPlayers() {
 
                     {/* Estado */}
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[player.status] || STATUS_STYLE.Inactivo}`}>
-                        {player.status}
-                      </span>
+                      <select
+                        value={player.status}
+                        onChange={e => changeStatus(player, e.target.value)}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-full border cursor-pointer bg-transparent outline-none ${STATUS_STYLE[player.status] || STATUS_STYLE.Inactivo}`}
+                      >
+                        <option value="Activo" className="bg-slate-900 text-emerald-400">Activo</option>
+                        <option value="Lesionado" className="bg-slate-900 text-red-400">Lesionado</option>
+                        <option value="Inactivo" className="bg-slate-900 text-white/30">Inactivo</option>
+                      </select>
                     </td>
 
                     {/* Vista */}

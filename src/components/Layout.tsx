@@ -12,7 +12,7 @@ export default function Layout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoZoomed, setIsLogoZoomed] = useState(false);
-  const [teamSettings, setTeamSettings] = useState({ team_name: 'Fútbol 7', logo_url: '' });
+  const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '' });
 
   useEffect(() => {
     const fetchTeamSettings = async () => {
@@ -57,9 +57,7 @@ export default function Layout() {
           >
             {teamSettings.logo_url ? (
               <img src={teamSettings.logo_url} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-lg">⚽</span>
-            )}
+            ) : null}
           </div>
           <span className="font-headline font-bold text-lg tracking-tight text-white">{teamSettings.team_name}</span>
         </div>
@@ -90,9 +88,7 @@ export default function Layout() {
           >
             {teamSettings.logo_url ? (
               <img src={teamSettings.logo_url} alt="Logo" className="w-full h-full object-cover scale-110" />
-            ) : (
-              <span className="text-5xl drop-shadow-2xl">⚽</span>
-            )}
+            ) : null}
             <div
               className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-black"
               style={{ background: '#44f3a9', color: '#003822', border: '2.5px solid #0a0e14' }}
@@ -102,7 +98,7 @@ export default function Layout() {
           </div>
 
           <div className="text-center relative z-10">
-            <h2 className="font-headline font-black text-xl tracking-tight text-white uppercase">{teamSettings.team_name}</h2>
+            <h2 className="font-headline font-black text-xl tracking-tight text-white uppercase">{teamSettings.team_name || ''}</h2>
             <div className="h-px w-12 mx-auto mt-3 rounded-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(68,243,169,0.5), transparent)' }} />
             {user?.email && (
               <p className="text-[10px] text-white/30 mt-2 truncate max-w-[180px] font-medium" title={user.email}>
