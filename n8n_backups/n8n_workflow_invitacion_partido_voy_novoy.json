@@ -86,7 +86,8 @@
       "name": "HTTP - Guardar Asistencia",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 480]
+      "position": [480, 480],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
