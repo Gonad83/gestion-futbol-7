@@ -234,23 +234,25 @@ export default function AdminPlayers() {
               'Content-Type': 'application/json',
               'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
             }, 
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               type: type === 'recordatorio' ? 'attendance_reminder' : 'payment_notice',
               player: {
+                id: player.id,
                 name: player.name,
                 email: player.email,
                 phone: player.phone
               },
               match: nextMatch ? {
+                id: nextMatch.id,
                 date: format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es }),
                 location: nextMatch.location
               } : null,
               actions: type === 'recordatorio' ? {
-                confirm_url: `${window.location.origin}/matchmaking`,
-                decline_url: `${window.location.origin}/matchmaking`
+                confirm_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch?.id}&status=Voy`,
+                decline_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch?.id}&status=No%20voy`
               } : null,
               team_name: teamSettings.team_name
-            }) 
+            })
           });
         }
       }
