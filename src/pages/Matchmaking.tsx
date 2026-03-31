@@ -3,6 +3,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check, Send } from 'lucide-react';
+import FifaCard from '../components/FifaCard';
 
 export default function Matchmaking() {
   const [loading, setLoading] = useState(true);
@@ -113,20 +114,17 @@ export default function Matchmaking() {
       setConfirmedPlayers([]);
       setTeamA([]); setTeamB([]);
       setTeamsGenerated(false);
-      // If we are here and not loading, we can stop loading
     }
   }, [selectedMatch]);
 
   const fetchConfirmedPlayers = async (matchId: string) => {
     try {
-      // 1. Fetch real players from attendance
       const { data: attendanceData } = (await withTimeout(
         supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'Voy') as any,
         10000
       )) as any;
       const realPlayers = attendanceData ? attendanceData.map((d: any) => d.player) : [];
 
-      // 2. Fetch "No voy" players
       const { data: declinedData } = (await withTimeout(
         supabase.from('attendance').select('*, player:players(*)').eq('match_id', matchId).eq('status', 'No voy') as any,
         10000
@@ -134,7 +132,6 @@ export default function Matchmaking() {
       const noVoy = declinedData ? declinedData.map((d: any) => d.player) : [];
       setDeclinedPlayers(noVoy);
 
-      // 3. Fetch guests from database
       const { data: guestsData } = (await withTimeout(
         supabase.from('match_guests').select('*').eq('match_id', matchId) as any,
         10000
@@ -143,7 +140,6 @@ export default function Matchmaking() {
 
       setConfirmedPlayers([...realPlayers, ...guestPlayers]);
       
-      // 4. Check for saved teams
       await checkSavedTeams(matchId);
     } catch (e) {
       console.error('Error in fetchConfirmedPlayers:', e);
@@ -169,7 +165,6 @@ export default function Matchmaking() {
     }
   };
 
-  // Add guest to the confirmed pool (pre-generation)
   const addGuestToPool = async () => {
     if (!guestName.trim() || !selectedMatch) return;
     const guestData = {
@@ -179,7 +174,6 @@ export default function Matchmaking() {
       position: 'Invitado'
     };
     
-    // Guardamos en Supabase primero
     const { data, error } = await supabase.from('match_guests').insert([guestData]).select().single();
     
     if (error) {
@@ -210,7 +204,6 @@ export default function Matchmaking() {
       const { error } = await supabase.from('match_guests').delete().eq('id', id);
       if (!error) setConfirmedPlayers(prev => prev.filter(p => p.id !== id));
     } else {
-      // Regular player: delete their attendance record
       if (!selectedMatch) return;
       const { error } = await supabase.from('attendance')
         .delete()
@@ -228,17 +221,14 @@ export default function Matchmaking() {
   const saveGuestName = async (guestId: string) => {
     if (!editingGuestName.trim() || !selectedMatch) return;
     
-    // Ensure it ends with (I) if it doesn't already
     let newName = editingGuestName.trim();
     if (!newName.toLowerCase().endsWith('(i)')) {
-      newName = `${newName} (I)`;
+      newName = `${newName} (I)`.replace(' (I) (I)', ' (I)');
     }
 
-    // Identify if it's a real guest from the DB or a temp guest
     const isTemp = typeof guestId === 'string' && guestId.startsWith('guest-');
 
     if (!isTemp) {
-      // Update match_guests table ONLY if it's a persisted guest
       const { error } = await supabase.from('match_guests').update({ name: newName }).eq('id', guestId);
       if (error) {
         console.error(error);
@@ -247,7 +237,6 @@ export default function Matchmaking() {
       }
     }
 
-    // Update local state (affects both pool and teams)
     const updateNameInList = (list: any[]) => list.map(p => p.id === guestId ? { ...p, name: newName, isGuest: true } : p);
     
     setConfirmedPlayers(prev => updateNameInList(prev));
@@ -282,7 +271,6 @@ export default function Matchmaking() {
     setSaved(false); setTeamsGenerated(true);
   };
 
-
   const saveTeams = async () => {
     if (!selectedMatch || !isAdmin) return;
     try {
@@ -300,33 +288,48 @@ export default function Matchmaking() {
     try {
       const match = matches.find(m => m.id === selectedMatch);
       const webhookUrl = import.meta.env.VITE_N8N_LISTA_FINAL_URL || import.meta.env.VITE_N8N_WEBHOOK_URL;
+      const apiKey = import.meta.env.VITE_N8N_API_KEY;
+
       if (!webhookUrl) {
         alert('No hay URL de webhook configurada (VITE_N8N_LISTA_FINAL_URL).');
         return;
       }
+
+      const formatTeam = (players: any[]) => players.map(p => `⚽ ${p.name.replace(/\s*\(I\)\s*$/i, '').trim()}${p.isGuest ? ' (Invitado)' : ''}`).join('\n');
+
+      const payload = {
+        type: 'final_list',
+        match_date: match ? format(new Date(match.date), 'dd/MM/yyyy HH:mm') : 'Próximo partido',
+        match_location: match?.location || 'Cancha habitual',
+        team_a_names: formatTeam(teamA),
+        team_b_names: formatTeam(teamB),
+        team_a_color: JERSEY_COLORS.find(c => c.value === colorA)?.name || colorA,
+        team_b_color: JERSEY_COLORS.find(c => c.value === colorB)?.name || colorB,
+        player_names_all: [...teamA, ...teamB].map(p => p.name).join(','), 
+        raw_data: { teamA, teamB, formationA, formationB, colorA, colorB }
+      };
+
       await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'final_list',
-          match,
-          teamA: { players: teamA, formation: formationA, color: colorA },
-          teamB: { players: teamB, formation: formationB, color: colorB },
-        }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-N8N-API-KEY': apiKey || ''
+        },
+        body: JSON.stringify(payload),
       });
-      alert('Lista final enviada correctamente.');
+
+      alert('¡Lista final enviada con éxito!');
     } catch (e) {
       console.error(e);
-      alert('Error al enviar la lista final');
+      alert('Error técnico al enviar la lista final');
     } finally {
       setSendingList(false);
     }
   };
 
-  // Post-generation: add guest to specific team
   const addGuestToTeam = (team: 'A' | 'B') => {
     if (!guestModalName.trim()) return;
-    const guest = { id: `guest-${Date.now()}`, name: guestModalName.trim() + ' (I)', rating: parseFloat(guestModalRating) || 5, position: 'Invitado', photo_url: null, nickname: null };
+    const guest = { id: `guest-${Date.now()}`, name: guestModalName.trim() + ' (I)', rating: parseFloat(guestModalRating) || 5, position: 'Invitado', photo_url: null, nickname: null, isGuest: true };
     if (team === 'A') setTeamA(prev => [...prev, guest]);
     else setTeamB(prev => [...prev, guest]);
     setGuestModalName(''); setGuestModalRating('5'); setShowGuestModal(null); setSaved(false);
@@ -363,7 +366,6 @@ export default function Matchmaking() {
   };
 
   const getAvg = (team: any[]) => team.length === 0 ? '0.0' : (team.reduce((a, p) => a + (p.rating || 0), 0) / team.length).toFixed(1);
-
 
   if (loading && !selectedMatch) {
     return (
@@ -481,7 +483,6 @@ export default function Matchmaking() {
           </div>
 
           {!teamsGenerated ? (
-            /* ── ROSTER VIEW ── */
             <div className="space-y-6">
               {showGuestForm && isAdmin && (
                 <div className="flex flex-col sm:flex-row gap-4 items-end p-6 rounded-3xl fade-in bg-white/5 border border-white/10 backdrop-blur-xl">
@@ -565,7 +566,6 @@ export default function Matchmaking() {
                       )}
                     </div>
 
-                    {/* Inline Edit Modal/Input for Pool */}
                     {editingGuestId === player.id && (
                       <div className="absolute inset-0 z-50 bg-slate-900 rounded-3xl flex items-center gap-3 px-5 border-2 border-soccer-green/50">
                         <input 
@@ -588,7 +588,6 @@ export default function Matchmaking() {
                 ))}
               </div>
 
-              {/* Bajas Section */}
               {declinedPlayers.length > 0 && (
                 <div className="pt-8 space-y-4">
                   <div className="flex items-center gap-3 px-4">
@@ -612,9 +611,7 @@ export default function Matchmaking() {
               )}
             </div>
           ) : (
-            /* ── TEAMS VIEW ── */
             <div className="space-y-8">
-              {/* Formation & Color selectors */}
               <div className="flex flex-col gap-4 items-center py-4 px-8 rounded-[2.5rem] mx-auto max-w-fit bg-black/40 border border-white/5 backdrop-blur-3xl shadow-2xl">
                 <div className="flex items-center gap-6 flex-wrap justify-center">
                   <div className="flex items-center gap-3">
@@ -665,7 +662,6 @@ export default function Matchmaking() {
                 </div>
               </div>
 
-              {/* Pitch */}
               <div className="relative w-full aspect-[16/10] md:aspect-[16/8] rounded-[3rem] overflow-hidden border-[6px] p-6 group shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)]"
                 style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)', borderColor: '#0f172a' }}>
                 <div className="absolute inset-0 opacity-20 pointer-events-none"
@@ -697,7 +693,6 @@ export default function Matchmaking() {
                 ))}
               </div>
 
-              {/* Team lists side by side */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {(['A', 'B'] as const).map(team => {
                   const players = team === 'A' ? teamA : teamB;
@@ -796,7 +791,6 @@ export default function Matchmaking() {
         </div>
       )}
 
-      {/* Post-generation guest modal */}
       {showGuestModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)' }}>
           <div className="glass-card w-full max-w-sm border-2 border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)] p-8">
@@ -829,31 +823,6 @@ export default function Matchmaking() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function FifaCard({ player, color, index, isSelected }: { player: any, color: string, index: number, isSelected?: boolean }) {
-  const cardColorClass = color === 'emerald' ? 'emerald' : color === 'blue' ? 'blue' : color === 'white' ? 'white' : color === 'yellow' ? 'yellow' : color === 'red' ? 'red' : color === 'purple' ? 'purple' : color === 'lightblue' ? 'lightblue' : color === 'gold' ? 'gold' : 'blue';
-  const displayName = player.name.replace(/\s*\(I\)\s*$/i, '').trim();
-
-  return (
-    <div className={`fifa-card-container fade-in ${isSelected ? 'scale-110 -translate-y-4 brightness-125 z-50' : 'z-10'}`} style={{ animationDelay: `${index * 50}ms` }}>
-      <div className={`fifa-card ${cardColorClass} ${isSelected ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-transparent shadow-[0_0_30px_rgba(250,204,21,0.6)]' : ''}`}>
-        <div className="card-top">
-          <div className="card-pos">{player.position?.split(' ')[0].substring(0, 3).toUpperCase() || 'INV'}</div>
-        </div>
-        <div className="card-photo">
-          {player.photo_url
-            ? <img src={player.photo_url} alt={displayName} />
-            : <div className="card-placeholder font-bold text-white/20 italic">{displayName.charAt(0)}</div>
-          }
-        </div>
-        <div className="card-bottom">
-          <div className="card-name">{displayName}</div>
-          {player.nickname && <div className="card-nickname italic">"{player.nickname}"</div>}
-        </div>
-      </div>
     </div>
   );
 }

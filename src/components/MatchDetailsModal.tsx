@@ -100,7 +100,10 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
             if (webhookUrl) {
               fetch(webhookUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
+                },
                 body: JSON.stringify({ 
                   match: newMatch[0], 
                   players: activePlayers 
@@ -145,7 +148,10 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       if (webhookUrl) {
         await fetch(webhookUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
+          },
           body: JSON.stringify({ type: 'reminder', match, players: pendingPlayers }),
         });
         alert(`Recordatorio enviado a ${pendingPlayers.length} jugador(es) sin responder.`);

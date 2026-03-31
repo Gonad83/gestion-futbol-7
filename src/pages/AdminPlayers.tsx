@@ -116,9 +116,17 @@ export default function AdminPlayers() {
 
   const sendManualNotification = async (type: 'pago' | 'recordatorio', player: any) => {
     const url = type === 'pago' ? import.meta.env.VITE_N8N_PAYMENT_URL : import.meta.env.VITE_N8N_REMINDER_URL;
+    const apiKey = import.meta.env.VITE_N8N_API_KEY;
     if (!url) { alert('Configura VITE_N8N_PAYMENT_URL o VITE_N8N_REMINDER_URL en el .env'); return; }
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player }) });
+      const res = await fetch(url, { 
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-N8N-API-KEY': apiKey || ''
+        }, 
+        body: JSON.stringify({ player }) 
+      });
       if (res.ok) alert(`¡Mensaje de ${type} enviado a ${player.name}!`);
       else alert('Error al enviar. Verifica si el Webhook en n8n está activo.');
     } catch (e) { alert('Error técnico al conectar con n8n.'); }
@@ -155,7 +163,10 @@ export default function AdminPlayers() {
         
         const response = await fetch(url, { 
           method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
+          }, 
           body: JSON.stringify({ 
             lista_confirmados: confirmadosNames,
             lista_bajas: bajasNames,
@@ -174,7 +185,10 @@ export default function AdminPlayers() {
       } else if (type === 'test') {
         await fetch(url, { 
           method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
+          }, 
           body: JSON.stringify({ email: 'garaosd@gmail.com' }) 
         });
         alert('Mail de prueba enviado a garaosd@gmail.com');
@@ -199,7 +213,14 @@ export default function AdminPlayers() {
         }
 
         for (const player of targets) {
-          await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player }) });
+          await fetch(url, { 
+            method: 'POST', 
+            headers: { 
+              'Content-Type': 'application/json',
+              'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
+            }, 
+            body: JSON.stringify({ player }) 
+          });
         }
       }
       if (type !== 'test') alert('¡Acción completada con éxito!');
