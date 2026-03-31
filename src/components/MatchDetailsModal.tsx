@@ -214,7 +214,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
   if (!isOpen) return null;
 
   const isNew = !match?.id;
-  const matchDate = new Date(match.date);
+  const matchDate = match?.date ? new Date(match.date) : new Date();
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
