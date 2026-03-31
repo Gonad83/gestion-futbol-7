@@ -92,6 +92,7 @@ export default function Matchmaking() {
           .from('matches')
           .select('*')
           .eq('status', 'Programado')
+          .gte('date', new Date().toISOString())
           .order('date', { ascending: true }) as any,
         10000
       )) as any;
@@ -295,7 +296,11 @@ export default function Matchmaking() {
         return;
       }
 
-      const formatTeam = (players: any[]) => players.map(p => `⚽ ${p.name.replace(/\s*\(I\)\s*$/i, '').trim()}${p.isGuest ? ' (Invitado)' : ''}`).join('\n');
+      const formatTeam = (players: any[]) => 
+        players
+          .filter(p => p.isGuest || p.notify !== false)
+          .map(p => `⚽ ${p.name.replace(/\s*\(I\)\s*$/i, '').trim()}${p.isGuest ? ' (Invitado)' : ''}`)
+          .join('\n');
 
       const payload = {
         type: 'final_list',

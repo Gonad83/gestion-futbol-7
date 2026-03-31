@@ -153,9 +153,9 @@ export default function AdminPlayers() {
     try {
       // Para la lista enviamos los datos procesados, para recordatorios individuales el loop de antes
       if (type === 'lista') {
-        const confirmedPlayers = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
-        const declinedPlayers = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'No voy'));
-        const pendingPlayers = players.filter(p => p.status === 'Activo' && !attendances.some(a => a.player_id === p.id));
+        const confirmedPlayers = players.filter(p => p.notify !== false && attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
+        const declinedPlayers = players.filter(p => p.notify !== false && attendances.some(a => a.player_id === p.id && a.status === 'No voy'));
+        const pendingPlayers = players.filter(p => p.notify !== false && p.status === 'Activo' && !attendances.some(a => a.player_id === p.id));
 
         const confirmadosNames = confirmedPlayers.map(p => p.name).join(', ') || 'Ninguno';
         const bajasNames = declinedPlayers.map(p => p.name).join(', ') || 'Ninguno';
