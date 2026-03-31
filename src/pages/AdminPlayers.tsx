@@ -202,7 +202,15 @@ export default function AdminPlayers() {
         }
 
         if (targets.length === 0) {
-          alert('No hay jugadores que cumplan el criterio para esta notificación.');
+          const totalActive = players.filter(p => p.status === 'Activo').length;
+          const totalWithNotify = players.filter(p => p.status === 'Activo' && p.notify !== false).length;
+          const alreadyConfirmed = attendances.filter(a => a.status === 'Voy').length;
+          
+          alert(`Criterios de Recordatorio:\n` +
+                `- Jugadores Activos: ${totalActive}\n` +
+                `- Con Campanita: ${totalWithNotify}\n` +
+                `- Ya confirmados (excluidos): ${alreadyConfirmed}\n\n` +
+                `Resultado: 0 jugadores pendientes de avisar.`);
           setSending(null);
           return;
         }
