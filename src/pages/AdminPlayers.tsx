@@ -147,7 +147,7 @@ export default function AdminPlayers() {
       return; 
     }
 
-    if (type !== 'test' && !confirm(`¿Estás seguro de enviar ${type === 'lista' ? 'la lista final' : 'el ' + type} a todo el equipo?`)) return;
+    if (type === 'lista' && !confirm('¿Estás seguro de enviar la lista final a todo el equipo?')) return;
 
     setSending(type);
     try {
@@ -207,7 +207,7 @@ export default function AdminPlayers() {
           return;
         }
 
-        if (!confirm(`¿Enviar ${type === 'pago' ? 'cobro de cuota' : 'recordatorio de partido'} a ${targets.length} jugadores?`)) {
+        if (!confirm(`¿Enviar ${type === 'pago' ? 'cobro de cuota' : 'recordatorio de partido'} a ${targets.length} jugadores? (Solo con notificación activa)`)) {
           setSending(null);
           return;
         }
