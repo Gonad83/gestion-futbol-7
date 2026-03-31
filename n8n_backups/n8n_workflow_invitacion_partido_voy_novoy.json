@@ -93,7 +93,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $('Webhook Confirmar').item.json.query.status }}",
+              "value1": "={{ $json.query.status }}",
               "operation": "equal",
               "value2": "Voy"
             }
