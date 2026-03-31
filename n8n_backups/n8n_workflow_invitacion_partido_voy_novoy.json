@@ -5,29 +5,27 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "invitacion-partido",
-        "responseMode": "lastNode",
         "options": {}
       },
       "id": "webhook-invitacion",
       "name": "Webhook Invitación",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
-      "webhookId": "invitacion-partido"
+      "position": [240, 200]
     },
     {
       "parameters": {
         "sendTo": "={{ $json.body.player.email }}",
         "subject": "=⚽ {{ $json.body.match ? $json.body.match.date : 'Próximo Partido' }}: ¡Confirma tu asistencia!",
         "emailType": "html",
-        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0a0e14;color:white;padding:40px 20px;border-radius:24px;border:1px solid rgba(255,255,255,0.05)\">\n  <div style=\"text-align:center;margin-bottom:32px\">\n    <h1 style=\"color:#44f3a9;margin:0;font-size:24px;font-weight:800\">⚽ HAY PARTIDO</h1>\n    <p style=\"color:rgba(255,255,255,0.5);margin:8px 0 0;font-size:14px\">{{ $json.body.team_name || 'Tu equipo' }}</p>\n  </div>\n  <p style=\"font-size:17px;margin:0 0 24px\">Hola <b style=\"color:#44f3a9\">{{ $json.body.player.name }}</b>,</p>\n  <p style=\"color:rgba(255,255,255,0.7);font-size:15px;line-height:1.6;margin:0 0 24px\">Se ha programado un partido. Confirma si vas a jugar para que el admin pueda armar los equipos.</p>\n  <div style=\"background:#1c2026;border-radius:16px;padding:20px;margin:0 0 28px;border:1px solid rgba(68,243,169,0.15)\">\n    <p style=\"margin:10px 0;font-size:15px\">📅 <b>Fecha:</b> {{ $json.body.match ? $json.body.match.date : 'Por confirmar' }}</p>\n    <p style=\"margin:10px 0;font-size:15px\">📍 <b>Lugar:</b> {{ $json.body.match ? $json.body.match.location : 'Por confirmar' }}</p>\n  </div>\n  <p style=\"font-size:16px;margin:0 0 20px;font-weight:600\">¿Vas a jugar?</p>\n  <div style=\"text-align:center;margin:0 0 32px\">\n    <a href=\"{{ $json.body.actions ? $json.body.actions.confirm_url : '#' }}\"\n       style=\"background:linear-gradient(135deg,#44f3a9,#00d68f);color:#003822;padding:14px 32px;text-decoration:none;border-radius:12px;display:inline-block;margin:6px 8px;font-weight:800;font-size:15px\">\n      ✅ Voy\n    </a>\n    <a href=\"{{ $json.body.actions ? $json.body.actions.decline_url : '#' }}\"\n       style=\"background:#262a31;color:rgba(255,255,255,0.7);padding:14px 32px;text-decoration:none;border-radius:12px;display:inline-block;margin:6px 8px;font-weight:700;font-size:15px;border:1px solid rgba(255,255,255,0.1)\">\n      ❌ No Puedo\n    </a>\n  </div>\n  <p style=\"margin:0;font-size:12px;color:rgba(255,255,255,0.25);text-align:center\">Este correo fue enviado automáticamente por el sistema de gestión del equipo.</p>\n</div>",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;background:#0a0e14;color:white;padding:40px 20px;border-radius:24px;border:1px solid rgba(255,255,255,0.05)\">\n  <div style=\"text-align:center;margin-bottom:32px\">\n    <h1 style=\"color:#44f3a9;margin:0;font-size:24px;font-weight:800\">⚽ HAY PARTIDO</h1>\n    <p style=\"color:rgba(255,255,255,0.5);margin:8px 0 0;font-size:14px\">{{ $json.body.team_name || 'Tu equipo' }}</p>\n  </div>\n  <p style=\"font-size:17px;margin:0 0 24px\">Hola <b style=\"color:#44f3a9\">{{ $json.body.player.name }}</b>,</p>\n  <p style=\"color:rgba(255,255,255,0.7);font-size:15px;line-height:1.6;margin:0 0 24px\">Se ha programado un partido. Confirma si vas a jugar para que el admin pueda armar los equipos.</p>\n  <div style=\"background:#1c2026;border-radius:16px;padding:20px;margin:0 0 28px;border:1px solid rgba(68,243,169,0.15)\">\n    <p style=\"margin:10px 0;font-size:15px\">📅 <b>Fecha:</b> {{ $json.body.match ? $json.body.match.date : 'Por confirmar' }}</p>\n    <p style=\"margin:10px 0;font-size:15px\">📍 <b>Lugar:</b> {{ $json.body.match ? $json.body.match.location : 'Por confirmar' }}</p>\n  </div>\n  <p style=\"font-size:16px;margin:0 0 20px;font-weight:600\">¿Vas a jugar?</p>\n  <div style=\"text-align:center;margin:0 0 32px\">\n    <a href=\"{{ $json.body.actions.confirm_url }}\"\n       style=\"background:linear-gradient(135deg,#44f3a9,#00d68f);color:#003822;padding:14px 32px;text-decoration:none;border-radius:12px;display:inline-block;margin:6px 8px;font-weight:800;font-size:15px\">\n      ✅ Voy\n    </a>\n    <a href=\"{{ $json.body.actions.decline_url }}\"\n       style=\"background:#262a31;color:rgba(255,255,255,0.7);padding:14px 32px;text-decoration:none;border-radius:12px;display:inline-block;margin:6px 8px;font-weight:700;font-size:15px;border:1px solid rgba(255,255,255,0.1)\">\n      ❌ No Puedo\n    </a>\n  </div>\n  <p style=\"margin:0;font-size:12px;color:rgba(255,255,255,0.25);text-align:center\">Este correo fue enviado automáticamente por el sistema de gestión del equipo.</p>\n</div>",
         "options": {}
       },
       "id": "gmail-invitacion",
       "name": "Enviar Email Invitación",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2,
-      "position": [500, 300],
+      "position": [500, 200],
       "credentials": {
         "gmailOAuth2": {
           "id": "1",
@@ -37,38 +35,124 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"ok\": true }",
+        "httpMethod": "GET",
+        "path": "confirmar",
+        "responseMode": "responseNode",
         "options": {}
       },
-      "id": "respond-ok",
-      "name": "Responder OK",
+      "id": "webhook-confirmar",
+      "name": "Webhook Confirmar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://wmcycxnydunfjnirmjuy.supabase.co/rest/v1/attendance",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY3ljeG55ZHVuZmpuaXJtanV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTA1MDcsImV4cCI6MjA4OTQyNjUwN30.qDOTIX0lAKg4C3Cw_Tm1l3ttS-mY4s5bnckgvh1RTgM"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "match_id",  "value": "={{ $json.query.match_id }}" },
+            { "name": "player_id", "value": "={{ $json.query.player_id }}" },
+            { "name": "status",    "value": "={{ $json.query.status }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-guardar-asistencia",
+      "name": "HTTP - Guardar Asistencia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 480]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Webhook Confirmar').item.json.query.status }}",
+              "operation": "equal",
+              "value2": "Voy"
+            }
+          ]
+        }
+      },
+      "id": "if-va-o-no-va",
+      "name": "¿Va o No Va?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [720, 480]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>¡Confirmado!</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0e14;color:white;display:flex;justify-content:center;align-items:center;min-height:100vh}.card{background:#1c2026;border:1px solid rgba(68,243,169,0.2);border-radius:24px;padding:48px 40px;text-align:center;max-width:420px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,0.6)}.icon{font-size:72px;margin-bottom:20px;display:block}.title{font-size:26px;font-weight:800;margin-bottom:12px;color:#44f3a9}.msg{color:rgba(255,255,255,0.6);font-size:15px;line-height:1.7}.close{margin-top:28px;color:rgba(255,255,255,0.25);font-size:13px}</style></head><body><div class='card'><span class='icon'>⚽</span><h1 class='title'>¡Estás dentro!</h1><p class='msg'>Tu asistencia fue confirmada.<br>El admin ya sabe que <b style='color:white'>vas a jugar</b>.<br>¡Nos vemos en la cancha!</p><p class='close'>Puedes cerrar esta ventana.</p></div></body></html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "text/html; charset=utf-8" }]
+          }
+        }
+      },
+      "id": "respuesta-voy",
+      "name": "Respuesta: Voy",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [760, 300]
+      "position": [960, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>Anotado</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0e14;color:white;display:flex;justify-content:center;align-items:center;min-height:100vh}.card{background:#1c2026;border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:48px 40px;text-align:center;max-width:420px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,0.6)}.icon{font-size:72px;margin-bottom:20px;display:block}.title{font-size:26px;font-weight:800;margin-bottom:12px;color:rgba(255,255,255,0.85)}.msg{color:rgba(255,255,255,0.5);font-size:15px;line-height:1.7}.next{margin-top:20px;font-size:13px;color:#9acbff;font-weight:600}.close{margin-top:12px;color:rgba(255,255,255,0.2);font-size:12px}</style></head><body><div class='card'><span class='icon'>👋</span><h1 class='title'>¡Nos falta uno!</h1><p class='msg'>Anotamos que esta vez <b style='color:white'>no puedes ir</b>.<br>Sin problema, descansa y recarga pilas.</p><p class='next'>⚽ Te esperamos en el próximo partido.</p><p class='close'>Puedes cerrar esta ventana.</p></div></body></html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "text/html; charset=utf-8" }]
+          }
+        }
+      },
+      "id": "respuesta-no-voy",
+      "name": "Respuesta: No Voy",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [960, 580]
     }
   ],
   "connections": {
     "Webhook Invitación": {
-      "main": [
-        [
-          {
-            "node": "Enviar Email Invitación",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Enviar Email Invitación", "type": "main", "index": 0 }]]
     },
-    "Enviar Email Invitación": {
+    "Webhook Confirmar": {
+      "main": [[{ "node": "HTTP - Guardar Asistencia", "type": "main", "index": 0 }]]
+    },
+    "HTTP - Guardar Asistencia": {
+      "main": [[{ "node": "¿Va o No Va?", "type": "main", "index": 0 }]]
+    },
+    "¿Va o No Va?": {
       "main": [
-        [
-          {
-            "node": "Responder OK",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Respuesta: Voy",    "type": "main", "index": 0 }],
+        [{ "node": "Respuesta: No Voy", "type": "main", "index": 0 }]
       ]
     }
   },
