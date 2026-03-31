@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRef } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { supabase, withTimeout } from '../lib/supabase';
 import { Star, Edit2, Trash2, Bell, BellOff, Eye, EyeOff, CheckCircle2, Circle, DollarSign, BellRing, Camera, Upload, Send, Loader2 } from 'lucide-react';
 import PlayerModal from '../components/PlayerModal';
@@ -153,13 +155,13 @@ export default function AdminPlayers() {
     try {
       // Para la lista enviamos los datos procesados, para recordatorios individuales el loop de antes
       if (type === 'lista') {
-        const confirmedPlayers = players.filter(p => p.notify !== false && attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
-        const declinedPlayers = players.filter(p => p.notify !== false && attendances.some(a => a.player_id === p.id && a.status === 'No voy'));
-        const pendingPlayers = players.filter(p => p.notify !== false && p.status === 'Activo' && !attendances.some(a => a.player_id === p.id));
+        const confirmedPlayers = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
+        const declinedPlayers = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'No voy'));
+        const pendingPlayers = players.filter(p => p.status === 'Activo' && !attendances.some(a => a.player_id === p.id));
 
-        const confirmadosNames = confirmedPlayers.map(p => p.name).join(', ') || 'Ninguno';
-        const bajasNames = declinedPlayers.map(p => p.name).join(', ') || 'Ninguno';
-        const pendientesNames = pendingPlayers.map(p => p.name).join(', ') || 'Ninguno';
+        const confirmadosNames = confirmedPlayers.map(p => `✅ ${p.name}`).join('\n') || 'Ninguno';
+        const bajasNames = declinedPlayers.map(p => `❌ ${p.name}`).join('\n') || 'Ninguno';
+        const pendientesNames = pendingPlayers.map(p => `⏳ ${p.name}`).join('\n') || 'Ninguno';
         
         const response = await fetch(url, { 
           method: 'POST', 
@@ -168,12 +170,17 @@ export default function AdminPlayers() {
             'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
           }, 
           body: JSON.stringify({ 
+            type: 'admin_summary',
+            match_date: nextMatch ? format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es }) : 'Próximo partido',
+            match_location: nextMatch?.location || 'Cancha habitual',
             lista_confirmados: confirmadosNames,
             lista_bajas: bajasNames,
             lista_pendientes: pendientesNames,
             confirmados_count: confirmedPlayers.length,
             bajas_count: declinedPlayers.length,
-            pendientes_count: pendingPlayers.length
+            pendientes_count: pendingPlayers.length,
+            total_players: confirmedPlayers.length,
+            team_info: teamSettings.team_name
           }) 
         });
 
