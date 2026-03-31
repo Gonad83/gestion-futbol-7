@@ -312,25 +312,12 @@ export default function AdminPlayers() {
         <p className="text-white/35 text-sm mt-1">Gestiona plantilla, notificaciones y perfil del equipo.</p>
       </div>
 
-      {/* Acciones Maestras de Equipo - MODIFICADO POSICION */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button 
-          onClick={() => sendBulkNotification('recordatorio')}
-          disabled={sending !== null}
-          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4"
-          style={{ borderLeft: '3px solid #9acbff' }}
-        >
-          <div className="text-left">
-            <h3 className="font-bold text-white text-sm">📢 Enviar Recordatorio</h3>
-            <p className="text-[10px] text-white/40">Solo a los que faltan confirmar</p>
-          </div>
-          {sending === 'recordatorio' ? <Loader2 className="animate-spin text-soccer-green" /> : <BellRing size={20} className="text-[#9acbff] group-hover:scale-110 transition-transform" />}
-        </button>
-
+      {/* Acciones Maestras de Equipo - SOLO LISTA FINAL */}
+      <div className="flex justify-center">
         <button 
           onClick={() => sendBulkNotification('lista')}
           disabled={sending !== null}
-          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4"
+          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4 w-full md:w-1/3"
           style={{ borderLeft: '3px solid #f59e0b' }}
         >
           <div className="text-left">
@@ -338,19 +325,6 @@ export default function AdminPlayers() {
             <p className="text-[10px] text-white/40">Resumen para todo el equipo</p>
           </div>
           {sending === 'lista' ? <Loader2 className="animate-spin text-soccer-green" /> : <Send size={20} className="text-[#f59e0b] group-hover:scale-110 transition-transform" />}
-        </button>
-
-        <button 
-          onClick={() => sendBulkNotification('test')}
-          disabled={sending !== null}
-          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4"
-          style={{ borderLeft: '3px solid #44f3a9' }}
-        >
-          <div className="text-left">
-            <h3 className="font-bold text-white text-sm">🧪 Enviar Prueba</h3>
-            <p className="text-[10px] text-white/40">Solo a: garaosd@gmail.com</p>
-          </div>
-          {sending === 'test' ? <Loader2 className="animate-spin text-soccer-green" /> : <Camera size={20} className="text-[#44f3a9] group-hover:scale-110 transition-transform" />}
         </button>
       </div>
 
