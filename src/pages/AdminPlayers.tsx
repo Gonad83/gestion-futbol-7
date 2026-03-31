@@ -234,7 +234,23 @@ export default function AdminPlayers() {
               'Content-Type': 'application/json',
               'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
             }, 
-            body: JSON.stringify({ player }) 
+            body: JSON.stringify({ 
+              type: type === 'recordatorio' ? 'attendance_reminder' : 'payment_notice',
+              player: {
+                name: player.name,
+                email: player.email,
+                phone: player.phone
+              },
+              match: nextMatch ? {
+                date: format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es }),
+                location: nextMatch.location
+              } : null,
+              actions: type === 'recordatorio' ? {
+                confirm_url: `${window.location.origin}/matchmaking`,
+                decline_url: `${window.location.origin}/matchmaking`
+              } : null,
+              team_name: teamSettings.team_name
+            }) 
           });
         }
       }
@@ -312,12 +328,27 @@ export default function AdminPlayers() {
         <p className="text-white/35 text-sm mt-1">Gestiona plantilla, notificaciones y perfil del equipo.</p>
       </div>
 
-      {/* Acciones Maestras de Equipo - SOLO LISTA FINAL */}
-      <div className="flex justify-center">
+      {/* Acciones Maestras de Equipo */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Recordatorio Asistencia */}
+        <button 
+          onClick={() => sendBulkNotification('recordatorio')}
+          disabled={sending !== null}
+          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4"
+          style={{ borderLeft: '3px solid #9acbff' }}
+        >
+          <div className="text-left">
+            <h3 className="font-bold text-white text-sm">📢 Enviar Recordatorio</h3>
+            <p className="text-[10px] text-white/40">Invitación "Voy/No Voy" a pendientes</p>
+          </div>
+          {sending === 'recordatorio' ? <Loader2 className="animate-spin text-soccer-green" /> : <BellRing size={20} className="text-[#9acbff] group-hover:scale-110 transition-transform" />}
+        </button>
+
+        {/* Lista Final */}
         <button 
           onClick={() => sendBulkNotification('lista')}
           disabled={sending !== null}
-          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4 w-full md:w-1/3"
+          className="glass-card flex items-center justify-between group hover:border-soccer-green/50 transition-all p-4"
           style={{ borderLeft: '3px solid #f59e0b' }}
         >
           <div className="text-left">
