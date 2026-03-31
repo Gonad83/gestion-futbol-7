@@ -90,53 +90,19 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.query.status }}",
-              "operation": "equal",
-              "value2": "Voy"
-            }
-          ]
-        }
-      },
-      "id": "if-va-o-no-va",
-      "name": "¿Va o No Va?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [720, 480]
-    },
-    {
-      "parameters": {
         "respondWith": "text",
-        "responseBody": "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>¡Confirmado!</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0e14;color:white;display:flex;justify-content:center;align-items:center;min-height:100vh}.card{background:#1c2026;border:1px solid rgba(68,243,169,0.2);border-radius:24px;padding:48px 40px;text-align:center;max-width:420px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,0.6)}.icon{font-size:72px;margin-bottom:20px;display:block}.title{font-size:26px;font-weight:800;margin-bottom:12px;color:#44f3a9}.msg{color:rgba(255,255,255,0.6);font-size:15px;line-height:1.7}.close{margin-top:28px;color:rgba(255,255,255,0.25);font-size:13px}</style></head><body><div class='card'><span class='icon'>⚽</span><h1 class='title'>¡Estás dentro!</h1><p class='msg'>Tu asistencia fue confirmada.<br>El admin ya sabe que <b style='color:white'>vas a jugar</b>.<br>¡Nos vemos en la cancha!</p><p class='close'>Puedes cerrar esta ventana.</p></div></body></html>",
+        "responseBody": "={{ $('Webhook Confirmar').item.json.query.status === 'Voy' ? \"<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>\\u00a1Confirmado!</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0e14;color:white;display:flex;justify-content:center;align-items:center;min-height:100vh}.card{background:#1c2026;border:1px solid rgba(68,243,169,0.2);border-radius:24px;padding:48px 40px;text-align:center;max-width:420px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,0.6)}.icon{font-size:72px;margin-bottom:20px;display:block}.title{font-size:26px;font-weight:800;margin-bottom:12px;color:#44f3a9}.msg{color:rgba(255,255,255,0.6);font-size:15px;line-height:1.7}.close{margin-top:28px;color:rgba(255,255,255,0.25);font-size:13px}</style></head><body><div class='card'><span class='icon'>\\u26bd</span><h1 class='title'>\\u00a1Est\\u00e1s dentro!</h1><p class='msg'>Tu asistencia fue confirmada.<br>El admin ya sabe que <b style='color:white'>vas a jugar</b>.<br>\\u00a1Nos vemos en la cancha!</p><p class='close'>Puedes cerrar esta ventana.</p></div></body></html>\" : \"<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>Anotado</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0e14;color:white;display:flex;justify-content:center;align-items:center;min-height:100vh}.card{background:#1c2026;border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:48px 40px;text-align:center;max-width:420px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,0.6)}.icon{font-size:72px;margin-bottom:20px;display:block}.title{font-size:26px;font-weight:800;margin-bottom:12px;color:rgba(255,255,255,0.85)}.msg{color:rgba(255,255,255,0.5);font-size:15px;line-height:1.7}.next{margin-top:20px;font-size:13px;color:#9acbff;font-weight:600}.close{margin-top:12px;color:rgba(255,255,255,0.2);font-size:12px}</style></head><body><div class='card'><span class='icon'>\\ud83d\\udc4b</span><h1 class='title'>\\u00a1Nos falta uno!</h1><p class='msg'>Anotamos que esta vez <b style='color:white'>no puedes ir</b>.<br>Sin problema, descansa y recarga pilas.</p><p class='next'>\\u26bd Te esperamos en el pr\\u00f3ximo partido.</p><p class='close'>Puedes cerrar esta ventana.</p></div></body></html>\" }}",
         "options": {
           "responseHeaders": {
             "entries": [{ "name": "Content-Type", "value": "text/html; charset=utf-8" }]
           }
         }
       },
-      "id": "respuesta-voy",
-      "name": "Respuesta: Voy",
+      "id": "respuesta-unica",
+      "name": "Responder al Jugador",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [960, 380]
-    },
-    {
-      "parameters": {
-        "respondWith": "text",
-        "responseBody": "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>Anotado</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0e14;color:white;display:flex;justify-content:center;align-items:center;min-height:100vh}.card{background:#1c2026;border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:48px 40px;text-align:center;max-width:420px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,0.6)}.icon{font-size:72px;margin-bottom:20px;display:block}.title{font-size:26px;font-weight:800;margin-bottom:12px;color:rgba(255,255,255,0.85)}.msg{color:rgba(255,255,255,0.5);font-size:15px;line-height:1.7}.next{margin-top:20px;font-size:13px;color:#9acbff;font-weight:600}.close{margin-top:12px;color:rgba(255,255,255,0.2);font-size:12px}</style></head><body><div class='card'><span class='icon'>👋</span><h1 class='title'>¡Nos falta uno!</h1><p class='msg'>Anotamos que esta vez <b style='color:white'>no puedes ir</b>.<br>Sin problema, descansa y recarga pilas.</p><p class='next'>⚽ Te esperamos en el próximo partido.</p><p class='close'>Puedes cerrar esta ventana.</p></div></body></html>",
-        "options": {
-          "responseHeaders": {
-            "entries": [{ "name": "Content-Type", "value": "text/html; charset=utf-8" }]
-          }
-        }
-      },
-      "id": "respuesta-no-voy",
-      "name": "Respuesta: No Voy",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [960, 580]
+      "position": [960, 480]
     }
   ],
   "connections": {
@@ -147,13 +113,7 @@
       "main": [[{ "node": "HTTP - Guardar Asistencia", "type": "main", "index": 0 }]]
     },
     "HTTP - Guardar Asistencia": {
-      "main": [[{ "node": "¿Va o No Va?", "type": "main", "index": 0 }]]
-    },
-    "¿Va o No Va?": {
-      "main": [
-        [{ "node": "Respuesta: Voy",    "type": "main", "index": 0 }],
-        [{ "node": "Respuesta: No Voy", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Responder al Jugador", "type": "main", "index": 0 }]]
     }
   },
   "active": true,
