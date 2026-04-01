@@ -146,14 +146,30 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
       const webhookUrl = import.meta.env.VITE_N8N_REMINDER_URL || import.meta.env.VITE_N8N_WEBHOOK_URL;
       if (webhookUrl) {
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
-          },
-          body: JSON.stringify({ type: 'reminder', match, players: pendingPlayers }),
-        });
+        const { data: teamSettings } = await supabase.from('team_settings').select('team_name').single();
+        for (const player of pendingPlayers) {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
+            },
+            body: JSON.stringify({
+              type: 'attendance_reminder',
+              player: { id: player.id, name: player.name, email: player.email },
+              match: {
+                id: match.id,
+                date: match.date,
+                location: match.location
+              },
+              actions: {
+                confirm_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${match.id}&status=Voy`,
+                decline_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${match.id}&status=No%20voy`
+              },
+              team_name: teamSettings?.team_name || 'Real Ébolo FC'
+            })
+          });
+        }
         alert(`Recordatorio enviado a ${pendingPlayers.length} jugador(es) sin responder.`);
       } else {
         alert('No hay URL de webhook configurada (VITE_N8N_REMINDER_URL).');
