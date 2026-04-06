@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
-import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check, Send } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check, Send, Copy } from 'lucide-react';
 import FifaCard from '../components/FifaCard';
 
 export default function Matchmaking() {
@@ -26,6 +26,7 @@ export default function Matchmaking() {
 
   const [showAddPlayerPanel, setShowAddPlayerPanel] = useState(false);
   const [allActivePlayers, setAllActivePlayers] = useState<any[]>([]);
+  const [copied, setCopied] = useState(false);
 
   // Guest form (pre-generation pool)
   const [showGuestForm, setShowGuestForm] = useState(false);
@@ -392,6 +393,37 @@ export default function Matchmaking() {
 
   const getAvg = (team: any[]) => team.length === 0 ? '0.0' : (team.reduce((a, p) => a + (p.rating || 0), 0) / team.length).toFixed(1);
 
+  const copyForWhatsApp = () => {
+    const match = matches.find(m => m.id === selectedMatch);
+    const confirmedIds = new Set(confirmedPlayers.map(p => p.id));
+    const sinResp = allActivePlayers.filter(p => !confirmedIds.has(p.id) && !declinedPlayers.find((d: any) => d.id === p.id));
+
+    const lines: string[] = [];
+    lines.push(`⚽ *Real Ebolo FC*`);
+    if (match) lines.push(`📅 ${format(new Date(match.date), "EEEE dd/MM • HH:mm")}`);
+    if (match?.location) lines.push(`📍 ${match.location}`);
+    lines.push('');
+    lines.push(`✅ *Van (${confirmedPlayers.length}):*`);
+    confirmedPlayers.forEach((p, i) => lines.push(`${i + 1}. ${p.name.replace(/\s*\(I\)\s*$/i, '').trim()}${p.isGuest ? ' (Invitado)' : ''}`));
+    if (declinedPlayers.length > 0) {
+      lines.push('');
+      lines.push(`❌ *No van (${declinedPlayers.length}):*`);
+      declinedPlayers.forEach((p: any) => lines.push(`• ${p.name}`));
+    }
+    if (sinResp.length > 0) {
+      lines.push('');
+      lines.push(`⏳ *Sin respuesta (${sinResp.length}):*`);
+      sinResp.forEach((p: any) => lines.push(`• ${p.name}`));
+    }
+    lines.push('');
+    lines.push(`_Total activos: ${allActivePlayers.length}_`);
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
+
   if (loading && !selectedMatch) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -478,10 +510,18 @@ export default function Matchmaking() {
               )}
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={copyForWhatsApp}
+                disabled={confirmedPlayers.length === 0}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border ${copied ? 'bg-soccer-green/20 text-soccer-green border-soccer-green/40' : 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border-white/10'}`}
+              >
+                <Copy size={14} />
+                <span>{copied ? '¡Copiado!' : 'WhatsApp'}</span>
+              </button>
               {isAdmin && (
                 <>
-                  <button 
+                  <button
                     onClick={generateTeams}
                     disabled={confirmedPlayers.length < 2 || loading}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white transition-all border border-white/5"

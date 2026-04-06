@@ -3,7 +3,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X, CheckCircle2, XCircle, Clock, Copy } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 type TopPlayer = { id: string; count: number; name: string; nickname: string; photo_url: string };
@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState({
     nextMatch: null as any,
     confirmedCount: 0,
@@ -236,6 +237,39 @@ export default function Dashboard() {
       const pending = updated.filter(p => p.attendanceStatus === 'Pendiente').length;
       setStats(s => ({ ...s, confirmedCount: confirmed, declinedCount: declined, pendingCount: pending }));
       return updated;
+    });
+  };
+
+  const copyForWhatsApp = () => {
+    if (!stats.nextMatch || attendanceList.length === 0) return;
+    const match = stats.nextMatch;
+    const van = attendanceList.filter(p => p.attendanceStatus === 'Voy');
+    const noVan = attendanceList.filter(p => p.attendanceStatus === 'No voy');
+    const sinResp = attendanceList.filter(p => p.attendanceStatus === 'Pendiente');
+
+    const lines: string[] = [];
+    lines.push(`⚽ *Real Ebolo FC*`);
+    lines.push(`📅 ${format(new Date(match.date), "EEEE dd 'de' MMMM • HH:mm", { locale: es })}`);
+    if (match.location) lines.push(`📍 ${match.location}`);
+    lines.push('');
+    lines.push(`✅ *Van (${van.length}):*`);
+    van.forEach((p, i) => lines.push(`${i + 1}. ${p.name}`));
+    if (noVan.length > 0) {
+      lines.push('');
+      lines.push(`❌ *No van (${noVan.length}):*`);
+      noVan.forEach(p => lines.push(`• ${p.name}`));
+    }
+    if (sinResp.length > 0) {
+      lines.push('');
+      lines.push(`⏳ *Sin respuesta (${sinResp.length}):*`);
+      sinResp.forEach(p => lines.push(`• ${p.name}`));
+    }
+    lines.push('');
+    lines.push(`_Total activos: ${attendanceList.length}_`);
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     });
   };
 
@@ -656,9 +690,19 @@ export default function Dashboard() {
                 <h2 className="font-headline font-black text-white text-lg">Asistencia Manual</h2>
                 <p className="text-xs text-white/40 mt-0.5">{format(new Date(stats.nextMatch.date), 'dd MMM yyyy — HH:mm', { locale: es })}</p>
               </div>
-              <button onClick={() => setShowAttendanceModal(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors">
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={copyForWhatsApp}
+                  disabled={attendanceLoading}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${copied ? 'bg-soccer-green text-black' : 'bg-white/8 text-white/60 hover:bg-white/15 hover:text-white'}`}
+                >
+                  <Copy size={12} />
+                  {copied ? '¡Copiado!' : 'WhatsApp'}
+                </button>
+                <button onClick={() => setShowAttendanceModal(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-2 mb-4 text-[10px] font-bold uppercase tracking-widest">
