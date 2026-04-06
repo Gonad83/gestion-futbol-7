@@ -24,6 +24,9 @@ export default function Matchmaking() {
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
   const [editingGuestName, setEditingGuestName] = useState('');
 
+  const [showAddPlayerPanel, setShowAddPlayerPanel] = useState(false);
+  const [allActivePlayers, setAllActivePlayers] = useState<any[]>([]);
+
   // Guest form (pre-generation pool)
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [guestName, setGuestName] = useState('');
@@ -140,12 +143,29 @@ export default function Matchmaking() {
       const guestPlayers = guestsData ? guestsData.map((g: any) => ({ ...g, isGuest: true, photo_url: null, nickname: null })) : [];
 
       setConfirmedPlayers([...realPlayers, ...guestPlayers]);
-      
+
+      const { data: activePlayers } = (await withTimeout(
+        supabase.from('players').select('*').eq('status', 'Activo') as any,
+        10000
+      )) as any;
+      setAllActivePlayers(activePlayers || []);
+
       await checkSavedTeams(matchId);
     } catch (e) {
       console.error('Error in fetchConfirmedPlayers:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const addPlayerToConfirmed = async (player: any) => {
+    if (!selectedMatch) return;
+    const { error } = await supabase.from('attendance').upsert(
+      [{ match_id: selectedMatch, player_id: player.id, status: 'Voy' }],
+      { onConflict: 'match_id,player_id' }
+    );
+    if (!error) {
+      setConfirmedPlayers(prev => [...prev, player]);
     }
   };
 
@@ -439,13 +459,22 @@ export default function Matchmaking() {
               </div>
               
               {!teamsGenerated && isAdmin && (
-                <button 
-                  onClick={() => setShowGuestForm(!showGuestForm)}
-                  className={`btn-glass text-xs flex items-center gap-2 px-4 py-2.5 rounded-2xl border-white/10 ${showGuestForm ? 'bg-white/10' : ''}`}
-                >
-                  <UserPlus size={14} />
-                  <span>{showGuestForm ? 'Cancelar' : 'Invitados'}</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowGuestForm(!showGuestForm)}
+                    className={`btn-glass text-xs flex items-center gap-2 px-4 py-2.5 rounded-2xl border-white/10 ${showGuestForm ? 'bg-white/10' : ''}`}
+                  >
+                    <UserPlus size={14} />
+                    <span>{showGuestForm ? 'Cancelar' : 'Invitados'}</span>
+                  </button>
+                  <button
+                    onClick={() => setShowAddPlayerPanel(v => !v)}
+                    className={`btn-glass text-xs flex items-center gap-2 px-4 py-2.5 rounded-2xl border-white/10 ${showAddPlayerPanel ? 'bg-soccer-green/10 text-soccer-green border-soccer-green/20' : ''}`}
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>Confirmar Asistencia</span>
+                  </button>
+                </>
               )}
             </div>
 
@@ -518,6 +547,35 @@ export default function Matchmaking() {
                   </button>
                 </div>
               )}
+
+              {showAddPlayerPanel && isAdmin && (() => {
+                const confirmedIds = new Set(confirmedPlayers.map(p => p.id));
+                const unconfirmed = allActivePlayers.filter(p => !confirmedIds.has(p.id));
+                return (
+                  <div className="p-5 rounded-3xl fade-in bg-soccer-green/5 border border-soccer-green/20 space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-soccer-green">Sin respuesta — click para confirmar asistencia</p>
+                    {unconfirmed.length === 0 ? (
+                      <p className="text-sm text-white/30 italic">Todos los jugadores activos ya están en la nómina.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {unconfirmed.map(player => (
+                          <button
+                            key={player.id}
+                            onClick={() => addPlayerToConfirmed(player)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-black/30 border border-white/10 hover:border-soccer-green/40 hover:bg-soccer-green/10 transition-all group"
+                          >
+                            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-black flex-shrink-0" style={{ background: '#31353c' }}>
+                              {player.photo_url ? <img src={player.photo_url} className="w-full h-full object-cover" alt={player.name} /> : player.name.charAt(0)}
+                            </div>
+                            <span className="text-xs font-bold text-white/70 group-hover:text-white transition-colors">{player.name}</span>
+                            <CheckCircle2 size={12} className="text-soccer-green/40 group-hover:text-soccer-green transition-colors" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {confirmedPlayers.map((player) => (

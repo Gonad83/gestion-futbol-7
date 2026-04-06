@@ -3,7 +3,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star } from 'lucide-react';
+import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 type TopPlayer = { id: string; count: number; name: string; nickname: string; photo_url: string };
@@ -13,6 +13,9 @@ const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
 export default function Dashboard() {
   const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [attendanceList, setAttendanceList] = useState<any[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [stats, setStats] = useState({
     nextMatch: null as any,
     confirmedCount: 0,
@@ -187,6 +190,53 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openAttendanceModal = async () => {
+    if (!stats.nextMatch) return;
+    setShowAttendanceModal(true);
+    setAttendanceLoading(true);
+    try {
+      const { data: attendanceData } = await supabase
+        .from('attendance')
+        .select('player_id, status')
+        .eq('match_id', stats.nextMatch.id);
+      const statusMap: Record<string, string> = {};
+      attendanceData?.forEach((a: any) => { statusMap[a.player_id] = a.status; });
+      const merged = stats.allPlayers
+        .filter((p: any) => p.status === 'Activo')
+        .map((p: any) => ({ ...p, attendanceStatus: statusMap[p.id] || 'Pendiente' }));
+      setAttendanceList(merged);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  const handleAttendanceChange = async (playerId: string, newStatus: 'Voy' | 'No voy' | 'Pendiente') => {
+    if (!stats.nextMatch) return;
+    const { data: existing } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('match_id', stats.nextMatch.id)
+      .eq('player_id', playerId)
+      .maybeSingle();
+    if (newStatus === 'Pendiente') {
+      if (existing) await supabase.from('attendance').delete().eq('id', existing.id);
+    } else if (existing) {
+      await supabase.from('attendance').update({ status: newStatus }).eq('id', existing.id);
+    } else {
+      await supabase.from('attendance').insert([{ match_id: stats.nextMatch.id, player_id: playerId, status: newStatus }]);
+    }
+    setAttendanceList(prev => {
+      const updated = prev.map(p => p.id === playerId ? { ...p, attendanceStatus: newStatus } : p);
+      const confirmed = updated.filter(p => p.attendanceStatus === 'Voy').length;
+      const declined = updated.filter(p => p.attendanceStatus === 'No voy').length;
+      const pending = updated.filter(p => p.attendanceStatus === 'Pendiente').length;
+      setStats(s => ({ ...s, confirmedCount: confirmed, declinedCount: declined, pendingCount: pending }));
+      return updated;
+    });
   };
 
   const getMatchTimeLabel = (dateStr: string) => {
@@ -366,9 +416,18 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <Link to="/matchmaking" className="btn-secondary w-full sm:w-auto text-center py-2 text-sm">
-                  Armar Equipos
-                </Link>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={openAttendanceModal}
+                    className="btn-primary py-2 px-5 text-sm flex items-center gap-2"
+                  >
+                    <CheckCircle2 size={15} />
+                    Confirmar Asistencia
+                  </button>
+                  <Link to="/matchmaking" className="btn-secondary text-center py-2 text-sm">
+                    Armar Equipos
+                  </Link>
+                </div>
               </div>
             </div>
           ) : (
@@ -588,6 +647,65 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Attendance Modal */}
+      {showAttendanceModal && stats.nextMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
+          <div className="glass-card w-full max-w-md max-h-[80vh] flex flex-col" style={{ background: '#1c2026' }}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-headline font-black text-white text-lg">Asistencia Manual</h2>
+                <p className="text-xs text-white/40 mt-0.5">{format(new Date(stats.nextMatch.date), 'dd MMM yyyy — HH:mm', { locale: es })}</p>
+              </div>
+              <button onClick={() => setShowAttendanceModal(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex gap-2 mb-4 text-[10px] font-bold uppercase tracking-widest">
+              <span className="flex items-center gap-1 text-soccer-green"><CheckCircle2 size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Voy').length} Voy</span>
+              <span className="flex items-center gap-1 text-red-400 ml-3"><XCircle size={11} />{attendanceList.filter(p => p.attendanceStatus === 'No voy').length} No Voy</span>
+              <span className="flex items-center gap-1 text-amber-400 ml-3"><Clock size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Pendiente').length} Pendiente</span>
+            </div>
+
+            <div className="overflow-y-auto custom-scrollbar space-y-2 pr-1">
+              {attendanceLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-7 h-7 rounded-full border-2 border-t-soccer-green animate-spin" />
+                </div>
+              ) : attendanceList.map(player => (
+                <div key={player.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-black flex-shrink-0" style={{ background: '#31353c' }}>
+                      {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : player.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white leading-tight">{player.name}</p>
+                      {player.nickname && <p className="text-[10px] text-white/30">"{player.nickname}"</p>}
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => handleAttendanceChange(player.id, 'Voy')}
+                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${player.attendanceStatus === 'Voy' ? 'bg-soccer-green text-black' : 'bg-soccer-green/10 text-soccer-green/50 hover:bg-soccer-green/20'}`}
+                    >Voy</button>
+                    <button
+                      onClick={() => handleAttendanceChange(player.id, 'No voy')}
+                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${player.attendanceStatus === 'No voy' ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-400/50 hover:bg-red-500/20'}`}
+                    >No voy</button>
+                    {player.attendanceStatus !== 'Pendiente' && (
+                      <button
+                        onClick={() => handleAttendanceChange(player.id, 'Pendiente')}
+                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-black bg-white/5 text-white/30 hover:bg-white/10 transition-all"
+                        title="Quitar respuesta"
+                      ><X size={10} /></button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

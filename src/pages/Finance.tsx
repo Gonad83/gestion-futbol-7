@@ -27,6 +27,7 @@ export default function Finance() {
   const [quotaInput, setQuotaInput] = useState('');
   const [settingsId, setSettingsId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'pagado' | 'pendiente'>('todos');
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
@@ -105,9 +106,13 @@ export default function Finance() {
   const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
   const balance = allPaidAmount + totalCashIncomes - totalExpenses;
   const monthlyIncome = payments.filter(p => p.status === 'Pagado').reduce((acc, p) => acc + Number(p.amount), 0);
-  const filteredPayments = search.trim()
-    ? payments.filter(p => `${p.name} ${p.nickname ?? ''}`.toLowerCase().includes(search.toLowerCase()))
-    : payments;
+  const filteredPayments = payments.filter(p => {
+    const matchesSearch = !search.trim() || `${p.name} ${p.nickname ?? ''}`.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'todos'
+      || (statusFilter === 'pagado' && p.status === 'Pagado')
+      || (statusFilter === 'pendiente' && p.status !== 'Pagado');
+    return matchesSearch && matchesStatus;
+  });
 
   const prevMonth = () => {
     if (selectedMonth === 1) { setSelectedMonth(12); setSelectedYear(y => y - 1); }
@@ -390,6 +395,26 @@ export default function Finance() {
                           value={search}
                           onChange={e => setSearch(e.target.value)}
                         />
+                      </div>
+                      {/* Status filter */}
+                      <div className="flex rounded-xl overflow-hidden border border-glass-border text-xs font-bold">
+                        {(['todos', 'pagado', 'pendiente'] as const).map(f => (
+                          <button
+                            key={f}
+                            onClick={() => setStatusFilter(f)}
+                            className={`px-3 py-2 transition-colors capitalize ${
+                              statusFilter === f
+                                ? f === 'pagado'
+                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                  : f === 'pendiente'
+                                    ? 'bg-amber-500/20 text-amber-400'
+                                    : 'bg-soccer-green/20 text-soccer-green'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                            }`}
+                          >
+                            {f === 'todos' ? 'Todos' : f === 'pagado' ? 'Pagado' : 'Pendiente'}
+                          </button>
+                        ))}
                       </div>
                       {/* Quota setting */}
                       {isAdmin && (
