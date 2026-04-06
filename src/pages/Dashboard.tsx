@@ -240,12 +240,26 @@ export default function Dashboard() {
     });
   };
 
-  const copyForWhatsApp = () => {
-    if (!stats.nextMatch || attendanceList.length === 0) return;
+  const copyForWhatsApp = async () => {
+    if (!stats.nextMatch) return;
     const match = stats.nextMatch;
-    const van = attendanceList.filter(p => p.attendanceStatus === 'Voy');
-    const noVan = attendanceList.filter(p => p.attendanceStatus === 'No voy');
-    const sinResp = attendanceList.filter(p => p.attendanceStatus === 'Pendiente');
+
+    let list = attendanceList;
+    if (list.length === 0) {
+      const { data: attendanceData } = await supabase
+        .from('attendance')
+        .select('player_id, status')
+        .eq('match_id', match.id);
+      const statusMap: Record<string, string> = {};
+      attendanceData?.forEach((a: any) => { statusMap[a.player_id] = a.status; });
+      list = stats.allPlayers
+        .filter((p: any) => p.status === 'Activo')
+        .map((p: any) => ({ ...p, attendanceStatus: statusMap[p.id] || 'Pendiente' }));
+    }
+
+    const van = list.filter(p => p.attendanceStatus === 'Voy');
+    const noVan = list.filter(p => p.attendanceStatus === 'No voy');
+    const sinResp = list.filter(p => p.attendanceStatus === 'Pendiente');
 
     const lines: string[] = [];
     lines.push(`⚽ *Real Ebolo FC*`);
@@ -265,7 +279,7 @@ export default function Dashboard() {
       sinResp.forEach(p => lines.push(`• ${p.name}`));
     }
     lines.push('');
-    lines.push(`_Total activos: ${attendanceList.length}_`);
+    lines.push(`_Total activos: ${list.length}_`);
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopied(true);
@@ -461,6 +475,13 @@ export default function Dashboard() {
                   <Link to="/matchmaking" className="btn-secondary text-center py-2 text-sm">
                     Armar Equipos
                   </Link>
+                  <button
+                    onClick={copyForWhatsApp}
+                    className={`flex items-center gap-2 py-2 px-4 text-sm rounded-xl font-semibold border transition-all ${copied ? 'bg-soccer-green/20 text-soccer-green border-soccer-green/40' : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'}`}
+                  >
+                    <Copy size={14} />
+                    {copied ? '¡Copiado!' : 'WhatsApp'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -690,19 +711,9 @@ export default function Dashboard() {
                 <h2 className="font-headline font-black text-white text-lg">Asistencia Manual</h2>
                 <p className="text-xs text-white/40 mt-0.5">{format(new Date(stats.nextMatch.date), 'dd MMM yyyy — HH:mm', { locale: es })}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={copyForWhatsApp}
-                  disabled={attendanceLoading}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${copied ? 'bg-soccer-green text-black' : 'bg-white/8 text-white/60 hover:bg-white/15 hover:text-white'}`}
-                >
-                  <Copy size={12} />
-                  {copied ? '¡Copiado!' : 'WhatsApp'}
-                </button>
-                <button onClick={() => setShowAttendanceModal(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors">
-                  <X size={16} />
-                </button>
-              </div>
+              <button onClick={() => setShowAttendanceModal(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+                <X size={16} />
+              </button>
             </div>
 
             <div className="flex gap-2 mb-4 text-[10px] font-bold uppercase tracking-widest">
