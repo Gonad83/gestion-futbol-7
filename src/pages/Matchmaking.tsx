@@ -393,6 +393,46 @@ export default function Matchmaking() {
 
   const getAvg = (team: any[]) => team.length === 0 ? '0.0' : (team.reduce((a, p) => a + (p.rating || 0), 0) / team.length).toFixed(1);
 
+  const JERSEY_EMOJI: Record<string, string> = {
+    black: '⬛', white: '⬜', blue: '🟦', emerald: '🟩', yellow: '🟨', red: '🟥', purple: '🟪', lightblue: '🔵',
+  };
+
+  const copyTeamsForWhatsApp = () => {
+    const match = matches.find(m => m.id === selectedMatch);
+    const colorNameA = JERSEY_COLORS.find(c => c.value === colorA)?.name || colorA;
+    const colorNameB = JERSEY_COLORS.find(c => c.value === colorB)?.name || colorB;
+    const emojiA = JERSEY_EMOJI[colorA] || '⚽';
+    const emojiB = JERSEY_EMOJI[colorB] || '⚽';
+    const avgA = teamA.length ? (teamA.reduce((a, p) => a + (p.rating || 0), 0) / teamA.length).toFixed(1) : '0';
+    const avgB = teamB.length ? (teamB.reduce((a, p) => a + (p.rating || 0), 0) / teamB.length).toFixed(1) : '0';
+
+    const lines: string[] = [];
+    lines.push(`⚽ *Real Ebolo FC — Equipos del partido*`);
+    if (match) lines.push(`📅 ${format(new Date(match.date), "EEEE dd/MM • HH:mm")}`);
+    if (match?.location) lines.push(`📍 ${match.location}`);
+    lines.push('');
+    lines.push(`${emojiA} *EQUIPO A — Camiseta ${colorNameA} (${teamA.length} jugadores):*`);
+    teamA.forEach((p, i) => {
+      const name = p.name.replace(/\s*\(I\)\s*$/i, '').trim();
+      const pos = p.isGuest ? 'Invitado' : (p.position || '');
+      lines.push(`${i + 1}. ${name}${pos ? ` — ${pos}` : ''}`);
+    });
+    lines.push(`⭐ Rating prom: ${avgA}`);
+    lines.push('');
+    lines.push(`${emojiB} *EQUIPO B — Camiseta ${colorNameB} (${teamB.length} jugadores):*`);
+    teamB.forEach((p, i) => {
+      const name = p.name.replace(/\s*\(I\)\s*$/i, '').trim();
+      const pos = p.isGuest ? 'Invitado' : (p.position || '');
+      lines.push(`${i + 1}. ${name}${pos ? ` — ${pos}` : ''}`);
+    });
+    lines.push(`⭐ Rating prom: ${avgB}`);
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
+
   const copyForWhatsApp = () => {
     const match = matches.find(m => m.id === selectedMatch);
     const confirmedIds = new Set(confirmedPlayers.map(p => p.id));
@@ -794,6 +834,16 @@ export default function Matchmaking() {
                     <FifaCard player={p} color={i === 0 ? 'gold' : colorB} index={i} isSelected={swapSelection?.team === 'B' && swapSelection?.index === i} />
                   </div>
                 ))}
+              </div>
+
+              <div className="flex justify-center">
+                <button
+                  onClick={copyTeamsForWhatsApp}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border ${copied ? 'bg-soccer-green/20 text-soccer-green border-soccer-green/40' : 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border-white/10'}`}
+                >
+                  <Copy size={14} />
+                  <span>{copied ? '¡Copiado!' : 'Compartir Equipos por WhatsApp'}</span>
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
