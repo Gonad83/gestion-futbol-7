@@ -305,11 +305,19 @@ export default function Dashboard() {
 
   return (
     <div className="fade-in pb-20 md:pb-0 space-y-6 relative overflow-x-hidden">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel de Control</p>
-          <h1 className="text-3xl md:text-4xl font-headline font-black text-white italic tracking-tight uppercase">
+      {/* Hero Banner */}
+      <div className="relative w-full h-36 md:h-48 rounded-2xl overflow-hidden">
+        <img
+          src="/stadium-banner.png"
+          alt="Real Ebolo FC"
+          className="w-full h-full object-cover object-center"
+        />
+        {/* gradient overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(10,14,20,0.85) 0%, rgba(10,14,20,0.4) 50%, rgba(10,14,20,0.1) 100%)' }} />
+        {/* title */}
+        <div className="absolute inset-0 flex flex-col justify-center pl-7">
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/80 mb-1">Panel de Control</p>
+          <h1 className="text-3xl md:text-4xl font-headline font-black text-white italic tracking-tight uppercase drop-shadow-lg">
             Real Ebolo <span className="text-soccer-green">FC</span>
           </h1>
         </div>
