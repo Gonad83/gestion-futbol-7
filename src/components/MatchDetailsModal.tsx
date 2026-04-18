@@ -24,7 +24,8 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
     location: '',
     match_type: '7vs7',
     status: 'Programado',
-    event_type: 'Partido'
+    event_type: 'Deportivo',
+    description: ''
   });
 
   useEffect(() => {
@@ -36,7 +37,8 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
           location: match.location,
           match_type: match.match_type || '7vs7',
           status: match.status,
-          event_type: match.event_type || 'Partido'
+          event_type: match.event_type || 'Deportivo',
+          description: match.description || ''
         });
       }
     } else if (match?.date) {
@@ -83,10 +85,11 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
       const payload = {
         date: matchDate.toISOString(),
-        location: formData.location,
-        match_type: formData.match_type,
+        location: formData.event_type === 'Recreacional' ? '' : formData.location,
+        match_type: formData.event_type === 'Recreacional' ? '' : formData.match_type,
         status: formData.status,
-        event_type: formData.event_type
+        event_type: formData.event_type,
+        description: formData.description
       };
 
       if (match?.id) {
@@ -240,7 +243,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       <div className="glass-card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         <div className="flex justify-between items-center mb-6 flex-shrink-0">
           <h2 className="text-xl font-bold text-white capitalize">
-            {format(matchDate, 'EEEE d de MMMM', { locale: es })}
+            {format(matchDate, "EEEE d 'de' MMMM", { locale: es })}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1">
             <X size={24} />
@@ -263,24 +266,23 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                 <form onSubmit={handleAdminSave} className="space-y-4">
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">Tipo de Evento</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {[
-                        { value: 'Partido', emoji: '⚽', color: 'soccer-green' },
-                        { value: 'Deportivo', emoji: '🏃', color: 'blue-400' },
-                        { value: 'Recreacional', emoji: '🎉', color: 'purple-400' }
+                        { value: 'Deportivo',    emoji: '🏃', label: 'Deportivo' },
+                        { value: 'Recreacional', emoji: '🎉', label: 'Recreacional' }
                       ].map(opt => (
                         <button
                           key={opt.value}
                           type="button"
                           onClick={() => setFormData({...formData, event_type: opt.value})}
-                          className={`py-2 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 ${
+                          className={`py-2.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 ${
                             formData.event_type === opt.value
                               ? 'bg-white/15 border-white/40 text-white'
                               : 'bg-black/20 border-glass-border text-slate-400 hover:bg-white/8'
                           }`}
                         >
-                          <span className="text-base">{opt.emoji}</span>
-                          {opt.value}
+                          <span className="text-lg">{opt.emoji}</span>
+                          {opt.label}
                         </button>
                       ))}
                     </div>
@@ -289,18 +291,34 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                     <label className="block text-sm text-slate-300 mb-1">Hora</label>
                     <input type="time" required className="input-field" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
                   </div>
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">{formData.event_type === 'Partido' ? 'Cancha' : 'Lugar'}</label>
-                    <input type="text" required className="input-field" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Ej. Complejo Dep. 7" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">Formato</label>
-                    <select className="input-field bg-slate-900" value={formData.match_type} onChange={e => setFormData({...formData, match_type: e.target.value})}>
-                      <option value="5vs5">5 vs 5</option>
-                      <option value="7vs7">7 vs 7</option>
-                      <option value="11vs11">11 vs 11</option>
-                    </select>
-                  </div>
+                  {formData.event_type !== 'Recreacional' && (
+                    <>
+                      <div>
+                        <label className="block text-sm text-slate-300 mb-1">Lugar</label>
+                        <input type="text" required className="input-field" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Ej. Complejo Dep. 7" />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-300 mb-1">Formato</label>
+                        <select className="input-field bg-slate-900" value={formData.match_type} onChange={e => setFormData({...formData, match_type: e.target.value})}>
+                          <option value="5vs5">5 vs 5</option>
+                          <option value="7vs7">7 vs 7</option>
+                          <option value="11vs11">11 vs 11</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  {formData.event_type === 'Recreacional' && (
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Descripción del evento</label>
+                      <textarea
+                        className="input-field resize-none"
+                        rows={3}
+                        value={formData.description}
+                        onChange={e => setFormData({...formData, description: e.target.value})}
+                        placeholder="Ej. Asado de fin de temporada en el parque..."
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">Estado</label>
                     <select className="input-field bg-slate-900" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>

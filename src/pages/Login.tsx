@@ -16,7 +16,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-  const [teamSettings, setTeamSettings] = useState({ team_name: 'Fútbol 7', logo_url: '' });
+  const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '' });
 
   useEffect(() => {
     if (user) navigate('/');

@@ -16,7 +16,7 @@ export default function AdminPlayers() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [sending, setSending] = useState<'pago' | 'recordatorio' | 'lista' | 'test' | null>(null);
 
-  const [teamSettings, setTeamSettings] = useState({ team_name: 'Fútbol 7', logo_url: '' });
+  const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
@@ -59,7 +59,7 @@ export default function AdminPlayers() {
       )) as any;
 
       if (settings) {
-        setTeamSettings({ team_name: settings.team_name || 'Fútbol 7', logo_url: settings.logo_url || '' });
+        setTeamSettings({ team_name: settings.team_name || 'Real Ebolo FC', logo_url: settings.logo_url || '' });
         setPhotoPreview(settings.logo_url || '');
       }
     } catch (e) {

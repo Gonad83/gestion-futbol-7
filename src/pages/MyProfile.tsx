@@ -34,6 +34,7 @@ export default function MyProfile() {
         secondary_position: playerProfile.secondary_position || '',
         photo_url: playerProfile.photo_url || '',
         status: playerProfile.status || 'Activo',
+        birth_date: playerProfile.birth_date || '',
       });
       setPhotoPreview(playerProfile.photo_url || '');
     }
@@ -74,6 +75,7 @@ export default function MyProfile() {
         secondary_position: formData.secondary_position,
         photo_url: finalPhotoUrl,
         status: formData.status,
+        birth_date: formData.birth_date || null,
       }).eq('id', playerProfile.id);
 
       if (error) throw error;
@@ -266,6 +268,16 @@ export default function MyProfile() {
               <option value="Inactivo">Inactivo</option>
               <option value="Lesionado">Lesionado</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Fecha de Nacimiento</label>
+            <input
+              type="date"
+              className="input-field"
+              style={{ background: 'rgba(49,53,60,0.8)' }}
+              value={formData.birth_date || ''}
+              onChange={e => setFormData({ ...formData, birth_date: e.target.value })}
+            />
           </div>
         </div>
 
