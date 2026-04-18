@@ -23,7 +23,8 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
     time: '20:00',
     location: '',
     match_type: '7vs7',
-    status: 'Programado'
+    status: 'Programado',
+    event_type: 'Partido'
   });
 
   useEffect(() => {
@@ -34,7 +35,8 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
           time: format(new Date(match.date), 'HH:mm'),
           location: match.location,
           match_type: match.match_type || '7vs7',
-          status: match.status
+          status: match.status,
+          event_type: match.event_type || 'Partido'
         });
       }
     } else if (match?.date) {
@@ -83,7 +85,8 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         date: matchDate.toISOString(),
         location: formData.location,
         match_type: formData.match_type,
-        status: formData.status
+        status: formData.status,
+        event_type: formData.event_type
       };
 
       if (match?.id) {
@@ -253,17 +256,41 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
             {/* LEFT PANEL */}
             <div className="flex flex-col">
               <h3 className="font-semibold text-soccer-green mb-4 flex items-center gap-2">
-                <MapPin size={18} /> Detalles del Partido
+                <MapPin size={18} /> Detalles del Evento
               </h3>
               
               {isAdmin ? (
                 <form onSubmit={handleAdminSave} className="space-y-4">
                   <div>
+                    <label className="block text-sm text-slate-300 mb-1">Tipo de Evento</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { value: 'Partido', emoji: '⚽', color: 'soccer-green' },
+                        { value: 'Deportivo', emoji: '🏃', color: 'blue-400' },
+                        { value: 'Recreacional', emoji: '🎉', color: 'purple-400' }
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setFormData({...formData, event_type: opt.value})}
+                          className={`py-2 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 ${
+                            formData.event_type === opt.value
+                              ? 'bg-white/15 border-white/40 text-white'
+                              : 'bg-black/20 border-glass-border text-slate-400 hover:bg-white/8'
+                          }`}
+                        >
+                          <span className="text-base">{opt.emoji}</span>
+                          {opt.value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
                     <label className="block text-sm text-slate-300 mb-1">Hora</label>
                     <input type="time" required className="input-field" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-300 mb-1">Cancha</label>
+                    <label className="block text-sm text-slate-300 mb-1">{formData.event_type === 'Partido' ? 'Cancha' : 'Lugar'}</label>
                     <input type="text" required className="input-field" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Ej. Complejo Dep. 7" />
                   </div>
                   <div>
@@ -283,7 +310,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                     </select>
                   </div>
                   <button type="submit" disabled={loading} className="btn-primary w-full mt-4">
-                    {loading ? 'Guardando...' : 'Guardar Partido'}
+                    {loading ? 'Guardando...' : `Guardar ${formData.event_type}`}
                   </button>
                   {match?.id && (
                     <button type="button" onClick={handleDelete} disabled={loading} className="w-full mt-2 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium">

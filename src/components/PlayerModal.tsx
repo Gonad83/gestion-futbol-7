@@ -26,7 +26,8 @@ export default function PlayerModal({ isOpen, onClose, onSave, player }: PlayerM
     secondary_position: '',
     rating: 4,
     status: 'Activo',
-    photo_url: ''
+    photo_url: '',
+    birth_date: ''
   });
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -39,7 +40,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player }: PlayerM
       setPhotoPreview(player.photo_url || '');
     } else {
       setFormData({
-        name: '', nickname: '', email: '', position: 'Delantero Centro (9)', secondary_position: '', rating: 4, status: 'Activo', photo_url: ''
+        name: '', nickname: '', email: '', position: 'Delantero Centro (9)', secondary_position: '', rating: 4, status: 'Activo', photo_url: '', birth_date: ''
       });
       setPhotoPreview('');
     }
@@ -193,6 +194,10 @@ export default function PlayerModal({ isOpen, onClose, onSave, player }: PlayerM
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-sm text-slate-300 mb-1">Correo Electrónico (Alertas n8n)</label>
               <input type="email" className="input-field" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="jugador@correo.com" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-sm text-slate-300 mb-1">Fecha de Nacimiento</label>
+              <input type="date" className="input-field" value={formData.birth_date || ''} onChange={e => setFormData({...formData, birth_date: e.target.value})} />
             </div>
           </div>
 
