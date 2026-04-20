@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Camera, Upload, Save, Star, UserCircle, CheckCircle2 } from 'lucide-react';
+import { Camera, Upload, Save, Star, UserCircle, CheckCircle2, TrendingUp } from 'lucide-react';
 
 const POSITION_GROUPS = [
   { group: 'Portero', roles: ['Portero'] },
@@ -23,6 +23,7 @@ export default function MyProfile() {
   const [photoPreview, setPhotoPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [participationStats, setParticipationStats] = useState({ matchesPlayed: 0, totalMatches: 0, pct: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -37,8 +38,20 @@ export default function MyProfile() {
         birth_date: playerProfile.birth_date || '',
       });
       setPhotoPreview(playerProfile.photo_url || '');
+      fetchParticipation(playerProfile.id);
     }
   }, [playerProfile]);
+
+  const fetchParticipation = async (playerId: string) => {
+    const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+    const now = new Date().toISOString();
+    const { data: yearMatches } = await supabase.from('matches').select('id').gte('date', yearStart).lt('date', now);
+    const matchIds = (yearMatches || []).map(m => m.id);
+    if (matchIds.length === 0) return;
+    const { data: att } = await supabase.from('attendance').select('id').eq('player_id', playerId).eq('status', 'Voy').in('match_id', matchIds);
+    const played = att?.length || 0;
+    setParticipationStats({ matchesPlayed: played, totalMatches: matchIds.length, pct: Math.round((played / matchIds.length) * 100) });
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,6 +179,42 @@ export default function MyProfile() {
             </div>
             <span className="text-[10px] text-white/30 font-semibold">Rating {playerProfile.rating}/7</span>
           </div>
+        </div>
+      </div>
+
+      {/* Participation stats */}
+      <div
+        className="p-5 rounded-2xl"
+        style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp size={15} style={{ color: '#44f3a9' }} />
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Estadísticas {new Date().getFullYear()}</p>
+        </div>
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
+            <p className="font-headline text-2xl font-black text-white">{participationStats.matchesPlayed}</p>
+            <p className="text-[9px] text-white/30 uppercase tracking-wider font-bold mt-0.5">Jugados</p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
+            <p className="font-headline text-2xl font-black text-white">{participationStats.totalMatches}</p>
+            <p className="text-[9px] text-white/30 uppercase tracking-wider font-bold mt-0.5">Totales</p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
+            <p className="font-headline text-2xl font-black" style={{ color: participationStats.pct >= 70 ? '#44f3a9' : participationStats.pct >= 40 ? '#ffd08b' : '#f87171' }}>
+              {participationStats.pct}%
+            </p>
+            <p className="text-[9px] text-white/30 uppercase tracking-wider font-bold mt-0.5">Asistencia</p>
+          </div>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${participationStats.pct}%`,
+              background: participationStats.pct >= 70 ? '#44f3a9' : participationStats.pct >= 40 ? '#ffd08b' : '#f87171',
+            }}
+          />
         </div>
       </div>
 

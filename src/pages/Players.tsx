@@ -22,6 +22,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; border: string }
 export default function Players() {
   const { isAdmin } = useAuth();
   const [players, setPlayers] = useState<any[]>([]);
+  const [totalMatchesYear, setTotalMatchesYear] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
@@ -32,16 +33,41 @@ export default function Players() {
   const fetchPlayers = async () => {
     setLoading(true);
     try {
-      const { data } = (await withTimeout(
-        supabase.from('players').select('*') as any,
-        10000
-      )) as any;
+      const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+      const now = new Date().toISOString();
+
+      const [playersRes, yearMatchesRes] = await Promise.all([
+        withTimeout(supabase.from('players').select('*') as any, 10000),
+        withTimeout(supabase.from('matches').select('id').gte('date', yearStart).lt('date', now) as any, 8000),
+      ]);
+
+      const data = (playersRes as any).data;
+      const yearMatches = (yearMatchesRes as any).data || [];
+      const matchIds = yearMatches.map((m: any) => m.id);
+      setTotalMatchesYear(matchIds.length);
+
+      let attendanceCounts: Record<string, number> = {};
+      if (matchIds.length > 0) {
+        const { data: attData } = await supabase
+          .from('attendance')
+          .select('player_id')
+          .eq('status', 'Voy')
+          .in('match_id', matchIds);
+        attData?.forEach((a: any) => {
+          if (a.player_id) attendanceCounts[a.player_id] = (attendanceCounts[a.player_id] || 0) + 1;
+        });
+      }
+
       if (data) {
         const sorted = data.filter((p: any) => p.status !== 'Inactivo').sort((a: any, b: any) => {
           const wa = getPositionWeight(a.position), wb = getPositionWeight(b.position);
           if (wa !== wb) return wa - wb;
           return a.name.localeCompare(b.name);
-        });
+        }).map((p: any) => ({
+          ...p,
+          matchesPlayed: attendanceCounts[p.id] || 0,
+          participationPct: matchIds.length > 0 ? Math.round(((attendanceCounts[p.id] || 0) / matchIds.length) * 100) : 0,
+        }));
         setPlayers(sorted);
       }
     } catch (e) {
@@ -121,7 +147,7 @@ export default function Players() {
                 </div>
 
                 {/* Stats row */}
-                <div className="flex items-center justify-around w-full rounded-xl p-3 mb-4" style={{ background: '#0a0e14' }}>
+                <div className="flex items-center justify-around w-full rounded-xl p-3 mb-3" style={{ background: '#0a0e14' }}>
                   <div className="text-center">
                     <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1.5 font-bold">Calidad</p>
                     <div className="flex gap-0.5 justify-center">
@@ -139,6 +165,28 @@ export default function Players() {
                     >
                       {player.status}
                     </span>
+                  </div>
+                </div>
+
+                {/* Participation bar */}
+                <div className="w-full rounded-xl px-3 py-2.5 mb-4" style={{ background: '#0a0e14' }}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[9px] text-white/25 uppercase tracking-wider font-bold">Asistencia {new Date().getFullYear()}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-black" style={{ color: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }}>
+                        {player.participationPct}%
+                      </span>
+                      <span className="text-[9px] text-white/25">{player.matchesPlayed}/{totalMatchesYear}</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${player.participationPct}%`,
+                        background: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171',
+                      }}
+                    />
                   </div>
                 </div>
 
