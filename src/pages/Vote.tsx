@@ -31,14 +31,20 @@ export default function Vote() {
   const loadLatestMatch = async () => {
     setLoading(true);
     try {
-      // Load the most recent completed match (past 48h)
-      const cutoff = new Date();
-      cutoff.setHours(cutoff.getHours() - 48);
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, 2=Tue...6=Sat
+      if (dayOfWeek === 1) {
+        setError('La votación está cerrada los lunes. Vuelve de martes a domingo después del partido.');
+        return;
+      }
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const { data } = await supabase
         .from('matches')
         .select('*')
-        .lt('date', new Date().toISOString())
-        .gt('date', cutoff.toISOString())
+        .eq('event_type', 'Deportivo')
+        .lt('date', now.toISOString())
+        .gt('date', sevenDaysAgo.toISOString())
         .order('date', { ascending: false })
         .limit(1);
       if (data?.[0]) {
@@ -152,9 +158,9 @@ export default function Vote() {
         <Star size={48} className="text-white/20" />
         <div>
           <h2 className="font-headline text-xl font-bold text-white mb-1">
-            {error || 'No hay partido reciente para votar'}
+            {error || 'No hay partido Deportivo reciente para votar'}
           </h2>
-          <p className="text-white/40 text-sm mb-4">La votación se abre automáticamente después de cada partido.</p>
+          <p className="text-white/40 text-sm mb-4">La votación se abre de martes a domingo después de cada partido Deportivo.</p>
           <Link to="/" className="btn-secondary px-6 py-2.5">Volver al inicio</Link>
         </div>
       </div>

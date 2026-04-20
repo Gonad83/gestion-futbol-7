@@ -29,6 +29,10 @@ export default function Dashboard() {
     topParticipations: [] as TopPlayer[],
     topMvp: [] as TopPlayer[],
     allPlayers: [] as any[],
+    votingIsOpen: false,
+    openVoteMatchId: null as string | null,
+    lastMvpWinner: null as any,
+    mvpWinHistory: [] as TopPlayer[],
   });
 
   useEffect(() => {
@@ -143,30 +147,75 @@ export default function Dashboard() {
           return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
         });
 
-      // Top MVP Votos
+      // MVP / Voting section
       let topMvp: TopPlayer[] = [];
+      let votingIsOpen = false;
+      let openVoteMatchId: string | null = null;
+      let lastMvpWinner: any = null;
+      let mvpWinHistory: TopPlayer[] = [];
       try {
-        const { data: mvpVotes, error: mvpError } = (await withTimeout(
+        const dayOfWeek = new Date().getDay();
+        const couldBeOpen = dayOfWeek !== 1; // Not Monday
+        if (couldBeOpen) {
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          const { data: recentDeportivo } = (await withTimeout(
+            supabase
+              .from('matches')
+              .select('id')
+              .eq('event_type', 'Deportivo')
+              .lt('date', new Date().toISOString())
+              .gt('date', sevenDaysAgo.toISOString())
+              .order('date', { ascending: false })
+              .limit(1) as any,
+            5000
+          )) as any;
+          if (recentDeportivo?.[0]) {
+            votingIsOpen = true;
+            openVoteMatchId = recentDeportivo[0].id;
+            const { data: liveVotes } = (await withTimeout(
+              supabase
+                .from('match_mvp_votes')
+                .select('voted_player_id')
+                .eq('match_id', openVoteMatchId) as any,
+              5000
+            )) as any;
+            if (liveVotes && liveVotes.length > 0) {
+              const counts: Record<string, number> = {};
+              liveVotes.forEach((v: any) => {
+                if (v.voted_player_id) counts[v.voted_player_id] = (counts[v.voted_player_id] || 0) + 1;
+              });
+              topMvp = Object.entries(counts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 1)
+                .map(([id, count]) => {
+                  const p = allPlayers?.find((pl: any) => pl.id === id);
+                  return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
+                });
+            }
+          }
+        }
+        const { data: winnersData, error: winnersError } = (await withTimeout(
           supabase
-            .from('match_mvp_votes')
-            .select('voted_player_id') as any,
+            .from('mvp_winners')
+            .select('player_id, player_name, player_photo_url, vote_count, created_at')
+            .order('created_at', { ascending: false }) as any,
           5000
         )) as any;
-        if (!mvpError && mvpVotes && mvpVotes.length > 0) {
-          const mvpCounts: Record<string, number> = {};
-          mvpVotes.forEach((v: any) => {
-            if (v.voted_player_id) mvpCounts[v.voted_player_id] = (mvpCounts[v.voted_player_id] || 0) + 1;
+        if (!winnersError && winnersData && winnersData.length > 0) {
+          lastMvpWinner = winnersData[0];
+          const winCounts: Record<string, { name: string; photo: string; count: number }> = {};
+          winnersData.forEach((w: any) => {
+            if (!winCounts[w.player_id]) winCounts[w.player_id] = { name: w.player_name, photo: w.player_photo_url || '', count: 0 };
+            winCounts[w.player_id].count++;
           });
-          topMvp = Object.entries(mvpCounts)
-            .sort((a, b) => b[1] - a[1])
+          mvpWinHistory = Object.entries(winCounts)
+            .sort((a, b) => b[1].count - a[1].count)
             .slice(0, 3)
-            .map(([id, count]) => {
-              const p = allPlayers?.find((pl: any) => pl.id === id);
-              return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
-            });
+            .map(([id, v]) => ({ id, count: v.count, name: v.name, nickname: '', photo_url: v.photo }));
         }
       } catch {
-        // Table not yet created
+        // Tables may not exist yet
       }
 
       const pendingCount = nextMatch
@@ -184,7 +233,11 @@ export default function Dashboard() {
         totalPlayers: allPlayers?.length || 0,
         topParticipations,
         topMvp,
-        allPlayers: allPlayers || []
+        allPlayers: allPlayers || [],
+        votingIsOpen,
+        openVoteMatchId,
+        lastMvpWinner,
+        mvpWinHistory,
       });
     } catch (e) {
       console.error('Error loading dashboard data:', e);
@@ -285,6 +338,53 @@ export default function Dashboard() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     });
+  };
+
+  const closeVoting = async () => {
+    if (!stats.openVoteMatchId) return;
+    if (!confirm('¿Cerrar votación y guardar al MVP de la semana?')) return;
+    try {
+      const { data: votes } = await supabase
+        .from('match_mvp_votes')
+        .select('voted_player_id')
+        .eq('match_id', stats.openVoteMatchId);
+      if (!votes || votes.length === 0) { alert('No hay votos registrados aún.'); return; }
+      const counts: Record<string, number> = {};
+      votes.forEach((v: any) => { if (v.voted_player_id) counts[v.voted_player_id] = (counts[v.voted_player_id] || 0) + 1; });
+      const [[winnerId, voteCount]] = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const winner = stats.allPlayers.find((p: any) => p.id === winnerId);
+      if (!winner) { alert('No se encontró el jugador ganador.'); return; }
+      const { error } = await supabase.from('mvp_winners').insert({
+        match_id: stats.openVoteMatchId,
+        player_id: winnerId,
+        player_name: winner.name,
+        player_photo_url: winner.photo_url || null,
+        vote_count: voteCount,
+        week_date: new Date().toISOString().split('T')[0],
+      });
+      if (error) throw error;
+      alert(`¡MVP registrado! Ganador: ${winner.name} con ${voteCount} votos.`);
+      fetchDashboardData();
+    } catch (err: any) {
+      alert('Error al cerrar votación: ' + err.message);
+    }
+  };
+
+  const notifyVoting = async () => {
+    if (!stats.openVoteMatchId) return;
+    const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+    if (!webhookUrl) { alert('No hay webhook configurado para notificaciones.'); return; }
+    try {
+      const voteUrl = `${window.location.origin}/vote?match_id=${stats.openVoteMatchId}`;
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'mvp_vote_open', vote_url: voteUrl }),
+      });
+      alert('¡Notificación enviada!');
+    } catch (err: any) {
+      alert('Error al enviar notificación: ' + err.message);
+    }
   };
 
   const getMatchTimeLabel = (dateStr: string) => {
@@ -504,7 +604,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* MVP Podium - Moved up */}
+        {/* MVP Card */}
         <div className="lg:col-span-2 glass-card relative overflow-hidden flex flex-col">
           <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.05) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
 
@@ -515,52 +615,111 @@ export default function Dashboard() {
               </div>
               <h2 className="font-headline font-bold text-white">Mejor Jugador</h2>
             </div>
-            <Link to="/vote" className="text-xs font-semibold flex items-center gap-1 hover:opacity-80 transition-opacity" style={{ color: '#ffd700' }}>
-              Votar <ArrowRight size={13} />
-            </Link>
+            {stats.votingIsOpen && (
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse" style={{ background: 'rgba(68,243,169,0.15)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.3)' }}>
+                ● Votación Abierta
+              </span>
+            )}
           </div>
 
-          {stats.topMvp.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-8 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
-              <p className="text-white/30 text-sm mb-1">Sin votos aún.</p>
-              <p className="text-white/20 text-xs text-center">Los votos se activan<br />después de cada partido.</p>
-            </div>
-          ) : (
+          {stats.votingIsOpen ? (
             <div className="flex-1 flex flex-col gap-3">
-              {stats.topMvp.map((player, i) => (
-                <div
-                  key={player.id}
-                  className="flex items-center gap-3 p-3 rounded-xl"
-                  style={{
-                    background: i === 0 ? 'rgba(255,215,0,0.06)' : 'rgba(0,0,0,0.15)',
-                    border: `1px solid ${i === 0 ? 'rgba(255,215,0,0.15)' : 'rgba(255,255,255,0.05)'}`
-                  }}
-                >
-                  <span
-                    className="font-headline font-black text-xl w-6 text-center flex-shrink-0"
-                    style={{ color: RANK_COLORS[i] }}
-                  >
-                    {i + 1}
-                  </span>
-                  <div
-                    className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
-                    style={{ background: '#31353c', border: `1.5px solid ${RANK_COLORS[i]}40` }}
-                  >
-                    {player.photo_url
-                      ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                      : <span className="text-sm font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{player.name.charAt(0)}</span>
+              {stats.topMvp.length > 0 ? (
+                <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.15)' }}>
+                  <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: '#31353c', border: '2px solid rgba(255,215,0,0.4)' }}>
+                    {stats.topMvp[0].photo_url
+                      ? <img src={stats.topMvp[0].photo_url} alt={stats.topMvp[0].name} className="w-full h-full object-cover" />
+                      : <span className="text-xl font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{stats.topMvp[0].name.charAt(0)}</span>
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm truncate leading-tight">{player.name}</p>
-                    {player.nickname && <p className="text-[10px] text-white/30 truncate">"{player.nickname}"</p>}
+                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#ffd700' }}>Líder actual</p>
+                    <p className="font-headline font-black text-white text-lg leading-tight truncate">{stats.topMvp[0].name}</p>
+                    {stats.topMvp[0].nickname && <p className="text-[10px] text-white/30">"{stats.topMvp[0].nickname}"</p>}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-headline font-black text-xl leading-none" style={{ color: RANK_COLORS[i] }}>{player.count}</p>
-                    <p className="text-[9px] text-white/30 uppercase tracking-wider">votos</p>
+                    <p className="font-headline font-black text-2xl leading-none" style={{ color: '#ffd700' }}>{stats.topMvp[0].count}</p>
+                    <p className="text-[9px] text-white/30 uppercase">votos</p>
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+                  <Star size={28} className="mb-2" style={{ color: 'rgba(255,215,0,0.25)' }} />
+                  <p className="text-white/30 text-sm">Sé el primero en votar</p>
+                </div>
+              )}
+              <Link
+                to={`/vote${stats.openVoteMatchId ? `?match_id=${stats.openVoteMatchId}` : ''}`}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-sm transition-all hover:brightness-110"
+                style={{ background: 'linear-gradient(135deg, #ffd700, #ffb800)', color: '#000', boxShadow: '0 4px 20px rgba(255,215,0,0.25)' }}
+              >
+                <Star size={16} />
+                ¡Votar ahora!
+              </Link>
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={closeVoting}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    Cerrar y guardar MVP
+                  </button>
+                  <button
+                    onClick={notifyVoting}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                    style={{ background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.15)' }}
+                  >
+                    Notificar votación
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col gap-3">
+              {stats.lastMvpWinner ? (
+                <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.15)' }}>
+                  <div className="relative flex-shrink-0">
+                    <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center" style={{ background: '#31353c', border: '2px solid #ffd700' }}>
+                      {stats.lastMvpWinner.player_photo_url
+                        ? <img src={stats.lastMvpWinner.player_photo_url} alt={stats.lastMvpWinner.player_name} className="w-full h-full object-cover" />
+                        : <span className="text-xl font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{stats.lastMvpWinner.player_name.charAt(0)}</span>
+                      }
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px]" style={{ background: '#ffd700' }}>🏆</div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#ffd700' }}>MVP de la semana</p>
+                    <p className="font-headline font-black text-white text-lg leading-tight truncate">{stats.lastMvpWinner.player_name}</p>
+                    <p className="text-[10px] text-white/30">{stats.lastMvpWinner.vote_count} votos</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center py-6 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+                  <p className="text-white/30 text-sm text-center">Sin MVPs registrados aún.</p>
+                  <p className="text-white/20 text-xs text-center mt-1">Votación abierta de martes a domingo.</p>
+                </div>
+              )}
+              {stats.mvpWinHistory.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">Histórico de MVP</p>
+                  <div className="space-y-1.5">
+                    {stats.mvpWinHistory.map((p, i) => (
+                      <div key={p.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.15)' }}>
+                        <span className="text-xs font-black w-4 text-center" style={{ color: RANK_COLORS[i] }}>{i + 1}</span>
+                        <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.3)' }}>
+                          {p.photo_url ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" /> : p.name.charAt(0)}
+                        </div>
+                        <p className="flex-1 text-xs text-white font-semibold truncate">{p.name}</p>
+                        <span className="text-xs font-black" style={{ color: RANK_COLORS[i] }}>{p.count}x</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <Link to="/vote" className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-xl text-xs font-semibold transition-all" style={{ color: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                Ver historial <ArrowRight size={11} />
+              </Link>
             </div>
           )}
         </div>
