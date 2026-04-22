@@ -12,12 +12,14 @@ import Settings from './pages/Settings';
 import AdminPlayers from './pages/AdminPlayers';
 import MyProfile from './pages/MyProfile';
 import Vote from './pages/Vote';
+import Landing from './pages/Landing';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
+          <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           
           <Route element={<ProtectedRoute />}>
