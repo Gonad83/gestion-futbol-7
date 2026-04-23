@@ -6,7 +6,7 @@ import {
   BarChart3, Smartphone, Loader2, X
 } from 'lucide-react';
 
-const MP_ACCESS_TOKEN = import.meta.env.VITE_MP_ACCESS_TOKEN || '';
+const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
 
 type Plan = 'free' | 'monthly' | 'annual';
 
@@ -126,49 +126,22 @@ export default function Landing() {
       return;
     }
 
-    if (!MP_ACCESS_TOKEN) {
-      setPayError('Token de pago no configurado. Agrega VITE_MP_ACCESS_TOKEN al .env');
-      return;
-    }
-
     setPaying(true);
     setPayError('');
     try {
-      const isAnnual = billing === 'annual';
-      const successUrl = `${window.location.origin}/register-captain?plan=${billing}&status=approved&email=${encodeURIComponent(form.email)}&name=${encodeURIComponent(form.name)}&team=${encodeURIComponent(form.teamName)}`;
-
-      const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      const res = await fetch(MP_FUNCTION_URL, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            id: isAnnual ? 'clubpro-anual' : 'clubpro-mensual',
-            title: isAnnual ? 'Club Pro — Plan Anual' : 'Club Pro — Plan Mensual',
-            description: `Gestión de equipo de Fútbol 7 · ${form.teamName}`,
-            quantity: 1,
-            currency_id: 'CLP',
-            unit_price: isAnnual ? ANNUAL_TOTAL : MONTHLY,
-          }],
-          payer: { name: form.name, email: form.email },
-          back_urls: {
-            success: successUrl,
-            failure: `${window.location.origin}/`,
-            pending: `${window.location.origin}/`,
-          },
-          auto_return: 'approved',
-          statement_descriptor: 'CLUBPRO',
+          plan: billing,
+          origin: window.location.origin,
+          payer: { name: form.name, email: form.email, teamName: form.teamName },
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || JSON.stringify(data));
-
-      const url = data.init_point || data.sandbox_init_point;
-      if (!url) throw new Error('Mercado Pago no devolvió URL de pago');
-      window.location.href = url;
+      if (!res.ok || !data.url) throw new Error(data.error || 'Error al crear el pago');
+      window.location.href = data.url;
     } catch (err: any) {
       setPayError(err.message || 'Error al conectar con Mercado Pago');
       setPaying(false);
