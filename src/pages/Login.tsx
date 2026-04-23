@@ -33,7 +33,7 @@ export default function Login() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    if (user) navigate('/');
+    if (user) navigate('/dashboard');
   }, [user, navigate]);
 
   const switchTab = (t: Tab) => {
@@ -61,7 +61,7 @@ export default function Login() {
         timeout,
       ]);
       if (err) throw err;
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.message === 'timeout'
         ? 'El servidor no responde. Revisa tu conexión.'
@@ -133,7 +133,7 @@ export default function Login() {
       if (signUpData.user && !signUpData.session) {
         setSuccess(`¡Cuenta creada! Revisa tu correo "${playerEmail}" para confirmarla y luego inicia sesión.`);
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'Error al crear la cuenta');
