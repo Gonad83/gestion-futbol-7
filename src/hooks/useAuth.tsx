@@ -93,16 +93,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           player.user_id = authUser.id;
         }
 
-        const { data: roleData } = (await withTimeout(
-          supabase
-            .from('users')
-            .select('role')
-            .eq('id', authUser.id)
-            .single() as any,
-          5000
-        )) as any;
+        let role = 'player';
+        
+        try {
+          const { data: roleData } = (await withTimeout(
+            supabase
+              .from('users')
+              .select('role')
+              .eq('id', authUser.id)
+              .single() as any,
+            3000
+          )) as any;
+          if (roleData) role = roleData.role;
+        } catch (e) {
+          console.error("Error fetching user role:", e);
+        }
 
-        return { role: roleData?.role, player };
+        return { role, player };
       })();
 
       const result = await dataPromise;

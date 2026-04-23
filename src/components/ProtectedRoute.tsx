@@ -34,7 +34,7 @@ export function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolea
 
   if (requireAdmin && !isAdmin) {
     // If admin is required but user is not admin, redirect to normal dashboard
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

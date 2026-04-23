@@ -13,18 +13,24 @@ import AdminPlayers from './pages/AdminPlayers';
 import MyProfile from './pages/MyProfile';
 import Vote from './pages/Vote';
 import Landing from './pages/Landing';
+import PaymentSuccess from './pages/PaymentSuccess';
+import RegisterCaptain from './pages/RegisterCaptain';
+import TeamSelection from './pages/TeamSelection';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/landing" element={<Landing />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/register-captain" element={<RegisterCaptain />} />
           <Route path="/login" element={<Login />} />
           
           <Route element={<ProtectedRoute />}>
+            <Route path="/teams" element={<TeamSelection />} />
             <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/players" element={<Players />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/matchmaking" element={<Matchmaking />} />

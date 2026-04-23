@@ -161,7 +161,7 @@ export default function Vote() {
             {error || 'No hay partido Deportivo reciente para votar'}
           </h2>
           <p className="text-white/40 text-sm mb-4">La votación se abre de martes a domingo después de cada partido Deportivo.</p>
-          <Link to="/" className="btn-secondary px-6 py-2.5">Volver al inicio</Link>
+          <Link to="/dashboard" className="btn-secondary px-6 py-2.5">Volver al inicio</Link>
         </div>
       </div>
     );
@@ -171,7 +171,7 @@ export default function Vote() {
     <div className="fade-in pb-20 md:pb-0 space-y-6 max-w-lg mx-auto">
       {/* Header */}
       <div>
-        <Link to="/" className="inline-flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs font-semibold mb-4 transition-colors">
+        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs font-semibold mb-4 transition-colors">
           <ArrowLeft size={13} /> Volver al dashboard
         </Link>
         <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Votación</p>
@@ -211,7 +211,7 @@ export default function Vote() {
               {votedPlayer?.nickname && <span className="text-white/40 text-base font-normal ml-1">"{votedPlayer.nickname}"</span>}
             </p>
           </div>
-          <Link to="/" className="btn-secondary inline-flex px-6 py-2.5 mt-2">
+          <Link to="/dashboard" className="btn-secondary inline-flex px-6 py-2.5 mt-2">
             Ver podio en el dashboard
           </Link>
         </div>

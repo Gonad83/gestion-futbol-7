@@ -78,7 +78,9 @@ export default function PlayerModal({ isOpen, onClose, onSave, player }: PlayerM
         finalPhotoUrl = urlData.publicUrl;
       }
 
-      const payload = { ...formData, photo_url: finalPhotoUrl };
+      // Remove virtual fields from payload to avoid Supabase errors
+      const { matchesPlayed, participationPct, ...cleanData } = formData as any;
+      const payload = { ...cleanData, photo_url: finalPhotoUrl };
 
       if (player?.id) {
         const { error } = await supabase.from('players').update(payload).eq('id', player.id);

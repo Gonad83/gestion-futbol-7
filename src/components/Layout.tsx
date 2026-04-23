@@ -12,14 +12,18 @@ export default function Layout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoZoomed, setIsLogoZoomed] = useState(false);
-  const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '' });
+  const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '', join_code: '' });
 
   useEffect(() => {
     const fetchTeamSettings = async () => {
       try {
         const { data } = await supabase.from('team_settings').select('*').eq('id', 1).maybeSingle();
         if (data) {
-          setTeamSettings({ team_name: data.team_name, logo_url: data.logo_url || '' });
+          setTeamSettings({ 
+            team_name: data.team_name, 
+            logo_url: data.logo_url || '',
+            join_code: data.join_code || ''
+          });
         }
       } catch (e) {
         console.error('Error fetching team settings:', e);
@@ -33,13 +37,16 @@ export default function Layout() {
   };
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={18} /> },
+    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} /> },
     { name: 'Caja', path: '/finance', icon: <Calculator size={18} /> },
     { name: 'Plantilla', path: '/players', icon: <Users size={18} /> },
     { name: 'Calendario', path: '/calendar', icon: <CalendarDays size={18} /> },
     { name: 'Matchmaking', path: '/matchmaking', icon: <ShieldAlert size={18} /> },
     { name: 'Mi Perfil', path: '/profile', icon: <UserCircle size={18} /> },
-    ...(isAdmin ? [{ name: 'Admin', path: '/admin', icon: <Settings size={18} />, adminOnly: true }] : []),
+    ...(isAdmin ? [
+      { name: 'Admin', path: '/admin', icon: <Users size={18} />, adminOnly: true },
+      { name: 'Configuración', path: '/settings', icon: <Settings size={18} />, adminOnly: true }
+    ] : []),
   ];
 
   return (

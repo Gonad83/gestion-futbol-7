@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function Settings() {
   const { isAdmin } = useAuth();
-  const [formData, setFormData] = useState({ team_name: '', logo_url: '' });
+  const [formData, setFormData] = useState({ team_name: '', logo_url: '', join_code: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -16,7 +16,11 @@ export default function Settings() {
   const fetchSettings = async () => {
     const { data } = await supabase.from('team_settings').select('*').eq('id', 1).single();
     if (data) {
-      setFormData({ team_name: data.team_name, logo_url: data.logo_url || '' });
+      setFormData({ 
+        team_name: data.team_name, 
+        logo_url: data.logo_url || '',
+        join_code: data.join_code || ''
+      });
     }
     setLoading(false);
   };
@@ -71,6 +75,18 @@ export default function Settings() {
               placeholder="https://tulogo.com/logo.png" 
             />
             <p className="text-xs text-slate-400 mt-2">Pega la URL de una imagen PNG o JPG. Si la dejas en blanco, se mostrará el emoji del balón (⚽).</p>
+          </div>
+
+          <div className="p-5 bg-soccer-green/5 rounded-2xl border border-soccer-green/20">
+            <label className="block text-xs font-black uppercase tracking-widest text-soccer-green mb-2">Código Único del Club</label>
+            <div className="flex items-center gap-4">
+              <div className="bg-black/40 border border-white/10 rounded-xl px-6 py-3 font-black text-2xl tracking-[0.3em] text-white uppercase">
+                {formData.join_code || '---'}
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Este es el código que los <b>Jugadores</b> deben ingresar en la pantalla de inicio para unirse a tu equipo.
+              </p>
+            </div>
           </div>
 
           {formData.logo_url && (

@@ -39,6 +39,7 @@ export default function Matchmaking() {
   const [guestModalRating, setGuestModalRating] = useState('5');
 
   const { isAdmin } = useAuth();
+  const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '' });
 
   const FORMATIONS: any = {
     '5vs5': [
@@ -91,6 +92,10 @@ export default function Matchmaking() {
   const fetchMatches = async () => {
     setLoading(true);
     try {
+      const { data: settings } = await supabase.from('team_settings').select('*').eq('id', 1).maybeSingle();
+      if (settings) {
+        setTeamSettings({ team_name: settings.team_name, logo_url: settings.logo_url || '' });
+      }
       const { data } = (await withTimeout(
         supabase
           .from('matches')
@@ -407,7 +412,7 @@ export default function Matchmaking() {
     const avgB = teamB.length ? (teamB.reduce((a, p) => a + (p.rating || 0), 0) / teamB.length).toFixed(1) : '0';
 
     const lines: string[] = [];
-    lines.push(`⚽ *Real Ebolo FC — Equipos del partido*`);
+    lines.push(`⚽ *${teamSettings.team_name} — Equipos del partido*`);
     if (match) lines.push(`📅 ${format(new Date(match.date), "EEEE dd/MM • HH:mm")}`);
     if (match?.location) lines.push(`📍 ${match.location}`);
     lines.push('');
@@ -439,7 +444,7 @@ export default function Matchmaking() {
     const sinResp = allActivePlayers.filter(p => !confirmedIds.has(p.id) && !declinedPlayers.find((d: any) => d.id === p.id));
 
     const lines: string[] = [];
-    lines.push(`⚽ *Real Ebolo FC*`);
+    lines.push(`⚽ *${teamSettings.team_name}*`);
     if (match) lines.push(`📅 ${format(new Date(match.date), "EEEE dd/MM • HH:mm")}`);
     if (match?.location) lines.push(`📍 ${match.location}`);
     lines.push('');

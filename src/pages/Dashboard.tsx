@@ -12,6 +12,7 @@ const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
 
 export default function Dashboard() {
   const { isAdmin } = useAuth();
+  const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '' });
   const [loading, setLoading] = useState(true);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
@@ -42,6 +43,11 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
+      // Fetch team settings
+      const { data: settings } = await supabase.from('team_settings').select('*').eq('id', 1).maybeSingle();
+      if (settings) {
+        setTeamSettings({ team_name: settings.team_name, logo_url: settings.logo_url || '' });
+      }
       const { data: matches } = (await withTimeout(
         supabase
           .from('matches')
@@ -315,7 +321,7 @@ export default function Dashboard() {
     const sinResp = list.filter(p => p.attendanceStatus === 'Pendiente');
 
     const lines: string[] = [];
-    lines.push(`⚽ *Real Ebolo FC*`);
+    lines.push(`⚽ *${teamSettings.team_name}*`);
     lines.push(`📅 ${format(new Date(match.date), "EEEE dd 'de' MMMM • HH:mm", { locale: es })}`);
     if (match.location) lines.push(`📍 ${match.location}`);
     lines.push('');
@@ -409,7 +415,7 @@ export default function Dashboard() {
       <div className="relative w-full h-36 md:h-48 rounded-2xl overflow-hidden">
         <img
           src="/stadium-banner.png"
-          alt="Real Ebolo FC"
+          alt={teamSettings.team_name}
           className="w-full h-full object-cover object-center"
         />
         {/* gradient overlay */}
@@ -418,9 +424,24 @@ export default function Dashboard() {
         <div className="absolute inset-0 flex flex-col justify-center pl-7">
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/80 mb-1">Panel de Control</p>
           <h1 className="text-3xl md:text-4xl font-headline font-black text-white italic tracking-tight uppercase drop-shadow-lg">
-            Real Ebolo <span className="text-soccer-green">FC</span>
+            {teamSettings.team_name.split(' ')[0]} <span className="text-soccer-green">{teamSettings.team_name.split(' ').slice(1).join(' ')}</span>
           </h1>
         </div>
+
+        {/* Join Code for Admins */}
+        {isAdmin && teamSettings.join_code && (
+          <div className="absolute top-4 right-4 animate-in fade-in duration-700">
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40 mr-1">Código de Invitación</span>
+              <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 shadow-2xl">
+                <span className="font-headline font-black text-lg tracking-[0.2em] text-soccer-green uppercase select-all">
+                  {teamSettings.join_code}
+                </span>
+                <div className="w-1.5 h-1.5 rounded-full bg-soccer-green animate-pulse" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* KPI Row */}
