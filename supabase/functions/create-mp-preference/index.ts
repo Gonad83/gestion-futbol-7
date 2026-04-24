@@ -17,7 +17,10 @@ serve(async (req) => {
       'TEST-6527202079057619-042210-3d512487cde4bfa91dc8ce2e2458f80d-438929329';
 
     const isAnnual = plan === 'annual';
-    const backUrl = `${origin}/register-captain?plan=${plan}&status=approved&email=${encodeURIComponent(payer?.email || '')}&name=${encodeURIComponent(payer?.name || '')}&team=${encodeURIComponent(payer?.teamName || '')}`;
+    const isHttps = origin.startsWith('https://');
+    const backUrl = isHttps
+      ? `${origin}/register-captain?plan=${plan}&status=approved&email=${encodeURIComponent(payer?.email || '')}&name=${encodeURIComponent(payer?.name || '')}&team=${encodeURIComponent(payer?.teamName || '')}`
+      : `https://wmcycxnydunfjnirmjuy.supabase.co`;
 
     const subscription = {
       reason: isAnnual ? 'Club Pro — Plan Anual' : 'Club Pro — Plan Mensual',
