@@ -12,7 +12,7 @@ const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
 
 export default function Dashboard() {
   const { isAdmin } = useAuth();
-  const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '', join_code: '', payment_link: '', payment_button_enabled: false });
+  const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '', join_code: '', payment_link: '', payment_button_enabled: false, banner_url: '' });
   const [loading, setLoading] = useState(true);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
@@ -52,6 +52,7 @@ export default function Dashboard() {
           join_code: settings.join_code || '',
           payment_link: settings.payment_link || '',
           payment_button_enabled: settings.payment_button_enabled || false,
+          banner_url: settings.banner_url || '',
         });
       }
       const { data: matches } = (await withTimeout(
@@ -418,14 +419,20 @@ export default function Dashboard() {
   return (
     <div className="fade-in pb-20 md:pb-0 space-y-6 relative overflow-x-hidden">
       {/* Hero Banner */}
-      <div className="relative w-full h-36 md:h-48 rounded-2xl overflow-hidden">
-        <img
-          src="/stadium-banner.png"
-          alt={teamSettings.team_name}
-          className="w-full h-full object-cover object-center"
-        />
+      <div className="relative w-full h-36 md:h-48 rounded-2xl overflow-hidden"
+        style={!teamSettings.banner_url ? { background: 'linear-gradient(135deg, #0a0e14 0%, #141a24 50%, #0e1820 100%)' } : undefined}>
+        {teamSettings.banner_url && (
+          <img
+            src={teamSettings.banner_url}
+            alt={teamSettings.team_name}
+            className="w-full h-full object-cover object-center"
+          />
+        )}
         {/* gradient overlay */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(10,14,20,0.85) 0%, rgba(10,14,20,0.4) 50%, rgba(10,14,20,0.1) 100%)' }} />
+        {!teamSettings.banner_url && (
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(68,243,169,0.06) 0%, transparent 60%)' }} />
+        )}
         {/* title */}
         <div className="absolute inset-0 flex flex-col justify-center pl-7">
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/80 mb-1">Panel de Control</p>

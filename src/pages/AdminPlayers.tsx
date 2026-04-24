@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase, withTimeout } from '../lib/supabase';
-import { Star, Edit2, Trash2, Bell, BellOff, Eye, EyeOff, CheckCircle2, Circle, DollarSign, BellRing, Camera, Upload, Send, Loader2 } from 'lucide-react';
+import { Star, Edit2, Trash2, Bell, BellOff, Eye, EyeOff, CheckCircle2, Circle, DollarSign, BellRing, Send, Loader2 } from 'lucide-react';
 import PlayerModal from '../components/PlayerModal';
 
 export default function AdminPlayers() {
@@ -16,12 +15,8 @@ export default function AdminPlayers() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [sending, setSending] = useState<'pago' | 'recordatorio' | 'lista' | 'test' | null>(null);
 
-  const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '' });
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string>('');
-  const [filterAccount, setFilterAccount] = useState<'all' | 'unlinked'>('all'); // Nuevo filtro
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [teamName, setTeamName] = useState('Real Ebolo FC');
+  const [filterAccount, setFilterAccount] = useState<'all' | 'unlinked'>('all');
 
   useEffect(() => { fetchPlayers(); }, []);
 
@@ -59,8 +54,7 @@ export default function AdminPlayers() {
       )) as any;
 
       if (settings) {
-        setTeamSettings({ team_name: settings.team_name || 'Real Ebolo FC', logo_url: settings.logo_url || '' });
-        setPhotoPreview(settings.logo_url || '');
+        setTeamName(settings.team_name || 'Real Ebolo FC');
       }
     } catch (e) {
       console.error('Error in AdminPlayers fetch:', e);
@@ -180,7 +174,7 @@ export default function AdminPlayers() {
             bajas_count: declinedPlayers.length,
             pendientes_count: pendingPlayers.length,
             total_players: confirmedPlayers.length,
-            team_info: teamSettings.team_name
+            team_info: teamName
           }) 
         });
 
@@ -251,7 +245,7 @@ export default function AdminPlayers() {
                 confirm_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch?.id}&status=Voy`,
                 decline_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch?.id}&status=No%20voy`
               } : null,
-              team_name: teamSettings.team_name
+              team_name: teamName
             })
           });
         }
@@ -281,38 +275,6 @@ export default function AdminPlayers() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const saveTeamSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingSettings(true);
-    let finalPhotoUrl = teamSettings.logo_url;
-    if (photoFile) {
-      try {
-        const ext = photoFile.name.split('.').pop();
-        const fileName = `team_logo_${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from('foto jugadores').upload(fileName, photoFile, { upsert: true });
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('foto jugadores').getPublicUrl(fileName);
-        finalPhotoUrl = urlData.publicUrl;
-      } catch (uploadError: any) {
-        setIsSavingSettings(false);
-        alert('Error al subir la imagen: ' + uploadError.message);
-        return;
-      }
-    }
-    const { error } = await supabase.from('team_settings').update({ team_name: teamSettings.team_name, logo_url: finalPhotoUrl }).eq('id', 1);
-    setIsSavingSettings(false);
-    if (error) alert('Error al guardar configuración: ' + error.message);
-    else { setPhotoFile(null); alert('¡Configuración guardada! Actualiza la página (F5) para ver los cambios.'); }
-  };
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Solo se permiten archivos de imagen.'); return; }
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const STATUS_STYLE: Record<string, string> = {
@@ -361,46 +323,6 @@ export default function AdminPlayers() {
         </button>
       </div>
 
-      {/* Perfil del equipo */}
-      <div className="glass-card" style={{ borderLeft: '3px solid #44f3a9' }}>
-        <h2 className="font-headline text-base font-bold text-white mb-4 flex items-center gap-2">
-          <Star size={16} style={{ color: '#44f3a9' }} /> Perfil del Equipo
-        </h2>
-        <form onSubmit={saveTeamSettings} className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="w-full md:w-1/3">
-            <label className="block text-[10px] font-bold text-white/40 mb-1.5 uppercase tracking-wider">Nombre del Equipo</label>
-            <input type="text" required className="input-field" value={teamSettings.team_name} onChange={e => setTeamSettings({ ...teamSettings, team_name: e.target.value })} />
-          </div>
-          <div className="w-full md:flex-1">
-            <label className="block text-[10px] font-bold text-white/40 mb-1.5 uppercase tracking-wider">Logo del Equipo</label>
-            <div
-              className="flex items-center gap-3 rounded-xl p-2 cursor-pointer transition-all hover:border-soccer-green/40"
-              style={{ background: 'rgba(49,53,60,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: '#262a31', border: '1.5px solid rgba(68,243,169,0.3)' }}>
-                {photoPreview ? <img src={photoPreview} alt="Logo" className="w-full h-full object-cover" /> : <Camera size={18} className="text-white/30" />}
-              </div>
-              <span className="text-xs text-white/40 flex items-center gap-1.5 font-medium">
-                <Upload size={13} /> {photoPreview ? 'Cambiar escudo/logo' : 'Subir escudo/logo'}
-              </span>
-            </div>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-          </div>
-          <button type="submit" disabled={isSavingSettings} className="btn-primary w-full md:w-auto px-6 h-[46px] whitespace-nowrap">
-            {isSavingSettings ? 'Guardando...' : 'Guardar Perfil'}
-          </button>
-          <button 
-            type="button" 
-            onClick={syncAccounts} 
-            disabled={loading}
-            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider px-4 h-[46px] rounded-xl transition-all bg-soccer-green/10 text-soccer-green border border-soccer-green/20 hover:bg-soccer-green/20"
-          >
-            <CheckCircle2 size={14} /> Vincular Cuentas
-          </button>
-        </form>
-      </div>
-
       {/* Tabla de jugadores */}
       <div className="rounded-2xl overflow-hidden" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
         {/* Barra de acciones */}
@@ -412,6 +334,9 @@ export default function AdminPlayers() {
             </button>
             <button onClick={() => bulkNotify(false)} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all hover:bg-white/8" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <BellOff size={12} /> Desactivar notif.
+            </button>
+            <button onClick={syncAccounts} disabled={loading} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all" style={{ background: 'rgba(68,243,169,0.06)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.15)' }}>
+              <CheckCircle2 size={12} /> Vincular cuentas
             </button>
           </div>
 
