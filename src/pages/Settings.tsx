@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Settings as SettingsIcon, Save, CreditCard, Camera, Image } from 'lucide-react';
+import { Settings as SettingsIcon, Save, CreditCard, Camera, Image, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Settings() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [teamName, setTeamName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [paymentLink, setPaymentLink] = useState('');
   const [paymentEnabled, setPaymentEnabled] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const [logoUrl, setLogoUrl] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -79,7 +80,12 @@ export default function Settings() {
         payment_button_enabled: paymentEnabled,
       }).eq('id', 1);
 
-      window.location.reload();
+      setLogoUrl(finalLogoUrl);
+      setBannerUrl(finalBannerUrl);
+      setLogoFile(null);
+      setBannerFile(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
       alert('Error al guardar: ' + err.message);
     } finally {
@@ -87,6 +93,11 @@ export default function Settings() {
     }
   };
 
+  if (authLoading) return (
+    <div className="flex justify-center items-center min-h-[40vh]">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-soccer-green" />
+    </div>
+  );
   if (!isAdmin) return <div className="text-white p-8">No tienes acceso a esta sección.</div>;
 
   return (
@@ -243,8 +254,8 @@ export default function Settings() {
           </div>
 
           <div className="pt-4 border-t border-glass-border flex justify-end">
-            <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 min-w-[140px] justify-center">
-              <Save size={18} /> {saving ? 'Guardando...' : 'Guardar Cambios'}
+            <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 min-w-[160px] justify-center" style={saved ? { background: 'linear-gradient(135deg,#00d68f,#00b876)' } : undefined}>
+              {saved ? <><CheckCircle2 size={18} /> ¡Guardado!</> : saving ? <><Save size={18} /> Guardando...</> : <><Save size={18} /> Guardar Cambios</>}
             </button>
           </div>
         </form>
