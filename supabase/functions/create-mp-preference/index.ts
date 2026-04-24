@@ -13,8 +13,8 @@ serve(async (req) => {
   try {
     const { plan, origin, payer } = await req.json();
 
-    const MP_ACCESS_TOKEN = Deno.env.get('MP_ACCESS_TOKEN') ??
-      'TEST-6527202079057619-042210-3d512487cde4bfa91dc8ce2e2458f80d-438929329';
+    const MP_ACCESS_TOKEN = Deno.env.get('MP_ACCESS_TOKEN');
+    if (!MP_ACCESS_TOKEN) throw new Error('MP_ACCESS_TOKEN secret not configured in Supabase');
 
     const isAnnual = plan === 'annual';
     const isHttps = origin.startsWith('https://');
