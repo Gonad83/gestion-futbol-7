@@ -72,7 +72,7 @@ export default function Settings() {
       if (logoFile) finalLogoUrl = await uploadImage(logoFile, 'team_logo');
       if (bannerFile) finalBannerUrl = await uploadImage(bannerFile, 'team_banner');
 
-      await supabase.from('team_settings').update({
+      const { error: updateError } = await supabase.from('team_settings').update({
         team_name: teamName,
         logo_url: finalLogoUrl,
         banner_url: finalBannerUrl,
@@ -80,12 +80,10 @@ export default function Settings() {
         payment_button_enabled: paymentEnabled,
       }).eq('id', 1);
 
-      setLogoUrl(finalLogoUrl);
-      setBannerUrl(finalBannerUrl);
-      setLogoFile(null);
-      setBannerFile(null);
+      if (updateError) throw updateError;
+
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => window.location.reload(), 1500);
     } catch (err: any) {
       alert('Error al guardar: ' + err.message);
     } finally {
