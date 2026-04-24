@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Settings as SettingsIcon, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Save, CreditCard } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Settings() {
   const { isAdmin } = useAuth();
-  const [formData, setFormData] = useState({ team_name: '', logo_url: '', join_code: '' });
+  const [formData, setFormData] = useState({ team_name: '', logo_url: '', join_code: '', payment_link: '', payment_button_enabled: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -16,10 +16,12 @@ export default function Settings() {
   const fetchSettings = async () => {
     const { data } = await supabase.from('team_settings').select('*').eq('id', 1).single();
     if (data) {
-      setFormData({ 
-        team_name: data.team_name, 
+      setFormData({
+        team_name: data.team_name,
         logo_url: data.logo_url || '',
-        join_code: data.join_code || ''
+        join_code: data.join_code || '',
+        payment_link: data.payment_link || '',
+        payment_button_enabled: data.payment_button_enabled || false,
       });
     }
     setLoading(false);
@@ -86,6 +88,45 @@ export default function Settings() {
               <p className="text-xs text-slate-400 leading-relaxed">
                 Este es el código que los <b>Jugadores</b> deben ingresar en la pantalla de inicio para unirse a tu equipo.
               </p>
+            </div>
+          </div>
+
+          {/* Payment Button */}
+          <div className="p-5 rounded-2xl border" style={{ background: 'rgba(68,243,169,0.03)', borderColor: 'rgba(68,243,169,0.15)' }}>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
+                  <CreditCard size={16} />
+                </div>
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-widest text-white">Botón de Pago</label>
+                  <p className="text-xs text-slate-400 mt-0.5">Muestra un banner de pago en el Dashboard para todos los jugadores.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData(f => ({ ...f, payment_button_enabled: !f.payment_button_enabled }))}
+                className="flex-shrink-0 relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none"
+                style={{ background: formData.payment_button_enabled ? '#44f3a9' : 'rgba(255,255,255,0.1)' }}
+              >
+                <span
+                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300"
+                  style={{ transform: formData.payment_button_enabled ? 'translateX(24px)' : 'translateX(0)' }}
+                />
+              </button>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">URL del botón de pago</label>
+              <input
+                type="url"
+                className="input-field"
+                value={formData.payment_link}
+                onChange={e => setFormData({ ...formData, payment_link: e.target.value })}
+                placeholder="https://mpago.la/1Ng5FjY"
+                disabled={!formData.payment_button_enabled}
+                style={{ opacity: formData.payment_button_enabled ? 1 : 0.4 }}
+              />
+              <p className="text-xs text-slate-400 mt-2">Pega el link de pago de Mercado Pago u otra plataforma.</p>
             </div>
           </div>
 
