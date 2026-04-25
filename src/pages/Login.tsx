@@ -120,7 +120,7 @@ export default function Login() {
       const { data, error: err } = await supabase
         .from('team_settings')
         .select('id, team_name, join_code')
-        .eq('join_code', joinCode.trim().toUpperCase())
+        .ilike('join_code', joinCode.trim())
         .maybeSingle();
 
       if (err) throw err;
