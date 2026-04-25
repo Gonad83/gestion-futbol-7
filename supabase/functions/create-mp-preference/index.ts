@@ -29,7 +29,7 @@ serve(async (req) => {
       auto_recurring: {
         frequency: isAnnual ? 12 : 1,
         frequency_type: 'months',
-        transaction_amount: isAnnual ? 21528 : 2990,
+        transaction_amount: isAnnual ? 29940 : 4990,
         currency_id: 'CLP',
       },
       free_trial: {

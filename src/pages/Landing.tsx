@@ -10,10 +10,10 @@ const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/creat
 
 type Plan = 'free' | 'monthly' | 'annual';
 
-const MONTHLY = 2990;
-const ANNUAL_MES = 1794;   // 40% off
-const ANNUAL_TOTAL = ANNUAL_MES * 12; // 21.528
-const ANNUAL_SAVINGS = MONTHLY * 12 - ANNUAL_TOTAL; // 14.352
+const MONTHLY = 4990;
+const ANNUAL_MES = 2495;   // 50% off
+const ANNUAL_TOTAL = ANNUAL_MES * 12; // 29.940
+const ANNUAL_SAVINGS = MONTHLY * 12 - ANNUAL_TOTAL; // 29.940
 
 const FEATURES = [
   { icon: <Users size={22} />, color: '#44f3a9', title: 'Gestión de Plantilla', desc: 'Registra jugadores con foto, posición, apodo, rating y estado. Controla activos, lesionados e inactivos.' },
@@ -49,7 +49,7 @@ const PLANS: {
     subtext: 'Sin tarjeta de crédito · Sin compromiso',
     highlight: false,
     features: [
-      'Hasta 15 jugadores',
+      'Hasta 10 jugadores',
       'Calendario y eventos',
       'Armado de equipos',
       'Caja y cuotas',
@@ -81,7 +81,7 @@ const PLANS: {
   {
     id: 'annual',
     label: 'Anual',
-    badge: '40% OFF',
+    badge: '50% OFF',
     accentColor: '#44f3a9',
     price: `$${ANNUAL_MES.toLocaleString('es-CL')}`,
     period: '/mes',
@@ -379,7 +379,7 @@ export default function Landing() {
                   </span>
                 </p>
                 {billing === 'annual' && (
-                  <p className="text-[10px] mt-0.5" style={{ color: '#44f3a9' }}>40% OFF · Ahorras ${ANNUAL_SAVINGS.toLocaleString('es-CL')}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: '#44f3a9' }}>50% OFF · Ahorras ${ANNUAL_SAVINGS.toLocaleString('es-CL')}</p>
                 )}
                 {billing === 'free' && (
                   <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>1 mes gratis · Sin tarjeta</p>
