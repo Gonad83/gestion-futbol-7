@@ -5,19 +5,28 @@ import { useAuth } from '../hooks/useAuth';
 import { Eye, EyeOff, ArrowLeft, ArrowRight } from 'lucide-react';
 
 type Tab = 'captain' | 'player';
+type PlayerMode = 'choose' | 'new' | 'returning';
 
 export default function Login() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('captain');
 
-  // Captain login state
+  // Captain login
   const [email, setEmail] = useState(localStorage.getItem('remember_email') || '');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('remember_email'));
   const [showPassword, setShowPassword] = useState(false);
 
-  // Player join state
+  // Player mode
+  const [playerMode, setPlayerMode] = useState<PlayerMode>('choose');
+
+  // Returning player login
+  const [returningEmail, setReturningEmail] = useState('');
+  const [returningPassword, setReturningPassword] = useState('');
+  const [showReturningPassword, setShowReturningPassword] = useState(false);
+
+  // New player join
   const [joinCode, setJoinCode] = useState('');
   const [joinStep, setJoinStep] = useState<1 | 2>(1);
   const [joinTeam, setJoinTeam] = useState<{ name: string; id: number } | null>(null);
@@ -40,10 +49,22 @@ export default function Login() {
     setTab(t);
     setError('');
     setSuccess('');
+    setPlayerMode('choose');
     setJoinStep(1);
     setJoinCode('');
     setJoinTeam(null);
     setPassword('');
+  };
+
+  const resetPlayerMode = () => {
+    setPlayerMode('choose');
+    setError('');
+    setSuccess('');
+    setJoinStep(1);
+    setJoinCode('');
+    setJoinTeam(null);
+    setReturningEmail('');
+    setReturningPassword('');
   };
 
   // ─── Capitán login ───────────────────────────────────────────────────────────
@@ -71,7 +92,26 @@ export default function Login() {
     }
   };
 
-  // ─── Jugador: verificar código ────────────────────────────────────────────────
+  // ─── Jugador registrado: login ────────────────────────────────────────────────
+  const handleReturningLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const { error: err } = await supabase.auth.signInWithPassword({
+        email: returningEmail.trim(),
+        password: returningPassword,
+      });
+      if (err) throw err;
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Email o contraseña incorrectos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Jugador nuevo: verificar código ─────────────────────────────────────────
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -95,7 +135,7 @@ export default function Login() {
     }
   };
 
-  // ─── Jugador: crear cuenta ────────────────────────────────────────────────────
+  // ─── Jugador nuevo: crear cuenta ──────────────────────────────────────────────
   const handlePlayerRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (playerPassword !== playerConfirm) { setError('Las contraseñas no coinciden.'); return; }
@@ -104,22 +144,19 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      // Check no duplicate email in players
       const { data: existing } = await supabase
         .from('players')
         .select('id')
         .ilike('email', playerEmail.trim())
         .maybeSingle();
-      if (existing) { setError('Este email ya tiene un perfil registrado. Intenta iniciar sesión.'); return; }
+      if (existing) { setError('Este email ya tiene un perfil. Usa "Ya tengo cuenta" para entrar.'); return; }
 
-      // Create auth account
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
         email: playerEmail.trim(),
         password: playerPassword,
       });
       if (signUpErr) throw signUpErr;
 
-      // Create player profile
       const { error: playerErr } = await supabase.from('players').insert({
         name: playerName.trim(),
         email: playerEmail.trim(),
@@ -131,7 +168,7 @@ export default function Login() {
       if (playerErr) throw playerErr;
 
       if (signUpData.user && !signUpData.session) {
-        setSuccess(`¡Cuenta creada! Revisa tu correo "${playerEmail}" para confirmarla y luego inicia sesión.`);
+        setSuccess(`¡Cuenta creada! Revisa tu correo "${playerEmail}" para confirmarla y luego entra con "Ya tengo cuenta".`);
       } else {
         navigate('/dashboard');
       }
@@ -232,7 +269,6 @@ export default function Login() {
               {loading ? 'Entrando...' : 'Entrar como Capitán'}
             </button>
 
-            {/* Register captain CTA */}
             <div className="pt-3 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <p className="text-xs text-white/30 mb-2">¿No tienes equipo aún?</p>
               <Link to="/landing"
@@ -245,9 +281,92 @@ export default function Login() {
         )}
 
         {/* ─── JUGADOR TAB ─────────────────────────────────────────────────────── */}
-        {tab === 'player' && joinStep === 1 && (
+        {tab === 'player' && playerMode === 'choose' && (
+          <div className="space-y-3">
+            <p className="text-center text-white/40 text-sm pb-1">¿Cómo quieres entrar?</p>
+
+            {/* Ya tengo cuenta */}
+            <button
+              onClick={() => setPlayerMode('returning')}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all group hover:translate-y-[-1px]"
+              style={{ background: 'rgba(68,243,169,0.07)', border: '1px solid rgba(68,243,169,0.2)' }}
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
+                style={{ background: 'rgba(68,243,169,0.1)' }}>
+                🔑
+              </div>
+              <div className="text-left flex-1 min-w-0">
+                <p className="font-bold text-white text-sm">Ya tengo cuenta</p>
+                <p className="text-[11px] text-white/35 mt-0.5">Entra con tu email y contraseña</p>
+              </div>
+              <ArrowRight size={15} className="text-soccer-green/50 group-hover:text-soccer-green transition-colors flex-shrink-0" />
+            </button>
+
+            {/* Soy nuevo */}
+            <button
+              onClick={() => setPlayerMode('new')}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all group hover:translate-y-[-1px]"
+              style={{ background: 'rgba(154,203,255,0.07)', border: '1px solid rgba(154,203,255,0.2)' }}
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
+                style={{ background: 'rgba(154,203,255,0.1)' }}>
+                ⚽
+              </div>
+              <div className="text-left flex-1 min-w-0">
+                <p className="font-bold text-white text-sm">Soy nuevo</p>
+                <p className="text-[11px] text-white/35 mt-0.5">Tengo el código de mi capitán</p>
+              </div>
+              <ArrowRight size={15} className="text-[#9acbff]/50 group-hover:text-[#9acbff] transition-colors flex-shrink-0" />
+            </button>
+          </div>
+        )}
+
+        {/* ─── JUGADOR REGISTRADO ───────────────────────────────────────────────── */}
+        {tab === 'player' && playerMode === 'returning' && (
+          <form onSubmit={handleReturningLogin} className="space-y-4">
+            <button type="button" onClick={resetPlayerMode}
+              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors mb-2">
+              <ArrowLeft size={13} /> Volver
+            </button>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl mb-2"
+              style={{ background: 'rgba(68,243,169,0.06)', border: '1px solid rgba(68,243,169,0.15)' }}>
+              <span className="text-lg">🔑</span>
+              <p className="text-xs text-white/50">Ingresa con el email y contraseña que usaste al registrarte.</p>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
+              <input type="email" value={returningEmail} onChange={e => setReturningEmail(e.target.value)}
+                className="input-field" placeholder="tu@email.com" required />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Contraseña</label>
+              <div className="relative">
+                <input type={showReturningPassword ? 'text' : 'password'} value={returningPassword}
+                  onChange={e => setReturningPassword(e.target.value)} className="input-field pr-11"
+                  placeholder="••••••••" required />
+                <button type="button" onClick={() => setShowReturningPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {showReturningPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+              {loading ? 'Entrando...' : 'Entrar al equipo'}
+            </button>
+          </form>
+        )}
+
+        {/* ─── JUGADOR NUEVO: código ────────────────────────────────────────────── */}
+        {tab === 'player' && playerMode === 'new' && joinStep === 1 && (
           <form onSubmit={handleVerifyCode} className="space-y-4">
-            <div className="text-center pb-2">
+            <button type="button" onClick={resetPlayerMode}
+              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors mb-2">
+              <ArrowLeft size={13} /> Volver
+            </button>
+
+            <div className="text-center pb-1">
               <p className="text-white/40 text-sm">Ingresa el código que te dio tu capitán</p>
             </div>
             <div>
@@ -262,25 +381,17 @@ export default function Login() {
                 maxLength={6}
                 required
               />
-              <p className="text-[10px] mt-2 text-center text-white/25">
-                6 caracteres · ejemplo: EB0L0F
-              </p>
+              <p className="text-[10px] mt-2 text-center text-white/25">6 caracteres · ejemplo: EB0L0F</p>
             </div>
             <button type="submit" disabled={loading} className="btn-primary w-full py-3">
               {loading ? 'Verificando...' : 'Verificar código'}
             </button>
-            <p className="text-center text-xs text-white/25 pt-1">
-              ¿Ya tienes cuenta?{' '}
-              <button type="button" onClick={() => switchTab('captain')} className="underline" style={{ color: '#44f3a9' }}>
-                Inicia sesión
-              </button>
-            </p>
           </form>
         )}
 
-        {tab === 'player' && joinStep === 2 && (
+        {/* ─── JUGADOR NUEVO: registro ──────────────────────────────────────────── */}
+        {tab === 'player' && playerMode === 'new' && joinStep === 2 && (
           <form onSubmit={handlePlayerRegister} className="space-y-3">
-            {/* Team confirmed banner */}
             <div className="flex items-center gap-2 p-3 rounded-xl mb-2"
               style={{ background: 'rgba(68,243,169,0.06)', border: '1px solid rgba(68,243,169,0.2)' }}>
               <span className="text-lg">⚽</span>
@@ -339,6 +450,7 @@ export default function Login() {
             </button>
           </form>
         )}
+
       </div>
     </div>
   );
