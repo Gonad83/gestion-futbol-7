@@ -163,7 +163,6 @@ export default function Login() {
         position: playerPosition,
         status: 'Activo',
         rating: 3,
-        is_admin: false,
       });
       if (playerErr) throw playerErr;
 
