@@ -154,6 +154,9 @@ export default function Login() {
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
         email: playerEmail.trim(),
         password: playerPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
       });
       if (signUpErr) throw signUpErr;
 
