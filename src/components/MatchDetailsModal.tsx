@@ -85,7 +85,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
       const payload = {
         date: matchDate.toISOString(),
-        location: formData.event_type === 'Recreacional' ? '' : formData.location,
+        location: formData.location,
         match_type: formData.event_type === 'Recreacional' ? '' : formData.match_type,
         status: formData.status,
         event_type: formData.event_type,
@@ -93,9 +93,11 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       };
 
       if (match?.id) {
-        await supabase.from('matches').update(payload).eq('id', match.id);
+        const { error: updateError } = await supabase.from('matches').update(payload).eq('id', match.id);
+        if (updateError) throw updateError;
       } else {
-        const { data: newMatch } = await supabase.from('matches').insert([payload]).select();
+        const { data: newMatch, error: insertError } = await supabase.from('matches').insert([payload]).select();
+        if (insertError) throw insertError;
         
         // Trigger n8n Webhook for new match
         if (newMatch && newMatch.length > 0) {
@@ -308,22 +310,34 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                     </>
                   )}
                   {formData.event_type === 'Recreacional' && (
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">Descripción del evento</label>
-                      <textarea
-                        className="input-field resize-none"
-                        rows={3}
-                        value={formData.description}
-                        onChange={e => setFormData({...formData, description: e.target.value})}
-                        placeholder="Ej. Asado de fin de temporada en el parque..."
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <label className="block text-sm text-slate-300 mb-1">Lugar</label>
+                        <input
+                          type="text"
+                          className="input-field"
+                          value={formData.location}
+                          onChange={e => setFormData({...formData, location: e.target.value})}
+                          placeholder="Ej. Parque, casa de alguien..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-300 mb-1">Descripción del evento</label>
+                        <textarea
+                          className="input-field resize-none"
+                          rows={3}
+                          value={formData.description}
+                          onChange={e => setFormData({...formData, description: e.target.value})}
+                          placeholder="Ej. Asado de fin de temporada en el parque..."
+                        />
+                      </div>
+                    </>
                   )}
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">Estado</label>
                     <select className="input-field bg-slate-900" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
                       <option>Programado</option>
-                      <option>Jugado</option>
+                      {formData.event_type !== 'Recreacional' && <option>Jugado</option>}
                       <option>Cancelado</option>
                     </select>
                   </div>
@@ -332,7 +346,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                   </button>
                   {match?.id && (
                     <button type="button" onClick={handleDelete} disabled={loading} className="w-full mt-2 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
-                      <Trash2 size={15} /> Eliminar Partido
+                      <Trash2 size={15} /> Eliminar Evento
                     </button>
                   )}
                   {match?.id && match.status === 'Programado' && (

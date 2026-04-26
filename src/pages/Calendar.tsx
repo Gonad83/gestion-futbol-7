@@ -174,7 +174,6 @@ export default function Calendar() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-[11px] text-slate-400 px-1">
-        <span className="flex items-center gap-1.5"><span>⚽</span> Partido</span>
         <span className="flex items-center gap-1.5"><span>🏃</span> Deportivo</span>
         <span className="flex items-center gap-1.5"><span>🎉</span> Recreacional</span>
         <span className="flex items-center gap-1.5"><Cake size={11} className="text-pink-400" /> Cumpleaños</span>
