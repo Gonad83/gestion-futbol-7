@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  isMatchmaker: boolean;
   playerProfile: any | null;
   setIsAdmin: (isAdmin: boolean) => void;
   refreshProfile: () => Promise<void>;
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isAdmin: false,
+  isMatchmaker: false,
   playerProfile: null,
   setIsAdmin: () => {},
   refreshProfile: async () => {}
@@ -24,6 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMatchmaker, setIsMatchmaker] = useState(false);
   const [playerProfile, setPlayerProfile] = useState<any | null>(null);
 
   useEffect(() => {
@@ -115,6 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const result = await dataPromise;
 
       setIsAdmin(result.role === 'admin');
+      setIsMatchmaker(result.role === 'admin' || ['captain', 'subcaptain'].includes(result.player?.match_role ?? ''));
       if (result.player) {
         setPlayerProfile(result.player);
       }
@@ -131,7 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, playerProfile, setIsAdmin, refreshProfile }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, isMatchmaker, playerProfile, setIsAdmin, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

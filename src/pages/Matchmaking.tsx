@@ -38,7 +38,7 @@ export default function Matchmaking() {
   const [guestModalName, setGuestModalName] = useState('');
   const [guestModalRating, setGuestModalRating] = useState('5');
 
-  const { isAdmin } = useAuth();
+  const { isMatchmaker: canManage } = useAuth();
   const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '' });
 
   const FORMATIONS: any = {
@@ -299,7 +299,7 @@ export default function Matchmaking() {
   };
 
   const saveTeams = async () => {
-    if (!selectedMatch || !isAdmin) return;
+    if (!selectedMatch || !canManage) return;
     try {
       const { data: existing } = await supabase.from('generated_teams').select('id').eq('match_id', selectedMatch).single();
       const payload = { team_a: teamA, team_b: teamB, metadata: { formationA, formationB, colorA, colorB } };
@@ -310,7 +310,7 @@ export default function Matchmaking() {
   };
 
   const handleSendFinalList = async () => {
-    if (!selectedMatch || !isAdmin) return;
+    if (!selectedMatch || !canManage) return;
     setSendingList(true);
     try {
       const match = matches.find(m => m.id === selectedMatch);
@@ -535,7 +535,7 @@ export default function Matchmaking() {
                 <span className="text-sm font-black text-white min-w-[2ch]">{confirmedPlayers.length}</span>
               </div>
               
-              {!teamsGenerated && isAdmin && (
+              {!teamsGenerated && canManage && (
                 <>
                   <button
                     onClick={() => setShowGuestForm(!showGuestForm)}
@@ -564,7 +564,7 @@ export default function Matchmaking() {
                 <Copy size={14} />
                 <span>{copied ? '¡Copiado!' : 'WhatsApp'}</span>
               </button>
-              {isAdmin && (
+              {canManage && (
                 <>
                   <button
                     onClick={generateTeams}
@@ -603,7 +603,7 @@ export default function Matchmaking() {
 
           {!teamsGenerated ? (
             <div className="space-y-6">
-              {showGuestForm && isAdmin && (
+              {showGuestForm && canManage && (
                 <div className="flex flex-col sm:flex-row gap-4 items-end p-6 rounded-3xl fade-in bg-white/5 border border-white/10 backdrop-blur-xl">
                   <div className="flex-1 w-full space-y-2">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">Nuevo Invitado</label>
@@ -633,7 +633,7 @@ export default function Matchmaking() {
                 </div>
               )}
 
-              {showAddPlayerPanel && isAdmin && (() => {
+              {showAddPlayerPanel && canManage && (() => {
                 const confirmedIds = new Set(confirmedPlayers.map(p => p.id));
                 const unconfirmed = allActivePlayers.filter(p => !confirmedIds.has(p.id));
                 return (
@@ -694,7 +694,7 @@ export default function Matchmaking() {
                         <Star size={10} className="text-yellow-500 fill-yellow-500" />
                         <span className="text-xs font-black text-white/80">{player.rating}</span>
                       </div>
-                      {isAdmin && (
+                      {canManage && (
                         <div className="flex gap-2">
                           {(player.isGuest || player.name.includes('(I)')) && (
                             <button
@@ -882,7 +882,7 @@ export default function Matchmaking() {
                                 {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover object-center" alt={p.name} /> : <span className="text-[10px] font-black opacity-30">{p.name.charAt(0)}</span>}
                               </div>
                               <div className="flex-1 min-w-0">
-                                {(p.isGuest || p.name.includes('(I)')) && isAdmin && editingGuestId === p.id ? (
+                                {(p.isGuest || p.name.includes('(I)')) && canManage && editingGuestId === p.id ? (
                                   <div className="flex items-center gap-1.5">
                                     <input
                                       type="text"
@@ -904,7 +904,7 @@ export default function Matchmaking() {
                                     <span className="font-black text-xs text-white/90 uppercase tracking-tight truncate group-hover/item:text-white transition-colors">
                                       {p.name}
                                     </span>
-                                    {(p.isGuest || p.name.includes('(I)')) && isAdmin && (
+                                    {(p.isGuest || p.name.includes('(I)')) && canManage && (
                                       <button
                                         onClick={() => {
                                           setEditingGuestId(p.id);
@@ -915,7 +915,7 @@ export default function Matchmaking() {
                                         <Edit2 size={11} />
                                       </button>
                                     )}
-                                    {isAdmin && (
+                                    {canManage && (
                                       <button
                                         onClick={() => removeFromPool(p)}
                                         className="opacity-0 group-hover/item:opacity-100 text-red-500/40 hover:text-red-500 flex-shrink-0 transition-all ml-1"
@@ -932,7 +932,7 @@ export default function Matchmaking() {
                         ))}
                       </div>
                       
-                      {isAdmin && (
+                      {canManage && (
                         <button
                           onClick={() => { setShowGuestModal({ team }); setGuestModalName(''); setGuestModalRating('5'); }}
                           className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-white/5 text-[10px] font-black uppercase tracking-[0.3em] text-white/20 hover:text-white/60 hover:border-white/20 hover:bg-white/[0.02] transition-all"

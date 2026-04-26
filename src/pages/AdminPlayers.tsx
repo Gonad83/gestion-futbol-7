@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase, withTimeout } from '../lib/supabase';
-import { Star, Edit2, Trash2, Bell, BellOff, Eye, EyeOff, CheckCircle2, Circle, DollarSign, BellRing, Send, Loader2 } from 'lucide-react';
+import { Star, Edit2, Trash2, Bell, BellOff, Eye, EyeOff, CheckCircle2, Circle, DollarSign, BellRing, Send, Loader2, Crown, ShieldCheck } from 'lucide-react';
 import PlayerModal from '../components/PlayerModal';
 
 export default function AdminPlayers() {
@@ -104,6 +104,21 @@ export default function AdminPlayers() {
   };
 
   const handleEdit = (player: any) => { setSelectedPlayer(player); setIsModalOpen(true); };
+
+  const toggleCaptainRole = async (player: any) => {
+    const captains = players.filter(p => p.match_role === 'captain' && p.id !== player.id);
+    const subcaptains = players.filter(p => p.match_role === 'subcaptain' && p.id !== player.id);
+    let newRole: string | null = null;
+    if (!player.match_role) {
+      if (subcaptains.length >= 3) { alert('Ya hay 3 subcapitanes. Quita uno primero.'); return; }
+      newRole = 'subcaptain';
+    } else if (player.match_role === 'subcaptain') {
+      if (captains.length >= 1) { alert('Ya hay un capitán. Quita el actual primero.'); return; }
+      newRole = 'captain';
+    }
+    await supabase.from('players').update({ match_role: newRole }).eq('id', player.id);
+    setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, match_role: newRole } : p));
+  };
 
   const bulkNotify = async (value: boolean) => {
     await supabase.from('players').update({ notify: value }).neq('id', '00000000-0000-0000-0000-000000000000');
@@ -391,6 +406,7 @@ export default function AdminPlayers() {
                   <th className="px-5 py-4 text-left">Jugador</th>
                   <th className="px-4 py-4 text-left hidden md:table-cell">Posición</th>
                   <th className="px-4 py-4 text-center hidden sm:table-cell">Rating</th>
+                  <th className="px-4 py-4 text-center">Rol</th>
                   <th className="px-4 py-4 text-center">Estado</th>
                   <th className="px-4 py-4 text-center">Vista</th>
                   <th className="px-4 py-4 text-center">Notif</th>
@@ -444,6 +460,33 @@ export default function AdminPlayers() {
                           <Star key={i} size={10} className={i < player.rating ? 'fill-current' : ''} style={{ color: i < player.rating ? '#ffd08b' : 'rgba(255,255,255,0.1)' }} />
                         ))}
                       </div>
+                    </td>
+
+                    {/* Rol Matchmaking */}
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => toggleCaptainRole(player)}
+                        title={
+                          player.match_role === 'captain' ? 'Capitán — click para quitar' :
+                          player.match_role === 'subcaptain' ? 'Subcapitán — click para promover a Capitán' :
+                          'Sin rol — click para asignar Subcapitán'
+                        }
+                        className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-all"
+                        style={
+                          player.match_role === 'captain'
+                            ? { background: 'rgba(255,208,139,0.15)', color: '#ffd08b', border: '1px solid rgba(255,208,139,0.35)' }
+                            : player.match_role === 'subcaptain'
+                            ? { background: 'rgba(154,203,255,0.1)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.25)' }
+                            : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.07)' }
+                        }
+                      >
+                        {player.match_role === 'captain'
+                          ? <Crown size={14} />
+                          : player.match_role === 'subcaptain'
+                          ? <ShieldCheck size={14} />
+                          : <Crown size={14} />
+                        }
+                      </button>
                     </td>
 
                     {/* Estado */}
