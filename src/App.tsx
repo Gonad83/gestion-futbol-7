@@ -16,6 +16,7 @@ import Landing from './pages/Landing';
 import PaymentSuccess from './pages/PaymentSuccess';
 import RegisterCaptain from './pages/RegisterCaptain';
 import TeamSelection from './pages/TeamSelection';
+import Arena from './pages/Arena';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
               <Route path="/admin" element={<AdminPlayers />} />
               <Route path="/profile" element={<MyProfile />} />
               <Route path="/vote" element={<Vote />} />
+              <Route path="/arena" element={<Arena />} />
             </Route>
           </Route>
           
