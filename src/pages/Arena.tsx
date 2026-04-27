@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase, withTimeout } from '../lib/supabase';
-import { RefreshCw, Save, CheckCircle2, RotateCcw, MapPin, Clock, Users, Swords, Globe, Lock } from 'lucide-react';
+import { RefreshCw, Save, CheckCircle2, RotateCcw, MapPin, Clock, Users, Swords, Globe, Lock, ShieldAlert } from 'lucide-react';
 import FifaCard from '../components/FifaCard';
+import { useAuth } from '../hooks/useAuth';
+
+const SUPER_ADMIN_EMAIL = 'garaosd@gmail.com';
 
 /* ─── constants ─────────────────────────────────────────────── */
 const FORMATIONS = [
@@ -72,6 +76,8 @@ type SwapTarget = { type: 'starter' | 'bench'; idx: number } | null;
 
 /* ─── component ─────────────────────────────────────────────── */
 export default function Arena() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [starters,   setStarters]   = useState<any[]>([]);
   const [bench,      setBench]      = useState<any[]>([]);
@@ -82,6 +88,12 @@ export default function Arena() {
   const [color,      setColor]      = useState('emerald');
   const [teamName,   setTeamName]   = useState('');
   const [swap,       setSwap]       = useState<SwapTarget>(null);
+
+  useEffect(() => {
+    if (user && user.email !== SUPER_ADMIN_EMAIL) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   useEffect(() => { fetchData(); }, []);
 

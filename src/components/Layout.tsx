@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle, Globe } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle, Globe, Crown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -36,18 +36,21 @@ export default function Layout() {
     await supabase.auth.signOut();
   };
 
+  const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL;
+
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} /> },
     { name: 'Caja', path: '/finance', icon: <Calculator size={18} /> },
     { name: 'Plantilla', path: '/players', icon: <Users size={18} /> },
     { name: 'Calendario', path: '/calendar', icon: <CalendarDays size={18} /> },
     { name: 'Matchmaking', path: '/matchmaking', icon: <ShieldAlert size={18} /> },
-    { name: 'Arena', path: '/arena', icon: <Globe size={18} /> },
+    ...(isSuperAdmin ? [{ name: 'Arena', path: '/arena', icon: <Globe size={18} /> }] : []),
     { name: 'Mi Perfil', path: '/profile', icon: <UserCircle size={18} /> },
     ...(isAdmin ? [
       { name: 'Admin', path: '/admin', icon: <Users size={18} />, adminOnly: true },
       { name: 'Configuración', path: '/settings', icon: <Settings size={18} />, adminOnly: true }
     ] : []),
+    ...(isSuperAdmin ? [{ name: 'Super Admin', path: '/superadmin', icon: <Crown size={18} />, superOnly: true }] : []),
   ];
 
   return (
@@ -122,6 +125,7 @@ export default function Layout() {
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const isAdminItem = (item as any).adminOnly;
+            const isSuperItem = (item as any).superOnly;
             return (
               <Link
                 key={item.name}
@@ -129,31 +133,44 @@ export default function Layout() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group/nav relative overflow-hidden",
-                  isActive && isAdminItem
+                  isActive && isSuperItem
+                    ? "text-amber-300"
+                    : isActive && isAdminItem
                     ? "text-violet-300"
                     : isActive
                     ? "text-white"
                     : "text-white/40 hover:text-white/80"
                 )}
                 style={
-                  isActive && isAdminItem
+                  isActive && isSuperItem
+                    ? { background: 'rgba(251, 191, 36, 0.1)', boxShadow: 'inset 0 0 0 1px rgba(251, 191, 36, 0.25)' }
+                    : isActive && isAdminItem
                     ? { background: 'rgba(139, 92, 246, 0.1)', boxShadow: 'inset 0 0 0 1px rgba(139, 92, 246, 0.2)' }
                     : isActive
                     ? { background: 'rgba(68, 243, 169, 0.1)', boxShadow: 'inset 0 0 0 1px rgba(68, 243, 169, 0.2)' }
                     : {}
                 }
               >
-                {isActive && !isAdminItem && (
+                {isActive && !isAdminItem && !isSuperItem && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full" style={{ background: '#44f3a9' }} />
                 )}
-                <div className={cn("transition-all duration-200 flex-shrink-0", isActive ? "opacity-100" : "opacity-60 group-hover/nav:opacity-100")}>
+                {isActive && isSuperItem && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full" style={{ background: '#fbbf24' }} />
+                )}
+                <div className={cn(
+                  "transition-all duration-200 flex-shrink-0",
+                  isActive && isSuperItem ? "text-amber-400" : isActive ? "opacity-100" : "opacity-60 group-hover/nav:opacity-100"
+                )}>
                   {item.icon}
                 </div>
                 <span className={cn("font-body font-semibold text-sm tracking-tight", isActive ? "text-white" : "")}>
                   {item.name}
                 </span>
-                {isActive && !isAdminItem && (
+                {isActive && !isAdminItem && !isSuperItem && (
                   <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: '#44f3a9' }} />
+                )}
+                {isSuperItem && !isActive && (
+                  <div className="ml-auto text-amber-500/50 text-[9px] font-bold uppercase tracking-widest">owner</div>
                 )}
               </Link>
             );

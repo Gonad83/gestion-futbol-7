@@ -17,6 +17,7 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import RegisterCaptain from './pages/RegisterCaptain';
 import TeamSelection from './pages/TeamSelection';
 import Arena from './pages/Arena';
+import SuperAdmin from './pages/SuperAdmin';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
               <Route path="/profile" element={<MyProfile />} />
               <Route path="/vote" element={<Vote />} />
               <Route path="/arena" element={<Arena />} />
+              <Route path="/superadmin" element={<SuperAdmin />} />
             </Route>
           </Route>
           
