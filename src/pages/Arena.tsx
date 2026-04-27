@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, withTimeout } from '../lib/supabase';
-import { RefreshCw, Save, CheckCircle2, RotateCcw, MapPin, Clock, Users, Swords, Globe, Lock, ShieldAlert } from 'lucide-react';
+import { RefreshCw, Save, CheckCircle2, RotateCcw, MapPin, Clock, Users, Swords, Globe, Lock } from 'lucide-react';
 import FifaCard from '../components/FifaCard';
 import { useAuth } from '../hooks/useAuth';
 
