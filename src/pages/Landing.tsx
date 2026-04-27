@@ -5,6 +5,7 @@ import {
   CheckCircle2, ArrowRight, MessageCircle, Shield,
   BarChart3, Smartphone, Loader2, X
 } from 'lucide-react';
+import AuroraPricing from '../components/ui/aurora-pricing';
 
 const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
 
@@ -225,88 +226,7 @@ export default function Landing() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="px-6 pb-28 max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#44f3a9' }}>Precios</p>
-          <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight mb-3">
-            Planes simples y transparentes
-          </h2>
-          <p className="text-white/40 text-base">1 mes gratis para todos · Sin costos ocultos · Cancela cuando quieras</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.id}
-              className="p-7 rounded-3xl relative overflow-hidden flex flex-col transition-all duration-200 hover:translate-y-[-2px]"
-              style={plan.highlight
-                ? { background: 'linear-gradient(145deg, #0f2a1e 0%, #1c2026 60%)', border: '1px solid rgba(68,243,169,0.3)', boxShadow: '0 0 50px rgba(68,243,169,0.1)' }
-                : { background: '#1c2026', border: '1px solid rgba(255,255,255,0.07)' }}
-            >
-              {/* Badge */}
-              {plan.badge && (
-                <div className="absolute top-5 right-5">
-                  <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
-                    style={plan.highlight
-                      ? { background: '#44f3a9', color: '#003822' }
-                      : { background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
-
-              {/* Header */}
-              <div className="mb-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-4"
-                  style={{ color: plan.accentColor }}>
-                  {plan.label}
-                </p>
-                <div className="flex items-end gap-1.5 mb-1">
-                  <span className="font-headline font-black tracking-tight text-white"
-                    style={{ fontSize: '2.75rem', lineHeight: 1 }}>
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-white/35 text-sm mb-1">{plan.period}</span>
-                  )}
-                </div>
-                <p className="text-white/30 text-xs mt-2 leading-relaxed">{plan.subtext}</p>
-              </div>
-
-              {/* Divider */}
-              <div className="mb-5" style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
-
-              {/* Features */}
-              <ul className="space-y-2.5 mb-7 flex-1">
-                {plan.features.map(item => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm"
-                    style={{ color: plan.highlight ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.5)' }}>
-                    <CheckCircle2 size={14} className="flex-shrink-0" style={{ color: plan.accentColor }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <button
-                onClick={() => openModal(plan.id)}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-black text-sm transition-all hover:brightness-110"
-                style={plan.highlight
-                  ? { background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822', boxShadow: '0 4px 20px rgba(68,243,169,0.25)' }
-                  : plan.id === 'monthly'
-                    ? { background: 'rgba(154,203,255,0.1)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }
-                    : { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}
-              >
-                {plan.cta} <ArrowRight size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-center text-white/20 text-xs mt-8">
-          Precios en pesos chilenos (CLP) · IVA incluido
-        </p>
-      </section>
+      <AuroraPricing onSelectPlan={openModal} />
 
       {/* BOTTOM CTA */}
       <section className="px-6 pb-24">
