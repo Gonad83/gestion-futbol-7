@@ -86,7 +86,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       const payload = {
         date: matchDate.toISOString(),
         location: formData.location,
-        match_type: formData.event_type === 'Recreacional' ? null : formData.match_type,
+        match_type: formData.event_type === 'Recreacional' ? '7vs7' : formData.match_type,
         status: formData.status,
         event_type: formData.event_type,
         description: formData.description
