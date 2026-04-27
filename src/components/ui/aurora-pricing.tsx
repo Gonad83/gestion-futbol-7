@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ArrowRight, Zap, Users, Shield } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Zap, Users, Shield, Star } from 'lucide-react';
 
 type Cycle = 'mensual' | 'anual';
 type PlanId = 'free' | 'pro' | 'elite';
@@ -13,69 +13,74 @@ const PLANS = [
   {
     id: 'free' as PlanId,
     name: 'Starter',
+    tagline: 'Prueba sin riesgo',
     badge: 'GRATIS',
     price: { mensual: '$0', anual: '$0' },
     subtext: { mensual: 'Sin tarjeta · Sin compromiso', anual: 'Sin tarjeta · Sin compromiso' },
+    cta: { mensual: 'Crear mi equipo gratis', anual: 'Crear mi equipo gratis' },
+    urgency: '1 mes completo para probar todo',
     highlight: false,
     icon: <Users size={18} />,
     accentColor: 'rgba(255,255,255,0.45)',
     glowColor: 'rgba(255,255,255,0.07)',
     limits: { equipos: 1, jugadores: 7 },
     features: [
-      '1 equipo activo',
-      'Hasta 7 jugadores',
-      'Calendario y eventos',
-      'Armado de equipos',
-      'Caja y cuotas',
-      'Votación MVP',
+      '1 equipo · hasta 7 jugadores',
+      'Organiza tus partidos con 1 clic',
+      'Sabe quién confirma sin llamar a nadie',
+      'Arma equipos equilibrados automáticamente',
+      'Registra cuotas sin Excel',
+      'Vota al MVP de cada partido',
     ],
-    cta: 'Empezar gratis',
   },
   {
     id: 'pro' as PlanId,
     name: 'Pro',
-    badge: 'POPULAR',
+    tagline: 'Para capitanes serios',
+    badge: 'MÁS POPULAR',
     price: { mensual: '$2.990', anual: '$1.495' },
-    subtext: { mensual: 'Incluye 1 mes de prueba', anual: '$17.940/año · 50% OFF' },
+    subtext: { mensual: '+ 1 mes gratis incluido', anual: '$17.940/año · Ahorras $17.940' },
+    cta: { mensual: 'Quiero el plan Pro', anual: 'Quiero el plan Pro' },
+    urgency: 'El 70% de los capitanes elige este plan',
     highlight: false,
     icon: <Shield size={18} />,
     accentColor: '#9acbff',
     glowColor: 'rgba(154,203,255,0.18)',
     limits: { equipos: 3, jugadores: 14 },
     features: [
-      'Hasta 3 equipos activos',
-      'Hasta 14 jugadores por equipo',
-      'Calendario y eventos',
-      'Armado automático de equipos',
-      'Caja y cuotas',
-      'Votación MVP',
-      'Soporte por WhatsApp',
+      'Gestiona 3 equipos desde 1 app',
+      '14 jugadores por equipo',
+      'Detecta morosos al instante — sin vergüenza',
+      'Los jugadores confirman por email automático',
+      'Listas listas para compartir a WhatsApp',
+      'Estadísticas anuales por jugador',
+      'Soporte por WhatsApp en horario hábil',
     ],
-    cta: 'Elegir Pro',
   },
   {
     id: 'elite' as PlanId,
     name: 'Elite',
+    tagline: 'Máximo control total',
     badge: '50% OFF',
     price: { mensual: '$4.990', anual: '$2.495' },
-    subtext: { mensual: 'Incluye 1 mes de prueba', anual: '$29.940/año · Ahorras $29.940' },
+    subtext: { mensual: '+ 1 mes gratis incluido', anual: '$29.940/año · Ahorras $29.940' },
+    cta: { mensual: 'Ir al máximo nivel', anual: 'Ir al máximo nivel' },
+    urgency: 'Acceso anticipado a cada nueva función',
     highlight: true,
     icon: <Zap size={18} />,
     accentColor: '#44f3a9',
     glowColor: 'rgba(68,243,169,0.2)',
     limits: { equipos: 5, jugadores: 24 },
     features: [
-      'Hasta 5 equipos activos',
-      'Hasta 24 jugadores por equipo',
-      'Calendario y eventos',
-      'Armado automático de equipos',
-      'Caja y cuotas',
-      'Votación MVP',
-      'Estadísticas avanzadas',
-      'Soporte prioritario',
-      'Acceso anticipado a funciones',
+      '5 equipos · 24 jugadores por equipo',
+      'Control total de todos tus equipos',
+      'Cobra, registra y reporta sin esfuerzo',
+      'Confirmaciones automáticas por email',
+      'Equipos balanceados con 1 clic',
+      'Dashboard con ranking MVP histórico',
+      'Soporte prioritario (respuesta en < 1h)',
+      'Primero en nuevas funciones antes que nadie',
     ],
-    cta: 'Elegir Elite',
   },
 ];
 
@@ -83,7 +88,6 @@ const hoverVariants = {
   rest: { y: 0, scale: 1 },
   hover: { y: -10, scale: 1.025 },
 };
-
 const glowVariants = {
   rest: { opacity: 0 },
   hover: { opacity: 1 },
@@ -95,55 +99,64 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
   return (
     <section id="pricing" className="relative px-6 pb-28 overflow-hidden">
       {/* Aurora blobs */}
-      <div className="absolute inset-0 pointer-events-none z-0" style={{ opacity: 0.18 }}>
+      <div className="absolute inset-0 pointer-events-none z-0" style={{ opacity: 0.16 }}>
         <div style={{ position: 'absolute', inset: 0, filter: 'blur(130px)' }}>
           <div style={{
-            position: 'absolute', borderRadius: '50%',
-            width: 680, height: 680,
-            background: 'rgba(68,243,169,0.5)',
-            top: '0%', left: '8%',
+            position: 'absolute', borderRadius: '50%', width: 680, height: 680,
+            background: 'rgba(68,243,169,0.5)', top: '0%', left: '8%',
             animation: 'auroraA 24s infinite alternate ease-in-out',
           }} />
           <div style={{
-            position: 'absolute', borderRadius: '50%',
-            width: 580, height: 580,
-            background: 'rgba(154,203,255,0.4)',
-            bottom: '0%', right: '6%',
+            position: 'absolute', borderRadius: '50%', width: 580, height: 580,
+            background: 'rgba(154,203,255,0.4)', bottom: '0%', right: '6%',
             animation: 'auroraB 30s infinite alternate ease-in-out',
           }} />
         </div>
       </div>
-
       <style>{`
-        @keyframes auroraA {
-          from { transform: translate(0,0) scale(1); }
-          to   { transform: translate(70px,55px) scale(1.12); }
-        }
-        @keyframes auroraB {
-          from { transform: translate(0,0) scale(1); }
-          to   { transform: translate(-70px,-55px) scale(1.1); }
-        }
+        @keyframes auroraA { from{transform:translate(0,0) scale(1)} to{transform:translate(70px,55px) scale(1.12)} }
+        @keyframes auroraB { from{transform:translate(0,0) scale(1)} to{transform:translate(-70px,-55px) scale(1.1)} }
       `}</style>
 
       <div className="relative z-10 max-w-5xl mx-auto">
 
-        {/* Header */}
+        {/* Header — hook con el dolor del capitán */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.65, ease: 'easeOut' }}
-          className="text-center mb-10"
+          className="text-center mb-8"
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4"
             style={{ background: 'rgba(68,243,169,0.08)', border: '1px solid rgba(68,243,169,0.2)' }}>
             <Zap size={12} style={{ color: '#44f3a9' }} />
-            <span className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: '#44f3a9' }}>Precios</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: '#44f3a9' }}>Planes</span>
           </div>
           <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight mb-3">
-            Planes simples y transparentes
+            Deja de coordinar por WhatsApp.<br className="hidden sm:block" />
+            <span style={{ color: '#44f3a9' }}>Organiza tu equipo como un pro.</span>
           </h2>
-          <p className="text-white/40 text-base">1 mes gratis para todos · Sin costos ocultos · Cancela cuando quieras</p>
+          <p className="text-white/40 text-base mb-5">
+            Empieza gratis hoy · Sin tarjeta de crédito · Cancela cuando quieras
+          </p>
+
+          {/* Social proof bar */}
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full mb-2"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="flex -space-x-1.5">
+              {['G','M','R','C','A'].map((l, i) => (
+                <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black border"
+                  style={{ background: i % 2 === 0 ? 'rgba(68,243,169,0.2)' : 'rgba(154,203,255,0.2)', borderColor: '#10141a', color: i % 2 === 0 ? '#44f3a9' : '#9acbff' }}>
+                  {l}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
+              {[1,2,3,4,5].map(i => <Star key={i} size={10} fill="#ffd08b" style={{ color: '#ffd08b' }} />)}
+            </div>
+            <span className="text-white/40 text-xs font-medium">+50 capitanes ya organizan su equipo con Club Pro</span>
+          </div>
         </motion.div>
 
         {/* Toggle mensual / anual */}
@@ -186,7 +199,6 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {PLANS.map((plan, i) => (
-            /* Outer: entrance animation */
             <motion.div
               key={plan.id}
               initial={{ opacity: 0, y: 30 }}
@@ -194,7 +206,6 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
               viewport={{ once: true }}
               transition={{ delay: i * 0.12 + 0.15, duration: 0.55, ease: 'easeOut' }}
             >
-              {/* Inner: hover animation (propagates variants to children) */}
               <motion.div
                 variants={hoverVariants}
                 initial="rest"
@@ -206,14 +217,12 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
                   ? { background: 'linear-gradient(145deg, #0c2219 0%, #1c2026 65%)', border: '1px solid rgba(68,243,169,0.3)', boxShadow: '0 0 60px rgba(68,243,169,0.1)' }
                   : { background: 'rgba(28,32,38,0.85)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(14px)' }}
               >
-                {/* Glow overlay — inherits hover from parent variants */}
+                {/* Hover glow */}
                 <motion.div
                   variants={glowVariants}
                   transition={{ duration: 0.3 }}
                   className="absolute inset-0 rounded-3xl pointer-events-none"
-                  style={{
-                    background: `radial-gradient(ellipse at 50% 0%, ${plan.glowColor} 0%, transparent 65%)`,
-                  }}
+                  style={{ background: `radial-gradient(ellipse at 50% 0%, ${plan.glowColor} 0%, transparent 65%)` }}
                 />
 
                 {/* Badge */}
@@ -222,30 +231,35 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
                     style={plan.highlight
                       ? { background: '#44f3a9', color: '#003822' }
                       : plan.id === 'pro'
-                        ? { background: 'rgba(154,203,255,0.15)', color: '#9acbff' }
+                        ? { background: 'rgba(154,203,255,0.18)', color: '#9acbff' }
                         : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
                     {plan.badge}
                   </span>
                 </div>
 
-                {/* Icon + name */}
-                <div className="flex items-center gap-2.5 mb-5 relative z-10">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: `${plan.accentColor === 'rgba(255,255,255,0.45)' ? 'rgba(255,255,255,0.06)' : plan.accentColor + '15'}`, color: plan.accentColor }}>
+                {/* Icon + name + tagline */}
+                <div className="flex items-start gap-3 mb-4 relative z-10">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background: plan.id === 'free' ? 'rgba(255,255,255,0.06)' : `${plan.accentColor}18`, color: plan.accentColor }}>
                     {plan.icon}
                   </div>
-                  <span className="font-headline font-black text-xl text-white">{plan.name}</span>
+                  <div>
+                    <p className="font-headline font-black text-xl text-white leading-tight">{plan.name}</p>
+                    <p className="text-[11px] font-semibold mt-0.5" style={{ color: plan.accentColor === 'rgba(255,255,255,0.45)' ? 'rgba(255,255,255,0.3)' : `${plan.accentColor}90` }}>
+                      {plan.tagline}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Limit pills */}
                 <div className="flex items-center gap-2 mb-5 flex-wrap relative z-10">
                   <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
                     style={{
-                      background: plan.highlight ? 'rgba(68,243,169,0.12)' : 'rgba(255,255,255,0.06)',
+                      background: plan.highlight ? 'rgba(68,243,169,0.12)' : plan.id === 'pro' ? 'rgba(154,203,255,0.1)' : 'rgba(255,255,255,0.05)',
                       color: plan.highlight ? '#44f3a9' : plan.id === 'pro' ? '#9acbff' : 'rgba(255,255,255,0.4)',
-                      border: `1px solid ${plan.highlight ? 'rgba(68,243,169,0.2)' : plan.id === 'pro' ? 'rgba(154,203,255,0.15)' : 'rgba(255,255,255,0.08)'}`,
+                      border: `1px solid ${plan.highlight ? 'rgba(68,243,169,0.2)' : plan.id === 'pro' ? 'rgba(154,203,255,0.15)' : 'rgba(255,255,255,0.07)'}`,
                     }}>
-                    {plan.limits.equipos === 1 ? '1 equipo' : `Hasta ${plan.limits.equipos} equipos`}
+                    {plan.limits.equipos === 1 ? '1 equipo' : `${plan.limits.equipos} equipos`}
                   </span>
                   <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
                     style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -281,20 +295,26 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="text-white/30 text-xs mb-5 leading-relaxed relative z-10"
+                    className="text-xs mb-1 leading-relaxed relative z-10"
+                    style={{ color: plan.highlight ? 'rgba(68,243,169,0.7)' : 'rgba(255,255,255,0.3)' }}
                   >
                     {plan.subtext[cycle]}
                   </motion.p>
                 </AnimatePresence>
 
+                {/* Urgency line */}
+                <p className="text-[10px] font-semibold mb-5 relative z-10" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  {plan.urgency}
+                </p>
+
                 <div className="mb-5 relative z-10" style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
 
-                {/* Features */}
+                {/* Features — escritas como beneficios, no features */}
                 <ul className="space-y-2.5 mb-7 flex-1 relative z-10">
                   {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-2.5 text-sm"
+                    <li key={f} className="flex items-start gap-2.5 text-sm"
                       style={{ color: plan.highlight ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.5)' }}>
-                      <CheckCircle2 size={13} className="flex-shrink-0" style={{ color: plan.accentColor }} />
+                      <CheckCircle2 size={13} className="flex-shrink-0 mt-0.5" style={{ color: plan.accentColor }} />
                       {f}
                     </li>
                   ))}
@@ -310,16 +330,24 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
                       ? { background: 'rgba(154,203,255,0.1)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }
                       : { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}
                 >
-                  {plan.cta} <ArrowRight size={14} />
+                  {plan.cta[cycle]} <ArrowRight size={14} />
                 </button>
               </motion.div>
             </motion.div>
           ))}
         </div>
 
-        <p className="text-center text-white/20 text-xs mt-8">
-          Precios en pesos chilenos (CLP) · IVA incluido
-        </p>
+        {/* Bottom trust signals */}
+        <div className="flex flex-wrap items-center justify-center gap-6 mt-10">
+          {[
+            '✓ Sin contrato de permanencia',
+            '✓ Cambia de plan cuando quieras',
+            '✓ Soporte real por WhatsApp',
+            '✓ Precios en pesos chilenos',
+          ].map(t => (
+            <span key={t} className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.22)' }}>{t}</span>
+          ))}
+        </div>
       </div>
     </section>
   );
