@@ -9,7 +9,7 @@ import AuroraPricing from '../components/ui/aurora-pricing';
 
 const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
 
-type Plan = 'free' | 'monthly' | 'annual';
+type Plan = 'free' | 'pro' | 'elite' | 'monthly' | 'annual';
 
 const MONTHLY = 4990;
 const ANNUAL_MES = 2495;   // 50% off
