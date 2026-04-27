@@ -81,7 +81,7 @@ export default function MyProfile() {
         finalPhotoUrl = urlData.publicUrl;
       }
 
-      const { error } = await supabase.from('players').update({
+      const { data: updated, error } = await supabase.from('players').update({
         name: formData.name,
         nickname: formData.nickname,
         position: formData.position,
@@ -89,9 +89,12 @@ export default function MyProfile() {
         photo_url: finalPhotoUrl,
         status: formData.status,
         birth_date: formData.birth_date || null,
-      }).eq('id', playerProfile.id);
+      }).eq('id', playerProfile.id).select();
 
       if (error) throw error;
+      if (!updated || updated.length === 0) {
+        throw new Error('Sin permiso para actualizar. Pedile al admin que vincule tu email en la plantilla, o ejecutá el SQL de políticas RLS.');
+      }
 
       await refreshProfile();
       setSaved(true);
