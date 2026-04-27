@@ -45,33 +45,15 @@ export default function RegisterCaptain() {
       if (signUpErr) throw signUpErr;
       if (!signUpData.user) throw new Error('No se pudo crear la cuenta');
 
-      // Generate unique join code
-      let joinCode = generateJoinCode();
-      const { data: existing } = await supabase
-        .from('team_settings')
-        .select('join_code')
-        .eq('join_code', joinCode)
-        .maybeSingle();
-      if (existing) joinCode = generateJoinCode();
-
-      // Create team settings
-      const { error: teamErr } = await supabase.from('team_settings').insert({
-        team_name: teamName.trim(),
-        join_code: joinCode,
-        plan: planParam,
+      // Create team + captain via SECURITY DEFINER function (bypasses RLS during registration)
+      const { error: regErr } = await supabase.rpc('register_new_captain', {
+        p_team_name: teamName.trim(),
+        p_join_code: generateJoinCode(),
+        p_plan: planParam,
+        p_captain_name: name.trim() || email.split('@')[0],
+        p_captain_email: email.trim(),
       });
-      if (teamErr) throw teamErr;
-
-      // Create captain player record
-      const { error: playerErr } = await supabase.from('players').insert({
-        name: (name.trim() || email.split('@')[0]),
-        email: email.trim(),
-        position: 'Capitán',
-        status: 'Activo',
-        rating: 3,
-        is_admin: true,
-      });
-      if (playerErr) throw playerErr;
+      if (regErr) throw regErr;
 
       // Email confirmation required
       if (!signUpData.session) {
