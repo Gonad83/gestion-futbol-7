@@ -125,9 +125,9 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       }
       onSave();
       onClose();
-    } catch (error) {
-      console.error(error);
-      alert('Error al guardar el partido');
+    } catch (error: any) {
+      console.error('Save error:', error);
+      alert('Error al guardar: ' + (error?.message || JSON.stringify(error)));
     } finally {
       setLoading(false);
     }
