@@ -318,7 +318,7 @@ export default function Landing() {
             <form onSubmit={handleCheckout} className="space-y-3">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre completo</label>
-                <input type="text" required placeholder="Ej. Gonzalo Araos"
+                <input type="text" required placeholder="Ej. Carlos Pérez"
                   value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="input-field" />
               </div>
@@ -330,7 +330,7 @@ export default function Landing() {
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre del equipo</label>
-                <input type="text" required placeholder="Ej. Real Ebolo FC"
+                <input type="text" required placeholder="Ej. Los Cóndores FC"
                   value={form.teamName} onChange={e => setForm(f => ({ ...f, teamName: e.target.value }))}
                   className="input-field" />
               </div>
