@@ -23,10 +23,10 @@ const PLANS = [
     icon: <Users size={18} />,
     accentColor: 'rgba(255,255,255,0.45)',
     glowColor: 'rgba(255,255,255,0.07)',
-    limits: { equipos: 1, jugadores: 7 },
+    limitsLabel: '1 equipo · 12 jugadores',
     features: [
-      '1 equipo · hasta 7 jugadores',
-      'Organiza tus partidos con 1 clic',
+      'Hasta 12 jugadores en tu squad',
+      'Organiza partidos con 1 clic',
       'Sabe quién confirma sin llamar a nadie',
       'Arma equipos equilibrados automáticamente',
       'Registra cuotas sin Excel',
@@ -36,7 +36,7 @@ const PLANS = [
   {
     id: 'pro' as PlanId,
     name: 'Pro',
-    tagline: 'Para capitanes serios',
+    tagline: 'Para el squad completo',
     badge: 'MÁS POPULAR',
     price: { mensual: '$2.990', anual: '$1.495' },
     subtext: { mensual: '+ 1 mes gratis incluido', anual: '$17.940/año · Ahorras $17.940' },
@@ -46,13 +46,13 @@ const PLANS = [
     icon: <Shield size={18} />,
     accentColor: '#9acbff',
     glowColor: 'rgba(154,203,255,0.18)',
-    limits: { equipos: 3, jugadores: 14 },
+    limitsLabel: '1 equipo · hasta 22 jugadores',
     features: [
-      'Gestiona 3 equipos desde 1 app',
-      '14 jugadores por equipo',
+      'Hasta 22 jugadores — titulares y reservas',
+      'Nunca más quedarte sin suplentes',
       'Detecta morosos al instante — sin vergüenza',
-      'Los jugadores confirman por email automático',
-      'Listas listas para compartir a WhatsApp',
+      'Confirmaciones automáticas por email',
+      'Listas para compartir directo a WhatsApp',
       'Estadísticas anuales por jugador',
       'Soporte por WhatsApp en horario hábil',
     ],
@@ -60,7 +60,7 @@ const PLANS = [
   {
     id: 'elite' as PlanId,
     name: 'Elite',
-    tagline: 'Máximo control total',
+    tagline: 'Para quien maneja una liga',
     badge: '50% OFF',
     price: { mensual: '$4.990', anual: '$2.495' },
     subtext: { mensual: '+ 1 mes gratis incluido', anual: '$29.940/año · Ahorras $29.940' },
@@ -70,13 +70,12 @@ const PLANS = [
     icon: <Zap size={18} />,
     accentColor: '#44f3a9',
     glowColor: 'rgba(68,243,169,0.2)',
-    limits: { equipos: 5, jugadores: 24 },
+    limitsLabel: 'Equipos y jugadores ilimitados',
     features: [
-      '5 equipos · 24 jugadores por equipo',
-      'Control total de todos tus equipos',
+      'Jugadores ilimitados en tu squad',
+      'Equipos ilimitados — maneja toda la liga',
+      'Control total desde un solo panel',
       'Cobra, registra y reporta sin esfuerzo',
-      'Confirmaciones automáticas por email',
-      'Equipos balanceados con 1 clic',
       'Dashboard con ranking MVP histórico',
       'Soporte prioritario (respuesta en < 1h)',
       'Primero en nuevas funciones antes que nadie',
@@ -259,11 +258,7 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
                       color: plan.highlight ? '#44f3a9' : plan.id === 'pro' ? '#9acbff' : 'rgba(255,255,255,0.4)',
                       border: `1px solid ${plan.highlight ? 'rgba(68,243,169,0.2)' : plan.id === 'pro' ? 'rgba(154,203,255,0.15)' : 'rgba(255,255,255,0.07)'}`,
                     }}>
-                    {plan.limits.equipos === 1 ? '1 equipo' : `${plan.limits.equipos} equipos`}
-                  </span>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                    style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    {plan.id === 'free' ? `${plan.limits.jugadores} jugadores` : `${plan.limits.jugadores} jug./equipo`}
+                    {plan.limitsLabel}
                   </span>
                 </div>
 
