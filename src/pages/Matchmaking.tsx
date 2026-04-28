@@ -3,7 +3,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check, Send, Copy } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check, Send, Copy, Zap } from 'lucide-react';
 import FifaCard from '../components/FifaCard';
 
 export default function Matchmaking() {
@@ -40,7 +40,7 @@ export default function Matchmaking() {
   const [guestModalRating, setGuestModalRating] = useState('5');
 
   const { isMatchmaker: canManage, teamId } = useAuth();
-  const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '' });
+  const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '', plan: 'free' });
 
   const FORMATIONS: any = {
     '5vs5': [
@@ -95,7 +95,7 @@ export default function Matchmaking() {
     try {
       const { data: settings } = await supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle();
       if (settings) {
-        setTeamSettings({ team_name: settings.team_name, logo_url: settings.logo_url || '' });
+        setTeamSettings({ team_name: settings.team_name, logo_url: settings.logo_url || '', plan: settings.plan || 'free' });
       }
       const { data } = (await withTimeout(
         supabase
@@ -471,6 +471,14 @@ export default function Matchmaking() {
     });
   };
 
+  const isFreePlan = (teamSettings.plan || 'free') === 'free';
+  const FREE_GUEST_LIMIT = 4;
+  const FREE_PLAYER_LIMIT = 10;
+  const guestCount = confirmedPlayers.filter(p => p.isGuest || p.name?.includes('(I)')).length;
+  const registeredCount = confirmedPlayers.filter(p => !p.isGuest && !p.name?.includes('(I)')).length;
+  const canAddGuest = !isFreePlan || guestCount < FREE_GUEST_LIMIT;
+  const canAddRegistered = !isFreePlan || registeredCount < FREE_PLAYER_LIMIT;
+
   if (loading && !selectedMatch) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -545,6 +553,12 @@ export default function Matchmaking() {
                   >
                     <UserPlus size={14} />
                     <span>{showGuestForm ? 'Cancelar' : 'Invitados'}</span>
+                    {isFreePlan && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                        style={{ background: guestCount >= FREE_GUEST_LIMIT ? 'rgba(239,68,68,0.2)' : 'rgba(68,243,169,0.15)', color: guestCount >= FREE_GUEST_LIMIT ? '#f87171' : '#44f3a9' }}>
+                        {guestCount}/{FREE_GUEST_LIMIT}
+                      </span>
+                    )}
                   </button>
                   <button
                     onClick={() => setShowAddPlayerPanel(v => !v)}
@@ -552,6 +566,12 @@ export default function Matchmaking() {
                   >
                     <CheckCircle2 size={14} />
                     <span>Confirmar Asistencia</span>
+                    {isFreePlan && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                        style={{ background: registeredCount >= FREE_PLAYER_LIMIT ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)', color: registeredCount >= FREE_PLAYER_LIMIT ? '#f87171' : 'rgba(255,255,255,0.4)' }}>
+                        {registeredCount}/{FREE_PLAYER_LIMIT}
+                      </span>
+                    )}
                   </button>
                 </>
               )}
@@ -606,32 +626,54 @@ export default function Matchmaking() {
           {!teamsGenerated ? (
             <div className="space-y-6">
               {showGuestForm && canManage && (
-                <div className="flex flex-col sm:flex-row gap-4 items-end p-6 rounded-3xl fade-in bg-white/5 border border-white/10 backdrop-blur-xl">
-                  <div className="flex-1 w-full space-y-2">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">Nuevo Invitado</label>
-                    <input
-                      type="text"
-                      className="input-field bg-black/20"
-                      placeholder="Nombre del fenómeno"
-                      value={guestName}
-                      onChange={e => setGuestName(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && addGuestToPool()}
-                      autoFocus
-                    />
-                  </div>
-                  <div className="w-full sm:w-32 space-y-2">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">Rating (1–7)</label>
-                    <input
-                      type="number"
-                      className="input-field bg-black/20"
-                      min="1" max="7" step="1"
-                      value={guestRating}
-                      onChange={e => setGuestRating(e.target.value)}
-                    />
-                  </div>
-                  <button onClick={addGuestToPool} className="btn-primary py-3.5 px-8 text-xs font-black uppercase tracking-widest w-full sm:w-auto">
-                    Añadir
-                  </button>
+                <div className="flex flex-col gap-4 p-6 rounded-3xl fade-in bg-white/5 border border-white/10 backdrop-blur-xl">
+                  {!canAddGuest ? (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,208,139,0.1)', border: '1px solid rgba(255,208,139,0.3)' }}>
+                          <UserPlus size={16} style={{ color: '#ffd08b' }} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-white">Límite de invitados alcanzado</p>
+                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>El plan Starter permite hasta {FREE_GUEST_LIMIT} invitados por partido.</p>
+                        </div>
+                      </div>
+                      <a href="/#pricing" className="flex-shrink-0 flex items-center gap-1.5 text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-wider transition-all hover:brightness-110"
+                        style={{ background: 'linear-gradient(135deg, #ffd08b, #ffb830)', color: '#1a0e00' }}>
+                        <Zap size={11} /> Actualizar plan
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-4 items-end">
+                      <div className="flex-1 w-full space-y-2">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">
+                          Nuevo Invitado {isFreePlan && <span style={{ color: 'rgba(255,255,255,0.3)' }}>({guestCount}/{FREE_GUEST_LIMIT})</span>}
+                        </label>
+                        <input
+                          type="text"
+                          className="input-field bg-black/20"
+                          placeholder="Nombre del fenómeno"
+                          value={guestName}
+                          onChange={e => setGuestName(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && addGuestToPool()}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="w-full sm:w-32 space-y-2">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">Rating (1–7)</label>
+                        <input
+                          type="number"
+                          className="input-field bg-black/20"
+                          min="1" max="7" step="1"
+                          value={guestRating}
+                          onChange={e => setGuestRating(e.target.value)}
+                        />
+                      </div>
+                      <button onClick={addGuestToPool} className="btn-primary py-3.5 px-8 text-xs font-black uppercase tracking-widest w-full sm:w-auto">
+                        Añadir
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -640,15 +682,31 @@ export default function Matchmaking() {
                 const unconfirmed = allActivePlayers.filter(p => !confirmedIds.has(p.id));
                 return (
                   <div className="p-5 rounded-3xl fade-in bg-soccer-green/5 border border-soccer-green/20 space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-soccer-green">Sin respuesta — click para confirmar asistencia</p>
-                    {unconfirmed.length === 0 ? (
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-soccer-green">Sin respuesta — click para confirmar asistencia</p>
+                      {isFreePlan && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                          style={{ background: registeredCount >= FREE_PLAYER_LIMIT ? 'rgba(239,68,68,0.15)' : 'rgba(68,243,169,0.1)', color: registeredCount >= FREE_PLAYER_LIMIT ? '#f87171' : '#44f3a9' }}>
+                          {registeredCount}/{FREE_PLAYER_LIMIT} jugadores
+                        </span>
+                      )}
+                    </div>
+                    {!canAddRegistered ? (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-2">
+                        <p className="text-xs text-white/40">Límite de {FREE_PLAYER_LIMIT} jugadores registrados alcanzado en el plan Starter.</p>
+                        <a href="/#pricing" className="flex-shrink-0 flex items-center gap-1.5 text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-wider transition-all hover:brightness-110"
+                          style={{ background: 'linear-gradient(135deg, #ffd08b, #ffb830)', color: '#1a0e00' }}>
+                          <Zap size={11} /> Actualizar plan
+                        </a>
+                      </div>
+                    ) : unconfirmed.length === 0 ? (
                       <p className="text-sm text-white/30 italic">Todos los jugadores activos ya están en la nómina.</p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {unconfirmed.map(player => (
                           <button
                             key={player.id}
-                            onClick={() => addPlayerToConfirmed(player)}
+                            onClick={() => canAddRegistered && addPlayerToConfirmed(player)}
                             className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-black/30 border border-white/10 hover:border-soccer-green/40 hover:bg-soccer-green/10 transition-all group"
                           >
                             <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-black flex-shrink-0" style={{ background: '#31353c' }}>
