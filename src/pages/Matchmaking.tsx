@@ -38,7 +38,7 @@ export default function Matchmaking() {
   const [guestModalName, setGuestModalName] = useState('');
   const [guestModalRating, setGuestModalRating] = useState('5');
 
-  const { isMatchmaker: canManage } = useAuth();
+  const { isMatchmaker: canManage, teamId } = useAuth();
   const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '' });
 
   const FORMATIONS: any = {
@@ -87,12 +87,12 @@ export default function Matchmaking() {
     return FORMATIONS['5vs5'];
   };
 
-  useEffect(() => { fetchMatches(); }, []);
+  useEffect(() => { if (teamId) fetchMatches(); }, [teamId]);
 
   const fetchMatches = async () => {
     setLoading(true);
     try {
-      const { data: settings } = await supabase.from('team_settings').select('*').eq('id', 1).maybeSingle();
+      const { data: settings } = await supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle();
       if (settings) {
         setTeamSettings({ team_name: settings.team_name, logo_url: settings.logo_url || '' });
       }

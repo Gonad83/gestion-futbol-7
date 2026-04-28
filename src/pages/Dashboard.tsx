@@ -11,7 +11,7 @@ type TopPlayer = { id: string; count: number; name: string; nickname: string; ph
 const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
 
 export default function Dashboard() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, teamId } = useAuth();
   const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '', join_code: '', payment_link: '', payment_button_enabled: false, banner_url: '' });
   const [loading, setLoading] = useState(true);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
@@ -37,14 +37,14 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (teamId) fetchDashboardData();
+  }, [teamId]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
       // Fetch team settings
-      const { data: settings } = await supabase.from('team_settings').select('*').eq('id', 1).maybeSingle();
+      const { data: settings } = await supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle();
       if (settings) {
         setTeamSettings({
           team_name: settings.team_name,

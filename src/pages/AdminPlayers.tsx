@@ -4,8 +4,10 @@ import { es } from 'date-fns/locale';
 import { supabase, withTimeout } from '../lib/supabase';
 import { Star, Edit2, Trash2, Bell, BellOff, Eye, EyeOff, CheckCircle2, Circle, DollarSign, BellRing, Send, Loader2, Crown, ShieldCheck } from 'lucide-react';
 import PlayerModal from '../components/PlayerModal';
+import { useAuth } from '../hooks/useAuth';
 
 export default function AdminPlayers() {
+  const { teamId } = useAuth();
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,7 +20,7 @@ export default function AdminPlayers() {
   const [teamName, setTeamName] = useState('Real Ebolo FC');
   const [filterAccount, setFilterAccount] = useState<'all' | 'unlinked'>('all');
 
-  useEffect(() => { fetchPlayers(); }, []);
+  useEffect(() => { if (teamId) fetchPlayers(); }, [teamId]);
 
   const fetchPlayers = async () => {
     try {
@@ -49,7 +51,7 @@ export default function AdminPlayers() {
       }
 
       const { data: settings } = (await withTimeout(
-        supabase.from('team_settings').select('*').eq('id', 1).single() as any,
+        supabase.from('team_settings').select('*').eq('id', teamId).single() as any,
         5000
       )) as any;
 

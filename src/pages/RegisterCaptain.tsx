@@ -52,6 +52,7 @@ export default function RegisterCaptain() {
         p_plan: planParam,
         p_captain_name: name.trim() || email.split('@')[0],
         p_captain_email: email.trim(),
+        p_owner_id: signUpData.user.id,
       });
       if (regErr) throw regErr;
 

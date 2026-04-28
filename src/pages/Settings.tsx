@@ -4,7 +4,7 @@ import { Settings as SettingsIcon, Save, CreditCard, Camera, Image, CheckCircle2
 import { useAuth } from '../hooks/useAuth';
 
 export default function Settings() {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, loading: authLoading, teamId } = useAuth();
   const [teamName, setTeamName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [paymentLink, setPaymentLink] = useState('');
@@ -24,10 +24,10 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetchSettings(); }, []);
+  useEffect(() => { if (teamId) fetchSettings(); }, [teamId]);
 
   const fetchSettings = async () => {
-    const { data } = await supabase.from('team_settings').select('*').eq('id', 1).single();
+    const { data } = await supabase.from('team_settings').select('*').eq('id', teamId).single();
     if (data) {
       setTeamName(data.team_name || '');
       setJoinCode(data.join_code || '');
@@ -78,7 +78,7 @@ export default function Settings() {
         banner_url: finalBannerUrl,
         payment_link: paymentLink,
         payment_button_enabled: paymentEnabled,
-      }).eq('id', 1);
+      }).eq('id', teamId);
 
       if (updateError) throw updateError;
 

@@ -7,7 +7,7 @@ import { Shield, Plus, ArrowRight, Loader2, Users, Search, Trophy, Sparkles, Che
 const MP_FUNCTION_URL = import.meta.env.VITE_N8N_PAYMENT_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
 
 export default function TeamSelection() {
-  const { user } = useAuth();
+  const { user, teamId } = useAuth();
   const navigate = useNavigate();
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ export default function TeamSelection() {
       try {
         // En Multi-Tenant acá buscaríamos en la tabla team_members usando el userId.
         // Pero para "conectar de vuelta" sin borrar nada, mostraremos su equipo real activo de team_settings
-        const { data: settings } = await supabase.from('team_settings').select('*').eq('id', 1).single();
+        const { data: settings } = await supabase.from('team_settings').select('*').eq('id', teamId ?? 1).single();
         const { count } = await supabase.from('players').select('*', { count: 'exact', head: true }).eq('status', 'Activo');
 
         if (settings) {

@@ -8,6 +8,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isMatchmaker: boolean;
   playerProfile: any | null;
+  teamId: number | null;
   setIsAdmin: (isAdmin: boolean) => void;
   refreshProfile: () => Promise<void>;
 }
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isMatchmaker: false,
   playerProfile: null,
+  teamId: null,
   setIsAdmin: () => {},
   refreshProfile: async () => {}
 });
@@ -28,6 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMatchmaker, setIsMatchmaker] = useState(false);
   const [playerProfile, setPlayerProfile] = useState<any | null>(null);
+  const [teamId, setTeamId] = useState<number | null>(null);
 
   useEffect(() => {
     // Definimos una función para orquestar la carga de la sesión
@@ -63,6 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setIsAdmin(false);
         setPlayerProfile(null);
+        setTeamId(null);
         setLoading(false);
       }
     });
@@ -122,6 +126,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (result.player) {
         setPlayerProfile(result.player);
       }
+
+      // Determine teamId: captain owns a team, player belongs to one
+      const { data: ownedTeam } = await supabase
+        .from('team_settings')
+        .select('id')
+        .eq('owner_id', authUser.id)
+        .maybeSingle();
+      if (ownedTeam) {
+        setTeamId(ownedTeam.id);
+      } else if (result.player?.team_id) {
+        setTeamId(result.player.team_id);
+      } else {
+        setTeamId(1); // fallback para usuarios existentes sin team_id
+      }
     } catch (e: any) {
       console.error('Role check error or timeout:', e);
       // No reseteamos a null el perfil aquí por seguridad
@@ -135,7 +153,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, isMatchmaker, playerProfile, setIsAdmin, refreshProfile }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, isMatchmaker, playerProfile, teamId, setIsAdmin, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

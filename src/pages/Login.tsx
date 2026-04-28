@@ -160,12 +160,11 @@ export default function Login() {
       });
       if (signUpErr) throw signUpErr;
 
-      const { error: playerErr } = await supabase.from('players').insert({
-        name: playerName.trim(),
-        email: playerEmail.trim(),
-        position: playerPosition,
-        status: 'Activo',
-        rating: 3,
+      const { error: playerErr } = await supabase.rpc('register_new_player', {
+        p_team_id: joinTeam!.id,
+        p_name: playerName.trim(),
+        p_email: playerEmail.trim(),
+        p_position: playerPosition,
       });
       if (playerErr) throw playerErr;
 

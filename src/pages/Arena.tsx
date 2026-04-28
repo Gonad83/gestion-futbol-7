@@ -76,7 +76,7 @@ type SwapTarget = { type: 'starter' | 'bench'; idx: number } | null;
 
 /* ─── component ─────────────────────────────────────────────── */
 export default function Arena() {
-  const { user } = useAuth();
+  const { user, teamId } = useAuth();
   const navigate = useNavigate();
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [starters,   setStarters]   = useState<any[]>([]);
@@ -95,14 +95,14 @@ export default function Arena() {
     }
   }, [user, navigate]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { if (teamId) fetchData(); }, [teamId]);
 
   /* Load players + restore saved lineup */
   const fetchData = async () => {
     setLoading(true);
     try {
       const [settRes, playRes] = await Promise.all([
-        supabase.from('team_settings').select('team_name').eq('id', 1).maybeSingle(),
+        supabase.from('team_settings').select('team_name').eq('id', teamId).maybeSingle(),
         withTimeout(supabase.from('players').select('*').eq('status', 'Activo') as any, 10000),
       ]);
       if (settRes.data?.team_name) setTeamName(settRes.data.team_name);
@@ -166,7 +166,7 @@ export default function Arena() {
     const data = { formation, color, starters: starters.map(p => p.id) };
     localStorage.setItem(LS_KEY, JSON.stringify(data));
     // Also try Supabase (best-effort)
-    supabase.from('team_settings').update({ arena_lineup: data }).eq('id', 1).then(() => {});
+    supabase.from('team_settings').update({ arena_lineup: data }).eq('id', teamId).then(() => {});
     setSaved(true);
     setSaving(false);
   };

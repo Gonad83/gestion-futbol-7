@@ -8,16 +8,17 @@ import { cn } from '../lib/utils';
 const SUPER_ADMIN_EMAIL = 'garaosd@gmail.com';
 
 export default function Layout() {
-  const { isAdmin, setIsAdmin, user } = useAuth();
+  const { isAdmin, setIsAdmin, user, teamId } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoZoomed, setIsLogoZoomed] = useState(false);
   const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '', join_code: '' });
 
   useEffect(() => {
+    if (!teamId) return;
     const fetchTeamSettings = async () => {
       try {
-        const { data } = await supabase.from('team_settings').select('*').eq('id', 1).maybeSingle();
+        const { data } = await supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle();
         if (data) {
           setTeamSettings({ 
             team_name: data.team_name, 
@@ -30,7 +31,7 @@ export default function Layout() {
       }
     };
     fetchTeamSettings();
-  }, []);
+  }, [teamId]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
