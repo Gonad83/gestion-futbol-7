@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, CalendarDays, DollarSign, Star, Zap,
   CheckCircle2, ArrowRight, MessageCircle, Shield,
-  BarChart3, Smartphone, Loader2, X
+  BarChart3, Smartphone, Loader2, X, Menu
 } from 'lucide-react';
 import AuroraPricing from '../components/ui/aurora-pricing';
 
@@ -105,6 +105,7 @@ const PLANS: {
 export default function Landing() {
   const [billing, setBilling] = useState<Plan>('annual');
   const [showModal, setShowModal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
   const [form, setForm] = useState({ name: '', email: '', teamName: '' });
@@ -159,17 +160,54 @@ export default function Landing() {
 
       {/* NAV */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4"
-        style={{ background: 'rgba(10,14,20,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <Link to="/" className="flex items-center gap-3">
-          <img src="/logo.png" alt="Club Pro Logo" className="w-10 h-10 object-contain" />
-          <span className="font-headline font-black text-white text-xl tracking-tight uppercase">Club Pro</span>
+        style={{ background: 'rgba(10,14,20,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <Link to="/" className="flex items-center gap-3 flex-shrink-0">
+          <img src="/logo.png" alt="Club Pro Logo" className="w-9 h-9 object-contain" />
+          <span className="font-headline font-black text-white text-lg tracking-tight uppercase">Club Pro</span>
         </Link>
-        <Link to="/login"
-          className="flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-xl transition-all"
-          style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>
-          Iniciar sesión <ArrowRight size={14} />
-        </Link>
+        {/* Desktop links */}
+        <div className="hidden md:flex items-center gap-7">
+          {[
+            { label: 'Funcionalidades', href: '#features' },
+            { label: 'Cómo funciona', href: '#how-it-works' },
+            { label: 'Precios', href: '#pricing' },
+          ].map(l => (
+            <a key={l.label} href={l.href}
+              className="text-sm font-semibold text-white/50 hover:text-white transition-colors">
+              {l.label}
+            </a>
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <Link to="/login" className="hidden sm:flex items-center gap-1.5 text-sm font-bold text-white/50 hover:text-white transition-colors">
+            Iniciar sesión
+          </Link>
+          <Link to="/login"
+            className="flex items-center gap-1.5 text-sm font-black px-4 py-2 rounded-xl transition-all hover:brightness-110"
+            style={{ background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822' }}>
+            Ingresar a la app <ArrowRight size={13} />
+          </Link>
+          <button className="md:hidden p-2 text-white/40 hover:text-white" onClick={() => setMobileMenuOpen(v => !v)}>
+            <Menu size={20} />
+          </button>
+        </div>
       </nav>
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden sticky top-[65px] z-40 px-6 py-4 space-y-2" style={{ background: 'rgba(10,14,20,0.97)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          {[
+            { label: 'Funcionalidades', href: '#features' },
+            { label: 'Cómo funciona', href: '#how-it-works' },
+            { label: 'Precios', href: '#pricing' },
+            { label: 'Iniciar sesión', href: '/login' },
+          ].map(l => (
+            <a key={l.label} href={l.href} onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-semibold text-white/60 hover:text-white py-2 transition-colors">
+              {l.label}
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* HERO */}
       <section className="relative overflow-hidden px-6 pt-24 pb-28 text-center">
@@ -204,8 +242,171 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* APP PREVIEW */}
+      <section className="px-4 sm:px-6 pb-24 max-w-6xl mx-auto">
+        <div className="text-center mb-10">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#9acbff' }}>Vista previa</p>
+          <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight">La app por dentro</h2>
+          <p className="text-white/40 text-base mt-3 max-w-md mx-auto">Todo lo que necesita tu club, en una interfaz limpia y rápida.</p>
+        </div>
+
+        <div className="relative mx-auto" style={{ perspective: '1400px' }}>
+          <div style={{ transform: 'rotateX(5deg)', transformOrigin: 'center top', transformStyle: 'preserve-3d' }}>
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 48px 140px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)' }}>
+              {/* Browser bar */}
+              <div className="flex items-center gap-3 px-4 py-3" style={{ background: '#080c10', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <div className="w-3 h-3 rounded-full" style={{ background: '#ff5f57' }} />
+                  <div className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
+                  <div className="w-3 h-3 rounded-full" style={{ background: '#28c840' }} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 max-w-xs mx-auto rounded-md px-3 py-1 text-[11px]" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}>
+                    <span>🔒</span> app.clubpro.cl/dashboard
+                  </div>
+                </div>
+              </div>
+
+              {/* App layout */}
+              <div className="flex" style={{ background: '#10141a', height: '420px' }}>
+                {/* Sidebar */}
+                <div className="hidden sm:flex flex-col w-52 flex-shrink-0" style={{ background: '#0a0e14', borderRight: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="flex flex-col items-center gap-2 px-4 pt-6 pb-4">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-xs font-black" style={{ background: 'rgba(68,243,169,0.15)', border: '2px solid rgba(68,243,169,0.3)', color: '#44f3a9' }}>FC</div>
+                    <p className="text-white font-headline font-bold text-xs text-center">Los Cóndores FC</p>
+                    <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.25)' }}>capitan@ejemplo.cl</p>
+                  </div>
+                  <div className="px-3 space-y-0.5 flex-1">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.2em] px-3 mb-2 mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>Navegación</p>
+                    {[
+                      { label: 'Dashboard', active: true, color: '#44f3a9' },
+                      { label: 'Caja', active: false },
+                      { label: 'Plantilla', active: false },
+                      { label: 'Calendario', active: false },
+                      { label: 'Matchmaking', active: false },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+                        style={item.active ? { background: 'rgba(68,243,169,0.1)', boxShadow: 'inset 0 0 0 1px rgba(68,243,169,0.2)' } : {}}>
+                        <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: item.active ? '#44f3a9' : 'rgba(255,255,255,0.2)' }} />
+                        <span className="text-xs font-semibold" style={{ color: item.active ? '#fff' : 'rgba(255,255,255,0.35)' }}>{item.label}</span>
+                        {item.active && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: '#44f3a9' }} />}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-3 mx-2 mb-3 rounded-xl" style={{ background: 'rgba(255,208,139,0.07)', border: '1px solid rgba(255,208,139,0.2)' }}>
+                    <p className="text-[8px] font-black uppercase tracking-wider mb-1" style={{ color: '#ffd08b' }}>Plan Gratuito</p>
+                    <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Actualiza para desbloquear todo.</p>
+                  </div>
+                </div>
+
+                {/* Main content */}
+                <div className="flex-1 p-5 overflow-hidden">
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Bienvenido</p>
+                      <h3 className="font-headline font-black text-white text-xl">Dashboard</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>⚽</div>
+                    </div>
+                  </div>
+
+                  {/* KPI grid */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    {[
+                      { label: 'Jugadores', value: '14', sub: 'activos', color: '#44f3a9' },
+                      { label: 'Próximo partido', value: 'Vie 16', sub: 'mayo', color: '#9acbff' },
+                      { label: 'Caja', value: '$84.500', sub: 'disponible', color: '#ffd08b' },
+                      { label: 'Asistencia', value: '78%', sub: 'promedio', color: '#44f3a9' },
+                    ].map(kpi => (
+                      <div key={kpi.label} className="p-3 rounded-xl" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <p className="text-[8px] text-white/30 font-bold uppercase tracking-wider mb-1">{kpi.label}</p>
+                        <p className="font-headline font-black text-lg leading-none" style={{ color: kpi.color }}>{kpi.value}</p>
+                        <p className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>{kpi.sub}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Match card + players row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div className="p-4 rounded-xl" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[8px] font-black uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>Próximo Partido</p>
+                        <span className="text-[8px] px-2 py-0.5 rounded-full font-black" style={{ background: 'rgba(68,243,169,0.15)', color: '#44f3a9' }}>Viernes</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: 'rgba(68,243,169,0.1)' }}>⚽</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-xs font-bold truncate">vs. Los Leones FC</p>
+                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Cancha Norte · 21:00</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Confirmados</p>
+                          <p className="text-sm font-black" style={{ color: '#44f3a9' }}>9 / 14</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <p className="text-[8px] font-black uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>Plantilla</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {[
+                          { init: 'CR', c: '68,243,169' }, { init: 'DG', c: '154,203,255' }, { init: 'AB', c: '68,243,169' },
+                          { init: 'MF', c: '255,208,139' }, { init: 'PL', c: '154,203,255' }, { init: 'RV', c: '68,243,169' },
+                        ].map((p, i) => (
+                          <div key={i} className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0"
+                            style={{ background: `rgba(${p.c},0.15)`, color: `rgb(${p.c})`, border: `1px solid rgba(${p.c},0.3)` }}>
+                            {p.init}
+                          </div>
+                        ))}
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                          style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}>+8</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Glow */}
+          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-2/3 h-20 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse, rgba(68,243,169,0.1) 0%, transparent 70%)', filter: 'blur(24px)' }} />
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" className="px-6 pb-24 max-w-5xl mx-auto">
+        <div className="text-center mb-14">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#ffd08b' }}>Proceso simple</p>
+          <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight">Listo en 5 minutos</h2>
+          <p className="text-white/40 text-base mt-3 max-w-md mx-auto">Sin configuraciones complicadas. Solo crea el equipo y empieza.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+          <div className="hidden md:block absolute top-10 left-[20%] right-[20%] h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(68,243,169,0.25) 30%, rgba(68,243,169,0.25) 70%, transparent)' }} />
+          {[
+            { step: '01', color: '#44f3a9', textColor: '#003822', icon: <Users size={26} />, title: 'Crea tu equipo', desc: 'Registra el club, sube el logo y agrega a tus jugadores con foto, posición y rating.' },
+            { step: '02', color: '#9acbff', textColor: '#001a33', icon: <CalendarDays size={26} />, title: 'Organiza tus partidos', desc: 'Programa eventos, confirma asistencia y arma equipos balanceados automáticamente.' },
+            { step: '03', color: '#ffd08b', textColor: '#1a0e00', icon: <BarChart3 size={26} />, title: 'Controla todo', desc: 'Gestiona la caja, vota al MVP de la semana y sigue las estadísticas del equipo.' },
+          ].map((item) => (
+            <div key={item.step} className="flex flex-col items-center text-center p-8 rounded-2xl relative" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
+                style={{ background: item.color, color: item.textColor }}>
+                {item.step}
+              </div>
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 mt-4"
+                style={{ background: `${item.color}18`, color: item.color, border: `1px solid ${item.color}22` }}>
+                {item.icon}
+              </div>
+              <h3 className="font-headline font-bold text-white text-lg mb-2">{item.title}</h3>
+              <p className="text-white/40 text-sm leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* FEATURES */}
-      <section className="px-6 pb-24 max-w-6xl mx-auto">
+      <section id="features" className="px-6 pb-24 max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#44f3a9' }}>Funcionalidades</p>
           <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight">Todo lo que necesita tu equipo</h2>
