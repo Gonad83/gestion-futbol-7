@@ -101,6 +101,7 @@ export default function Matchmaking() {
         supabase
           .from('matches')
           .select('*')
+          .eq('team_id', teamId)
           .eq('status', 'Programado')
           .gte('date', new Date().toISOString())
           .order('date', { ascending: true }) as any,
@@ -152,7 +153,7 @@ export default function Matchmaking() {
       setConfirmedPlayers([...realPlayers, ...guestPlayers]);
 
       const { data: activePlayers } = (await withTimeout(
-        supabase.from('players').select('*').eq('status', 'Activo') as any,
+        supabase.from('players').select('*').eq('team_id', teamId).eq('status', 'Activo') as any,
         10000
       )) as any;
       setAllActivePlayers(activePlayers || []);

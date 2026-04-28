@@ -26,7 +26,7 @@ export default function AdminPlayers() {
     try {
       setLoading(true);
       const { data } = (await withTimeout(
-        supabase.from('players').select('*').order('name') as any,
+        supabase.from('players').select('*').eq('team_id', teamId).order('name') as any,
         10000
       )) as any;
       if (data) setPlayers(data);
@@ -35,6 +35,7 @@ export default function AdminPlayers() {
         supabase
           .from('matches')
           .select('*')
+          .eq('team_id', teamId)
           .gte('date', new Date().toISOString())
           .order('date')
           .limit(1) as any,
