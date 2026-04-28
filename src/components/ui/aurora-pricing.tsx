@@ -23,9 +23,9 @@ const PLANS = [
     icon: <Users size={18} />,
     accentColor: 'rgba(255,255,255,0.45)',
     glowColor: 'rgba(255,255,255,0.07)',
-    limitsLabel: '1 equipo · 7 jugadores',
+    limitsLabel: '1 equipo · hasta 14 jugadores',
     features: [
-      'Hasta 7 jugadores en tu squad',
+      'Hasta 14 jugadores — squad completo para Fútbol 7',
       'Organiza partidos con 1 clic',
       'Sabe quién confirma sin llamar a nadie',
       'Arma equipos equilibrados automáticamente',
