@@ -121,8 +121,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const result = await dataPromise;
 
-      setIsAdmin(result.role === 'admin');
-      setIsMatchmaker(result.role === 'admin' || ['captain', 'subcaptain'].includes(result.player?.match_role ?? ''));
+      const adminStatus = result.role === 'admin' || result.player?.is_admin === true;
+      setIsAdmin(adminStatus);
+      setIsMatchmaker(adminStatus || ['captain', 'subcaptain'].includes(result.player?.match_role ?? ''));
       if (result.player) {
         setPlayerProfile(result.player);
       }
