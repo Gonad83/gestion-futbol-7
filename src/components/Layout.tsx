@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle, Globe, Crown } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle, Globe, Crown, Zap } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -12,7 +12,7 @@ export default function Layout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoZoomed, setIsLogoZoomed] = useState(false);
-  const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '', join_code: '' });
+  const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '', join_code: '', plan: '' });
 
   useEffect(() => {
     if (!teamId) return;
@@ -20,10 +20,11 @@ export default function Layout() {
       try {
         const { data } = await supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle();
         if (data) {
-          setTeamSettings({ 
-            team_name: data.team_name, 
+          setTeamSettings({
+            team_name: data.team_name,
             logo_url: data.logo_url || '',
-            join_code: data.join_code || ''
+            join_code: data.join_code || '',
+            plan: data.plan || 'free'
           });
         }
       } catch (e) {
@@ -177,6 +178,28 @@ export default function Layout() {
             );
           })}
         </nav>
+
+        {/* Upgrade Banner - free plan only */}
+        {isAdmin && teamSettings.plan === 'free' && (
+          <div className="mx-3 mb-2 p-3 rounded-xl" style={{
+            background: 'linear-gradient(135deg, rgba(255,208,139,0.1) 0%, rgba(255,208,139,0.05) 100%)',
+            border: '1px solid rgba(255,208,139,0.25)'
+          }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Zap size={11} style={{ color: '#ffd08b' }} />
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#ffd08b' }}>Plan Gratuito</p>
+            </div>
+            <p className="text-[10px] text-white/35 mb-2 leading-snug">Actualiza para desbloquear todas las funciones del club.</p>
+            <Link
+              to="/#pricing"
+              className="flex items-center justify-center gap-1 text-[10px] font-black py-1.5 px-3 rounded-lg uppercase tracking-wider transition-all hover:brightness-110 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #ffd08b, #ffb830)', color: '#1a0e00' }}
+            >
+              <Zap size={10} />
+              Ver planes
+            </Link>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
