@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check, Send, Copy } from 'lucide-react';
 import FifaCard from '../components/FifaCard';
 
@@ -413,7 +414,7 @@ export default function Matchmaking() {
 
     const lines: string[] = [];
     lines.push(`⚽ *${teamSettings.team_name} — Equipos del partido*`);
-    if (match) lines.push(`📅 ${format(new Date(match.date), "EEEE dd/MM • HH:mm")}`);
+    if (match) lines.push(`📅 ${format(new Date(match.date), "EEEE dd/MM • HH:mm", { locale: es })}`);
     if (match?.location) lines.push(`📍 ${match.location}`);
     lines.push('');
     lines.push(`${emojiA} *EQUIPO A — Camiseta ${colorNameA} (${teamA.length} jugadores):*`);
@@ -445,7 +446,7 @@ export default function Matchmaking() {
 
     const lines: string[] = [];
     lines.push(`⚽ *${teamSettings.team_name}*`);
-    if (match) lines.push(`📅 ${format(new Date(match.date), "EEEE dd/MM • HH:mm")}`);
+    if (match) lines.push(`📅 ${format(new Date(match.date), "EEEE dd/MM • HH:mm", { locale: es })}`);
     if (match?.location) lines.push(`📍 ${match.location}`);
     lines.push('');
     lines.push(`✅ *Van (${confirmedPlayers.length}):*`);
