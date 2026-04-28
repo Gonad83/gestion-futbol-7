@@ -127,18 +127,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPlayerProfile(result.player);
       }
 
-      // Determine teamId: captain owns a team, player belongs to one
-      const { data: ownedTeam } = await supabase
-        .from('team_settings')
-        .select('id')
-        .eq('owner_id', authUser.id)
-        .maybeSingle();
-      if (ownedTeam) {
-        setTeamId(ownedTeam.id);
-      } else if (result.player?.team_id) {
-        setTeamId(result.player.team_id);
-      } else {
-        setTeamId(1); // fallback para usuarios existentes sin team_id
+      // Determine teamId con timeout para no bloquear el loading
+      try {
+        const { data: ownedTeam } = (await withTimeout(
+          supabase.from('team_settings').select('id').eq('owner_id', authUser.id).maybeSingle() as any,
+          3000
+        )) as any;
+        if (ownedTeam?.id) {
+          setTeamId(ownedTeam.id);
+        } else if (result.player?.team_id) {
+          setTeamId(result.player.team_id);
+        } else {
+          setTeamId(1);
+        }
+      } catch {
+        setTeamId(result.player?.team_id ?? 1);
       }
     } catch (e: any) {
       console.error('Role check error or timeout:', e);
