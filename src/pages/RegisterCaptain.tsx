@@ -44,6 +44,9 @@ export default function RegisterCaptain() {
       });
       if (signUpErr) throw signUpErr;
       if (!signUpData.user) throw new Error('No se pudo crear la cuenta');
+      if (signUpData.user.identities?.length === 0) {
+        throw new Error('Este email ya tiene una cuenta registrada. Usa "Iniciar sesión" para entrar.');
+      }
 
       // Create team + captain via SECURITY DEFINER function (bypasses RLS during registration)
       const { error: regErr } = await supabase.rpc('register_new_captain', {

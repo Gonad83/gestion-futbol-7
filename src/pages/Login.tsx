@@ -159,6 +159,9 @@ export default function Login() {
         },
       });
       if (signUpErr) throw signUpErr;
+      if (signUpData.user?.identities?.length === 0) {
+        throw new Error('Este email ya tiene una cuenta. Usa "Ya tengo cuenta" para entrar.');
+      }
 
       const { error: playerErr } = await supabase.rpc('register_new_player', {
         p_team_id: joinTeam!.id,
