@@ -7,7 +7,7 @@ import { Plus, ChevronLeft, ChevronRight, Cake } from 'lucide-react';
 import MatchDetailsModal from '../components/MatchDetailsModal';
 
 export default function Calendar() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, teamId } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [matches, setMatches] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
@@ -15,8 +15,8 @@ export default function Calendar() {
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => { fetchMatches(); }, [currentDate]);
-  useEffect(() => { fetchPlayers(); }, []);
+  useEffect(() => { if (teamId) fetchMatches(); }, [currentDate, teamId]);
+  useEffect(() => { if (teamId) fetchPlayers(); }, [teamId]);
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -24,7 +24,8 @@ export default function Calendar() {
       const start = startOfMonth(currentDate);
       const end = endOfMonth(currentDate);
       const { data } = (await withTimeout(
-        supabase.from('matches').select('*').gte('date', start.toISOString()).lte('date', end.toISOString()) as any,
+        supabase.from('matches').select('*').eq('team_id', teamId)
+          .gte('date', start.toISOString()).lte('date', end.toISOString()) as any,
         10000
       )) as any;
       if (data) setMatches(data);
@@ -36,7 +37,8 @@ export default function Calendar() {
   };
 
   const fetchPlayers = async () => {
-    const { data } = await supabase.from('players').select('id, name, nickname, birth_date').eq('status', 'Activo').not('birth_date', 'is', null);
+    const { data } = await supabase.from('players').select('id, name, nickname, birth_date')
+      .eq('team_id', teamId).eq('status', 'Activo').not('birth_date', 'is', null);
     if (data) setPlayers(data);
   };
 

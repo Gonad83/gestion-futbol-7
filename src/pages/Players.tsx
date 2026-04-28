@@ -32,7 +32,7 @@ const POS_FILTERS = ['Todos', 'Portero', 'Defensa', 'Medio', 'Delantero'] as con
 type PosFilter = typeof POS_FILTERS[number];
 
 export default function Players() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, teamId } = useAuth();
   const [players, setPlayers] = useState<any[]>([]);
   const [totalMatchesYear, setTotalMatchesYear] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ export default function Players() {
   const [filterPos, setFilterPos] = useState<PosFilter>('Todos');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
 
-  useEffect(() => { fetchPlayers(); }, []);
+  useEffect(() => { if (teamId) fetchPlayers(); }, [teamId]);
 
   const fetchPlayers = async () => {
     setLoading(true);
@@ -51,8 +51,8 @@ export default function Players() {
       const now = new Date().toISOString();
 
       const [playersRes, yearMatchesRes] = await Promise.all([
-        withTimeout(supabase.from('players').select('*') as any, 10000),
-        withTimeout(supabase.from('matches').select('id').gte('date', yearStart).lt('date', now) as any, 8000),
+        withTimeout(supabase.from('players').select('*').eq('team_id', teamId) as any, 10000),
+        withTimeout(supabase.from('matches').select('id').eq('team_id', teamId).gte('date', yearStart).lt('date', now) as any, 8000),
       ]);
 
       const data = (playersRes as any).data;

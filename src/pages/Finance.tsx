@@ -7,7 +7,7 @@ const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 export default function Finance() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, teamId } = useAuth();
   const [payments, setPayments] = useState<any[]>([]);
   const [allPaidAmount, setAllPaidAmount] = useState(0);
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -33,26 +33,43 @@ export default function Finance() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
-  useEffect(() => { fetchData(); }, [selectedMonth, selectedYear]);
+  useEffect(() => { if (teamId) fetchData(); }, [selectedMonth, selectedYear, teamId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [
-        { data: payData },
-        { data: players },
-        { data: allPaid },
-        { data: expData },
-        { data: incomeData },
-        { data: settingsData }
-      ] = (await Promise.all([
-        withTimeout(supabase.from('payments').select('*, player:players(name, nickname)').eq('month', selectedMonth).eq('year', selectedYear) as any, 10000),
-        withTimeout(supabase.from('players').select('id, name, nickname, status').eq('status', 'Activo') as any, 10000),
-        withTimeout(supabase.from('payments').select('amount').eq('status', 'Pagado') as any, 10000),
-        withTimeout(supabase.from('expenses').select('*').order('date', { ascending: false }) as any, 10000),
-        withTimeout(supabase.from('cash_incomes').select('*').order('date', { ascending: false }) as any, 10000),
-        withTimeout(supabase.from('team_settings').select('id, quota_amount').limit(1).single() as any, 10000)
-      ])) as any;
+      // Phase 1: get team players first (need playerIds to filter payments)
+      const { data: players } = (await withTimeout(
+        supabase.from('players').select('id, name, nickname, status').eq('status', 'Activo').eq('team_id', teamId) as any,
+        10000
+      )) as any;
+      const playerIds: string[] = (players || []).map((p: any) => p.id);
+      const noPlayers = playerIds.length === 0;
+
+      // Phase 2: everything else filtered by team
+      const [payDataRes, allPaidRes, expDataRes, incomeDataRes, settingsDataRes] = await Promise.all([
+        noPlayers
+          ? Promise.resolve({ data: [] })
+          : withTimeout(
+              supabase.from('payments').select('*, player:players(name, nickname)')
+                .eq('month', selectedMonth).eq('year', selectedYear).in('player_id', playerIds) as any,
+              10000
+            ),
+        noPlayers
+          ? Promise.resolve({ data: [] })
+          : withTimeout(
+              supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', playerIds) as any,
+              10000
+            ),
+        withTimeout(supabase.from('expenses').select('*').eq('team_id', teamId).order('date', { ascending: false }) as any, 10000),
+        withTimeout(supabase.from('cash_incomes').select('*').eq('team_id', teamId).order('date', { ascending: false }) as any, 10000),
+        withTimeout(supabase.from('team_settings').select('id, quota_amount').eq('id', teamId).single() as any, 10000),
+      ]);
+      const payData = (payDataRes as any).data || [];
+      const allPaid = (allPaidRes as any).data || [];
+      const expData = (expDataRes as any).data || [];
+      const incomeData = (incomeDataRes as any).data || [];
+      const settingsData = (settingsDataRes as any).data;
 
     const quota = Number(settingsData?.quota_amount ?? 8000);
     setQuotaAmount(quota);
@@ -92,9 +109,9 @@ export default function Finance() {
     }
 
     setPayments(mergedPayments);
-    setAllPaidAmount((allPaid ?? []).reduce((acc: number, p: any) => acc + Number(p.amount), 0));
-    setExpenses(expData ?? []);
-    setCashIncomes(incomeData ?? []);
+    setAllPaidAmount(allPaid.reduce((acc: number, p: any) => acc + Number(p.amount), 0));
+    setExpenses(expData);
+    setCashIncomes(incomeData);
     } catch (e) {
       console.error('Error fetching finance data:', e);
     } finally {
@@ -245,7 +262,8 @@ export default function Finance() {
     const { error } = await supabase.from('expenses').insert([{
       concept: expenseData.concept,
       amount: parseFloat(expenseData.amount),
-      date: expenseData.date
+      date: expenseData.date,
+      team_id: teamId
     }]);
     if (error) { alert('Error: ' + error.message); return; }
     setExpenseData({ concept: '', amount: '', date: today });
@@ -273,7 +291,8 @@ export default function Finance() {
     const { error } = await supabase.from('cash_incomes').insert([{
       concept: incomeData.concept,
       amount: parseFloat(incomeData.amount),
-      date: incomeData.date
+      date: incomeData.date,
+      team_id: teamId
     }]);
     if (error) { alert('Error: ' + error.message); return; }
     setIncomeData({ concept: '', amount: '', date: today });

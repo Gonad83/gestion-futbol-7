@@ -43,73 +43,87 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Fetch team settings
-      const { data: settings } = await supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle();
-      if (settings) {
+      // Phase 1: team settings + players (need playerIds for filtering subsequent queries)
+      const [settingsRes, playersRes] = await Promise.all([
+        supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle(),
+        withTimeout(
+          supabase.from('players').select('id, name, nickname, status, photo_url').eq('team_id', teamId) as any,
+          8000
+        ),
+      ]);
+      if ((settingsRes as any).data) {
+        const s = (settingsRes as any).data;
         setTeamSettings({
-          team_name: settings.team_name,
-          logo_url: settings.logo_url || '',
-          join_code: settings.join_code || '',
-          payment_link: settings.payment_link || '',
-          payment_button_enabled: settings.payment_button_enabled || false,
-          banner_url: settings.banner_url || '',
+          team_name: s.team_name,
+          logo_url: s.logo_url || '',
+          join_code: s.join_code || '',
+          payment_link: s.payment_link || '',
+          payment_button_enabled: s.payment_button_enabled || false,
+          banner_url: s.banner_url || '',
         });
       }
-      const { data: matches } = (await withTimeout(
-        supabase
-          .from('matches')
-          .select('*')
-          .eq('status', 'Programado')
-          .gte('date', new Date().toISOString())
-          .order('date', { ascending: true })
-          .limit(1) as any,
-        20000
-      )) as any;
+      const allPlayers = (playersRes as any).data || [];
+      const activePlayersList = allPlayers.filter((p: any) => p.status === 'Activo');
+      const playerIds: string[] = allPlayers.map((p: any) => p.id);
+      const noPlayers = playerIds.length === 0;
 
-      const nextMatch = matches?.[0] || null;
+      // Phase 2: everything else in parallel, filtered by team
+      const [matchesRes, paymentsRes, payDataRes, expDataRes, incomeDataRes, attendanceRes] = await Promise.all([
+        withTimeout(
+          supabase.from('matches').select('*').eq('team_id', teamId)
+            .eq('status', 'Programado').gte('date', new Date().toISOString())
+            .order('date', { ascending: true }).limit(1) as any,
+          20000
+        ),
+        noPlayers
+          ? Promise.resolve({ data: [] })
+          : withTimeout(
+              supabase.from('payments').select('player_id, month, year, amount, status').in('player_id', playerIds) as any,
+              8000
+            ),
+        noPlayers
+          ? Promise.resolve({ data: [] })
+          : withTimeout(
+              supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', playerIds) as any,
+              15000
+            ),
+        withTimeout(supabase.from('expenses').select('amount').eq('team_id', teamId) as any, 15000),
+        withTimeout(supabase.from('cash_incomes').select('amount').eq('team_id', teamId) as any, 15000),
+        noPlayers
+          ? Promise.resolve({ data: [] })
+          : withTimeout(
+              supabase.from('attendance').select('player_id').eq('status', 'Voy').in('player_id', playerIds) as any,
+              8000
+            ),
+      ]);
+
+      const nextMatch = (matchesRes as any).data?.[0] || null;
+      const payments = (paymentsRes as any).data || [];
       let confirmedCount = 0;
       let declinedCount = 0;
 
       if (nextMatch) {
-        const { count: confCount } = (await withTimeout(
-          supabase
-            .from('attendance')
-            .select('*', { count: 'exact', head: true })
-            .eq('match_id', nextMatch.id)
-            .eq('status', 'Voy') as any,
-          15000
-        )) as any;
-        confirmedCount = confCount || 0;
-
-        const { count: decCount } = (await withTimeout(
-          supabase
-            .from('attendance')
-            .select('*', { count: 'exact', head: true })
-            .eq('match_id', nextMatch.id)
-            .eq('status', 'No voy') as any,
-          15000
-        )) as any;
-        declinedCount = decCount || 0;
+        const [confRes, decRes] = await Promise.all([
+          withTimeout(
+            supabase.from('attendance').select('*', { count: 'exact', head: true })
+              .eq('match_id', nextMatch.id).eq('status', 'Voy') as any,
+            15000
+          ),
+          withTimeout(
+            supabase.from('attendance').select('*', { count: 'exact', head: true })
+              .eq('match_id', nextMatch.id).eq('status', 'No voy') as any,
+            15000
+          ),
+        ]);
+        confirmedCount = (confRes as any).count || 0;
+        declinedCount = (decRes as any).count || 0;
       }
 
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
 
-      const { data: allPlayers } = (await withTimeout(
-        supabase.from('players').select('id, name, nickname, status, photo_url') as any,
-        8000
-      )) as any;
-      const activePlayersList = allPlayers?.filter((p: any) => p.status === 'Activo') || [];
-
-      const { data: payments } = (await withTimeout(
-        supabase
-          .from('payments')
-          .select('player_id, month, year, amount, status') as any,
-        8000
-      )) as any;
-
       const morososWithDetails = activePlayersList.map((player: any) => {
-        const playerPayments = payments?.filter((p: any) => p.player_id === player.id) || [];
+        const playerPayments = payments.filter((p: any) => p.player_id === player.id);
         const paidMonths = new Set(
           playerPayments.filter((p: any) => p.status === 'Pagado').map((p: any) => `${p.year}-${p.month}`)
         );
@@ -130,33 +144,27 @@ export default function Dashboard() {
         return { ...player, pendingPayments: uniquePending };
       }).filter((p: any) => p.pendingPayments.length > 0);
 
-      const { data: payData } = (await withTimeout(supabase.from('payments').select('amount').eq('status', 'Pagado') as any, 15000)) as any;
-      const { data: expData } = (await withTimeout(supabase.from('expenses').select('amount') as any, 15000)) as any;
-      const { data: incomeData } = (await withTimeout(supabase.from('cash_incomes').select('amount') as any, 15000)) as any;
+      const payData = (payDataRes as any).data || [];
+      const expData = (expDataRes as any).data || [];
+      const incomeData = (incomeDataRes as any).data || [];
 
-      const totalIncome = (payData ?? []).reduce((acc: number, p: any) => acc + Number(p.amount), 0);
-      const totalExp = (expData ?? []).reduce((acc: number, p: any) => acc + Number(p.amount), 0);
-      const totalManualIncomes = (incomeData ?? []).reduce((acc: number, i: any) => acc + Number(i.amount), 0);
+      const totalIncome = payData.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+      const totalExp = expData.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+      const totalManualIncomes = incomeData.reduce((acc: number, i: any) => acc + Number(i.amount), 0);
       const balance = totalIncome + totalManualIncomes - totalExp;
 
-      // Top Participaciones
-      const { data: allAttendance } = (await withTimeout(
-        supabase
-          .from('attendance')
-          .select('player_id')
-          .eq('status', 'Voy') as any,
-        8000
-      )) as any;
+      // Top Participaciones (filtered by team's players via attendanceRes)
+      const allAttendance = (attendanceRes as any).data || [];
 
       const participationCounts: Record<string, number> = {};
-      allAttendance?.forEach((a: any) => {
+      allAttendance.forEach((a: any) => {
         if (a.player_id) participationCounts[a.player_id] = (participationCounts[a.player_id] || 0) + 1;
       });
       const topParticipations: TopPlayer[] = Object.entries(participationCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([id, count]) => {
-          const p = allPlayers?.find((pl: any) => pl.id === id);
+          const p = allPlayers.find((pl: any) => pl.id === id);
           return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
         });
 
@@ -173,14 +181,9 @@ export default function Dashboard() {
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
           const { data: recentDeportivo } = (await withTimeout(
-            supabase
-              .from('matches')
-              .select('id')
-              .eq('event_type', 'Deportivo')
-              .lt('date', new Date().toISOString())
-              .gt('date', sevenDaysAgo.toISOString())
-              .order('date', { ascending: false })
-              .limit(1) as any,
+            supabase.from('matches').select('id').eq('team_id', teamId)
+              .eq('event_type', 'Deportivo').lt('date', new Date().toISOString())
+              .gt('date', sevenDaysAgo.toISOString()).order('date', { ascending: false }).limit(1) as any,
             5000
           )) as any;
           if (recentDeportivo?.[0]) {
@@ -202,7 +205,7 @@ export default function Dashboard() {
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 1)
                 .map(([id, count]) => {
-                  const p = allPlayers?.find((pl: any) => pl.id === id);
+                  const p = allPlayers.find((pl: any) => pl.id === id);
                   return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
                 });
             }
@@ -243,10 +246,10 @@ export default function Dashboard() {
         morosos: morososWithDetails,
         balance,
         activePlayers: activePlayersList.length,
-        totalPlayers: allPlayers?.length || 0,
+        totalPlayers: allPlayers.length,
         topParticipations,
         topMvp,
-        allPlayers: allPlayers || [],
+        allPlayers,
         votingIsOpen,
         openVoteMatchId,
         lastMvpWinner,

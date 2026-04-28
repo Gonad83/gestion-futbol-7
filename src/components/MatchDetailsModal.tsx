@@ -13,7 +13,7 @@ interface MatchDetailsModalProps {
 }
 
 export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: MatchDetailsModalProps) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, teamId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [attendances, setAttendances] = useState<any[]>([]);
   const [myAttendance, setMyAttendance] = useState<any>(null);
@@ -83,13 +83,14 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       const matchDate = new Date(match.date);
       matchDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
 
-      const payload = {
+      const payload: any = {
         date: matchDate.toISOString(),
         location: formData.location,
         match_type: formData.event_type === 'Recreacional' ? '7vs7' : formData.match_type,
         status: formData.status,
         event_type: formData.event_type,
-        description: formData.description
+        description: formData.description,
+        ...(match?.id ? {} : { team_id: teamId }),
       };
 
       if (match?.id) {
@@ -101,7 +102,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         
         // Trigger n8n Webhook for new match
         if (newMatch && newMatch.length > 0) {
-          const { data: activePlayers } = await supabase.from('players').select('id, name, email').eq('status', 'Activo').eq('notify', true).not('email', 'is', null);
+          const { data: activePlayers } = await supabase.from('players').select('id, name, email').eq('team_id', teamId).eq('status', 'Activo').eq('notify', true).not('email', 'is', null);
           
           if (activePlayers && activePlayers.length > 0) {
             const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
