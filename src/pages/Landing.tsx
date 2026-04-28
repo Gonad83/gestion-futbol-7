@@ -50,7 +50,8 @@ const PLANS: {
     subtext: 'Sin tarjeta de crédito · Sin compromiso',
     highlight: false,
     features: [
-      'Hasta 14 jugadores',
+      'Hasta 10 jugadores registrados',
+      'Hasta 4 jugadores invitados (para Matchmaking)',
       'Calendario y eventos',
       'Armado de equipos',
       'Caja y cuotas',
