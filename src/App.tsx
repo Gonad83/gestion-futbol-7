@@ -18,6 +18,7 @@ import RegisterCaptain from './pages/RegisterCaptain';
 import TeamSelection from './pages/TeamSelection';
 import Arena from './pages/Arena';
 import SuperAdmin from './pages/SuperAdmin';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/register-captain" element={<RegisterCaptain />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           
           <Route element={<ProtectedRoute />}>
             <Route path="/teams" element={<TeamSelection />} />

@@ -40,6 +40,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   useEffect(() => {
     if (user) navigate('/dashboard');
@@ -65,6 +67,26 @@ export default function Login() {
     setJoinTeam(null);
     setReturningEmail('');
     setReturningPassword('');
+  };
+
+  // ─── Recuperar contraseña ────────────────────────────────────────────────────
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (err) throw err;
+      setSuccess(`Enviamos un link a ${resetEmail}. Revisa tu correo.`);
+      setForgotMode(false);
+      setResetEmail('');
+    } catch (err: any) {
+      setError(err.message || 'Error al enviar el correo');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ─── Capitán login ───────────────────────────────────────────────────────────
@@ -244,7 +266,7 @@ export default function Login() {
         )}
 
         {/* ─── CAPITÁN TAB ─────────────────────────────────────────────────────── */}
-        {tab === 'captain' && (
+        {tab === 'captain' && !forgotMode && (
           <form onSubmit={handleCaptainLogin} className="space-y-4">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
@@ -262,6 +284,10 @@ export default function Login() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <button type="button" onClick={() => { setForgotMode(true); setError(''); setSuccess(''); }}
+                className="mt-1.5 text-xs text-white/30 hover:text-soccer-green transition-colors">
+                ¿Olvidaste tu contraseña?
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <input id="remember" type="checkbox" checked={rememberMe}
@@ -272,7 +298,6 @@ export default function Login() {
             <button type="submit" disabled={loading} className="btn-primary w-full py-3">
               {loading ? 'Entrando...' : 'Entrar como Capitán'}
             </button>
-
             <div className="pt-3 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <p className="text-xs text-white/30 mb-2">¿No tienes equipo aún?</p>
               <Link to="/landing"
@@ -281,6 +306,23 @@ export default function Login() {
                 Crear mi equipo <ArrowRight size={13} />
               </Link>
             </div>
+          </form>
+        )}
+
+        {tab === 'captain' && forgotMode && (
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Tu email</label>
+              <input type="email" required value={resetEmail} onChange={e => setResetEmail(e.target.value)}
+                className="input-field" placeholder="capitan@club.com" autoFocus />
+            </div>
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+              {loading ? 'Enviando...' : 'Enviar link de recuperación'}
+            </button>
+            <button type="button" onClick={() => { setForgotMode(false); setError(''); }}
+              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white transition-colors mx-auto">
+              <ArrowLeft size={13} /> Volver al login
+            </button>
           </form>
         )}
 
