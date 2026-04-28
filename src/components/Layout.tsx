@@ -195,7 +195,7 @@ export default function Layout() {
                 isAdmin ? "bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]" : "shadow-[0_0_6px_rgba(68,243,169,0.8)]"
               )} style={isAdmin ? {} : { background: '#44f3a9' }} />
               <p className={cn("text-xs font-bold uppercase tracking-wider transition-colors duration-500", isAdmin ? "text-violet-400" : "text-soccer-green")}>
-                {isAdmin ? 'Administrador' : 'Jugador'}
+                {isAdmin ? 'Capitán' : 'Jugador'}
               </p>
             </div>
           </div>
