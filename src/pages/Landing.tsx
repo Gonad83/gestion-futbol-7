@@ -6,6 +6,7 @@ import {
   BarChart3, Smartphone, Loader2, X, Menu
 } from 'lucide-react';
 import AuroraPricing from '../components/ui/aurora-pricing';
+import HowItWorks from '../components/HowItWorks';
 
 const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
 
@@ -375,36 +376,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section id="how-it-works" className="px-6 pb-24 max-w-5xl mx-auto">
-        <div className="text-center mb-14">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#ffd08b' }}>Proceso simple</p>
-          <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight">Listo en 5 minutos</h2>
-          <p className="text-white/40 text-base mt-3 max-w-md mx-auto">Sin configuraciones complicadas. Solo crea el equipo y empieza.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-          <div className="hidden md:block absolute top-10 left-[20%] right-[20%] h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(68,243,169,0.25) 30%, rgba(68,243,169,0.25) 70%, transparent)' }} />
-          {[
-            { step: '01', color: '#44f3a9', textColor: '#003822', icon: <Users size={26} />, title: 'Crea tu equipo', desc: 'Registra el club, sube el logo y agrega a tus jugadores con foto, posición y rating.' },
-            { step: '02', color: '#9acbff', textColor: '#001a33', icon: <CalendarDays size={26} />, title: 'Organiza tus partidos', desc: 'Programa eventos, confirma asistencia y arma equipos balanceados automáticamente.' },
-            { step: '03', color: '#ffd08b', textColor: '#1a0e00', icon: <BarChart3 size={26} />, title: 'Controla todo', desc: 'Gestiona la caja, vota al MVP de la semana y sigue las estadísticas del equipo.' },
-          ].map((item) => (
-            <div key={item.step} className="flex flex-col items-center text-center p-8 rounded-2xl relative" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
-                style={{ background: item.color, color: item.textColor }}>
-                {item.step}
-              </div>
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 mt-4"
-                style={{ background: `${item.color}18`, color: item.color, border: `1px solid ${item.color}22` }}>
-                {item.icon}
-              </div>
-              <h3 className="font-headline font-bold text-white text-lg mb-2">{item.title}</h3>
-              <p className="text-white/40 text-sm leading-relaxed">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <HowItWorks />
 
       {/* FEATURES */}
       <section id="features" className="px-6 pb-24 max-w-6xl mx-auto">
