@@ -116,7 +116,7 @@ export default function Calendar() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
 
         {/* ── LEFT: Mini Calendar ── */}
         <div className="rounded-2xl p-5" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -147,7 +147,7 @@ export default function Calendar() {
           {/* Day headers — Monday first */}
           <div className="grid grid-cols-7 mb-1">
             {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => (
-              <div key={d} className="text-center text-[10px] font-black py-1.5"
+              <div key={d} className="text-center text-xs font-black py-2"
                 style={{ color: 'rgba(255,255,255,0.22)' }}>{d}</div>
             ))}
           </div>
@@ -178,7 +178,7 @@ export default function Calendar() {
                           : '1px solid transparent',
                     }}
                   >
-                    <span className="text-[11px] font-bold leading-none"
+                    <span className="text-sm font-bold leading-none"
                       style={{ color: today ? '#44f3a9' : match ? cfg!.color : 'rgba(255,255,255,0.55)' }}>
                       {format(day, 'd')}
                     </span>
