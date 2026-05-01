@@ -20,6 +20,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
+    date: format(new Date(), 'yyyy-MM-dd'),
     time: '20:00',
     location: '',
     match_type: '7vs7',
@@ -33,6 +34,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       fetchAttendances();
       if (isAdmin) {
         setFormData({
+          date: format(new Date(match.date), 'yyyy-MM-dd'),
           time: format(new Date(match.date), 'HH:mm'),
           location: match.location,
           match_type: match.match_type || '7vs7',
@@ -42,7 +44,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         });
       }
     } else if (match?.date) {
-      setFormData(prev => ({ ...prev, time: '20:00', location: '', match_type: '7vs7', status: 'Programado' }));
+      setFormData(prev => ({ ...prev, date: format(new Date(match.date), 'yyyy-MM-dd'), time: '20:00', location: '', match_type: '7vs7', status: 'Programado' }));
     }
     
     const fetchMyPlayer = async () => {
@@ -80,8 +82,9 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
     try {
       const [hours, minutes] = formData.time.split(':');
-      const matchDate = new Date(match.date);
-      matchDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+      const baseDate = match?.date ? new Date(match.date) : new Date(formData.date);
+      const matchDate = new Date(baseDate);
+      matchDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
 
       const payload: any = {
         date: matchDate.toISOString(),
@@ -267,6 +270,13 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
               
               {isAdmin ? (
                 <form onSubmit={handleAdminSave} className="space-y-4">
+                  {!match?.date && (
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Fecha</label>
+                      <input type="date" required className="input-field" value={formData.date}
+                        onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">Tipo de Evento</label>
                     <div className="grid grid-cols-2 gap-2">
