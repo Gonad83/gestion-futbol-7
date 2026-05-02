@@ -236,8 +236,12 @@ export default function Landing() {
         {showSplash && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 20,
+            background: '#000',
             opacity: splashFading ? 0 : 1,
             transition: 'opacity 0.8s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}>
             <video
               ref={videoRef}
@@ -246,13 +250,19 @@ export default function Landing() {
               muted
               playsInline
               onEnded={closeSplash}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{
+                maxWidth: '560px',
+                width: '90%',
+                height: 'auto',
+                display: 'block',
+                borderRadius: '16px',
+              }}
             />
             <button
               onClick={closeSplash}
               style={{
-                position: 'absolute', bottom: 24, right: 24,
-                background: 'rgba(0,0,0,0.5)',
+                position: 'absolute', bottom: 20, right: 20,
+                background: 'rgba(0,0,0,0.6)',
                 border: '1px solid rgba(255,255,255,0.2)',
                 color: '#fff', fontFamily: 'Manrope, sans-serif',
                 fontWeight: 700, fontSize: 13,
