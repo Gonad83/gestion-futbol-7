@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@700;900&family=Manrope:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" crossorigin="anonymous"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; }
+
+    /* ─── Composition root ─── */
+    [data-composition-id="club-pro-hero"] {
+      position: relative;
+      overflow: hidden;
+      background: #10141a;
+      font-family: 'Manrope', sans-serif;
+      width: 1920px;
+      height: 1080px;
+    }
+
+    /* ─── Scene shell ─── */
+    .scene {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* Layout wrapper — fills scene, padding positions content */
+    .scene-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      padding: 120px 160px;
+      gap: 20px;
+      box-sizing: border-box;
+    }
+
+    /* ─── Crossfade overlay ─── */
+    #fade-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      opacity: 0;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    /* ════════════════════════════════════════════════
+       SCENE 1 — GESTIONA TU EQUIPO
+    ════════════════════════════════════════════════ */
+
+    /* Decorative background */
+    #s1-bg { position: absolute; inset: 0; overflow: hidden; }
+
+    .fl { position: absolute; background: rgba(68,243,169,0.07); }
+    .fl-h { left: 0; right: 0; height: 1px; }
+    .fl-v { top: 0; bottom: 0; width: 1px; }
+
+    #s1-circle-outer {
+      position: absolute;
+      width: 520px; height: 520px;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(68,243,169,0.07);
+      border-radius: 50%;
+    }
+    #s1-circle-inner {
+      position: absolute;
+      width: 220px; height: 220px;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(68,243,169,0.07);
+      border-radius: 50%;
+    }
+    #s1-glow {
+      position: absolute;
+      width: 700px; height: 700px;
+      top: 50%; right: 80px;
+      transform: translateY(-50%);
+      background: radial-gradient(circle, rgba(68,243,169,0.13) 0%, transparent 68%);
+      border-radius: 50%;
+    }
+
+    /* Scene 1 text */
+    #s1-eyebrow {
+      font-family: 'Manrope', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #44f3a9;
+    }
+    #s1-title {
+      font-family: 'Lexend', sans-serif;
+      font-size: 126px;
+      font-weight: 900;
+      line-height: 0.96;
+      color: #fff;
+      max-width: 900px;
+    }
+    #s1-title .accent { color: #44f3a9; }
+    #s1-sub {
+      font-family: 'Manrope', sans-serif;
+      font-size: 34px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.55);
+      max-width: 720px;
+    }
+
+    /* ════════════════════════════════════════════════
+       SCENE 2 — TU SQUAD
+    ════════════════════════════════════════════════ */
+
+    #s2-glow {
+      position: absolute;
+      width: 900px; height: 600px;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse, rgba(154,203,255,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    #s2-label {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #9acbff;
+    }
+    #s2-title {
+      font-family: 'Lexend', sans-serif;
+      font-size: 84px;
+      font-weight: 900;
+      line-height: 0.96;
+      color: #fff;
+    }
+    #s2-cards {
+      display: flex;
+      gap: 24px;
+      margin-top: 8px;
+    }
+    .pcard {
+      background: rgba(28,32,38,0.92);
+      border: 1px solid rgba(154,203,255,0.18);
+      border-radius: 18px;
+      padding: 28px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 230px;
+      flex-shrink: 0;
+    }
+    .pcard-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+    .pcard-name {
+      font-family: 'Lexend', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .pcard-pos {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 4px 11px;
+      border-radius: 6px;
+      display: inline-block;
+      width: fit-content;
+    }
+    .pcard-stars { color: #ffd08b; font-size: 15px; letter-spacing: 2px; }
+    .pcard-stat {
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* ════════════════════════════════════════════════
+       SCENE 3 — MATCHMAKING
+    ════════════════════════════════════════════════ */
+
+    #s3-glow {
+      position: absolute;
+      width: 1100px; height: 700px;
+      bottom: -100px; left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse, rgba(68,243,169,0.07) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    #s3-label {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #ffd08b;
+    }
+    #s3-title {
+      font-family: 'Lexend', sans-serif;
+      font-size: 84px;
+      font-weight: 900;
+      line-height: 0.96;
+      color: #fff;
+    }
+    #s3-row {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      margin-top: 8px;
+    }
+    .tblock {
+      background: rgba(28,32,38,0.92);
+      border-radius: 18px;
+      padding: 26px 30px;
+      min-width: 340px;
+    }
+    .tblock-name {
+      font-family: 'Lexend', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .trow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 17px;
+      color: rgba(255,255,255,0.82);
+    }
+    .trow:last-child { border-bottom: none; }
+    .tdot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    #s3-vs {
+      font-family: 'Lexend', sans-serif;
+      font-size: 52px;
+      font-weight: 900;
+      color: rgba(255,255,255,0.14);
+      flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════════════
+       SCENE 4 — FINANZAS
+    ════════════════════════════════════════════════ */
+
+    #s4-glow {
+      position: absolute;
+      width: 700px; height: 700px;
+      top: 50%; right: 60px;
+      transform: translateY(-50%);
+      background: radial-gradient(circle, rgba(255,208,139,0.09) 0%, transparent 68%);
+      border-radius: 50%;
+    }
+    #s4-label {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #ffd08b;
+    }
+    #s4-title {
+      font-family: 'Lexend', sans-serif;
+      font-size: 84px;
+      font-weight: 900;
+      line-height: 0.96;
+      color: #fff;
+    }
+    #s4-stats {
+      display: flex;
+      gap: 26px;
+      margin-top: 8px;
+    }
+    .scard {
+      background: rgba(28,32,38,0.92);
+      border-radius: 18px;
+      padding: 30px 34px;
+      min-width: 270px;
+    }
+    .scard-label {
+      font-size: 16px;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 8px;
+    }
+    .scard-value {
+      font-family: 'Lexend', sans-serif;
+      font-size: 54px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .scard-sub {
+      font-size: 15px;
+      color: rgba(255,255,255,0.38);
+      margin-top: 6px;
+    }
+
+    /* ════════════════════════════════════════════════
+       SCENE 5 — CTA
+    ════════════════════════════════════════════════ */
+
+    #s5-glow {
+      position: absolute;
+      width: 900px; height: 900px;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(68,243,169,0.14) 0%, transparent 68%);
+      border-radius: 50%;
+    }
+    #s5-logo {
+      font-family: 'Lexend', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #44f3a9;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    #s5-title {
+      font-family: 'Lexend', sans-serif;
+      font-size: 114px;
+      font-weight: 900;
+      line-height: 0.95;
+      color: #fff;
+    }
+    #s5-title .green { color: #44f3a9; }
+    #s5-sub {
+      font-family: 'Manrope', sans-serif;
+      font-size: 32px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.55);
+      max-width: 680px;
+    }
+    #s5-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: linear-gradient(135deg, #44f3a9 0%, #00d68f 100%);
+      color: #003822;
+      font-family: 'Lexend', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      padding: 22px 52px;
+      border-radius: 14px;
+      width: fit-content;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div data-composition-id="club-pro-hero" data-width="1920" data-height="1080">
+
+    <!-- ════ SCENE 1 — GESTIONA TU EQUIPO (0 – 4.5s) ════ -->
+    <div id="s1" class="scene" data-start="0" data-duration="4.5" data-track-index="1">
+      <div id="s1-bg">
+        <div class="fl fl-h" style="top:540px;"></div>
+        <div class="fl fl-v" style="left:960px;"></div>
+        <div class="fl fl-v" style="left:1px;"></div>
+        <div class="fl fl-v" style="right:1px;"></div>
+        <div class="fl fl-h" style="top:1px;"></div>
+        <div class="fl fl-h" style="bottom:1px;"></div>
+        <div id="s1-circle-outer"></div>
+        <div id="s1-circle-inner"></div>
+        <div id="s1-glow"></div>
+      </div>
+      <div class="scene-content" style="position:relative;z-index:1;max-width:960px;">
+        <div id="s1-eyebrow">Fútbol 7 · Gestión Inteligente</div>
+        <div id="s1-title">GESTIONA<br><span class="accent">TU EQUIPO</span></div>
+        <div id="s1-sub">Todo lo que necesita tu club en un solo lugar</div>
+      </div>
+    </div>
+
+    <!-- ════ SCENE 2 — TU SQUAD (4.5 – 9s) ════ -->
+    <div id="s2" class="scene" data-start="4.5" data-duration="4.5" data-track-index="2">
+      <div id="s2-glow"></div>
+      <div class="scene-content" style="position:relative;z-index:1;">
+        <div id="s2-label">Tu Squad</div>
+        <div id="s2-title">CONOCE A<br>TUS JUGADORES</div>
+        <div id="s2-cards">
+          <div class="pcard" id="s2-c1">
+            <div class="pcard-avatar" style="background:rgba(68,243,169,0.14);">⚽</div>
+            <div class="pcard-name">Nicolás R.</div>
+            <div class="pcard-pos" style="background:rgba(68,243,169,0.14);color:#44f3a9;">Delantero</div>
+            <div class="pcard-stars">★★★★★</div>
+            <div class="pcard-stat">14 partidos · 78% asist.</div>
+          </div>
+          <div class="pcard" id="s2-c2">
+            <div class="pcard-avatar" style="background:rgba(154,203,255,0.14);">🛡️</div>
+            <div class="pcard-name">Sebastián M.</div>
+            <div class="pcard-pos" style="background:rgba(154,203,255,0.14);color:#9acbff;">Defensa</div>
+            <div class="pcard-stars">★★★★☆</div>
+            <div class="pcard-stat">11 partidos · 91% asist.</div>
+          </div>
+          <div class="pcard" id="s2-c3">
+            <div class="pcard-avatar" style="background:rgba(255,208,139,0.14);">🧤</div>
+            <div class="pcard-name">Felipe C.</div>
+            <div class="pcard-pos" style="background:rgba(255,208,139,0.14);color:#ffd08b;">Portero</div>
+            <div class="pcard-stars">★★★★★</div>
+            <div class="pcard-stat">12 partidos · 85% asist.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SCENE 3 — MATCHMAKING (9 – 14s) ════ -->
+    <div id="s3" class="scene" data-start="9" data-duration="5" data-track-index="3">
+      <div id="s3-glow"></div>
+      <div class="scene-content" style="position:relative;z-index:1;">
+        <div id="s3-label">Matchmaking</div>
+        <div id="s3-title">EQUIPOS<br>EQUILIBRADOS</div>
+        <div id="s3-row">
+          <div class="tblock" id="s3-teamA" style="border:1px solid rgba(68,243,169,0.22);">
+            <div class="tblock-name" style="color:#44f3a9;">⚽ Equipo A</div>
+            <div class="trow"><div class="tdot" style="background:#44f3a9;"></div>Nicolás R. · Delantero</div>
+            <div class="trow"><div class="tdot" style="background:#44f3a9;"></div>Felipe C. · Portero</div>
+            <div class="trow"><div class="tdot" style="background:#44f3a9;"></div>Ignacio T. · Mediocampista</div>
+            <div class="trow"><div class="tdot" style="background:#44f3a9;"></div>Gabriel L. · Defensa</div>
+          </div>
+          <div id="s3-vs">VS</div>
+          <div class="tblock" id="s3-teamB" style="border:1px solid rgba(154,203,255,0.22);">
+            <div class="tblock-name" style="color:#9acbff;">🥅 Equipo B</div>
+            <div class="trow"><div class="tdot" style="background:#9acbff;"></div>Sebastián M. · Defensa</div>
+            <div class="trow"><div class="tdot" style="background:#9acbff;"></div>Martín V. · Portero</div>
+            <div class="trow"><div class="tdot" style="background:#9acbff;"></div>Diego P. · Delantero</div>
+            <div class="trow"><div class="tdot" style="background:#9acbff;"></div>Andrés Q. · Mediocampista</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SCENE 4 — FINANZAS (14 – 18.5s) ════ -->
+    <div id="s4" class="scene" data-start="14" data-duration="4.5" data-track-index="4">
+      <div id="s4-glow"></div>
+      <div class="scene-content" style="position:relative;z-index:1;">
+        <div id="s4-label">Finanzas &amp; Estadísticas</div>
+        <div id="s4-title">TODO BAJO<br>CONTROL</div>
+        <div id="s4-stats">
+          <div class="scard" id="s4-st1" style="border:1px solid rgba(68,243,169,0.2);">
+            <div class="scard-label">Caja del mes</div>
+            <div class="scard-value" style="color:#44f3a9;">$84.500</div>
+            <div class="scard-sub">+12% vs mes anterior</div>
+          </div>
+          <div class="scard" id="s4-st2" style="border:1px solid rgba(154,203,255,0.2);">
+            <div class="scard-label">Asistencia promedio</div>
+            <div class="scard-value" style="color:#9acbff;">78%</div>
+            <div class="scard-sub">11 / 14 jugadores</div>
+          </div>
+          <div class="scard" id="s4-st3" style="border:1px solid rgba(255,208,139,0.2);">
+            <div class="scard-label">MVP de la semana</div>
+            <div class="scard-value" style="color:#ffd08b;">★ 4.9</div>
+            <div class="scard-sub">Nicolás R. · 8 votos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SCENE 5 — CTA (18.5 – 22s) ════ -->
+    <div id="s5" class="scene" data-start="18.5" data-duration="3.5" data-track-index="5">
+      <div id="s5-glow"></div>
+      <div class="scene-content" style="position:relative;z-index:1;align-items:center;text-align:center;">
+        <div id="s5-logo">⚽ Club Pro</div>
+        <div id="s5-title">EMPIEZA<br><span class="green">GRATIS</span><br>HOY</div>
+        <div id="s5-sub">Registra tu equipo en minutos. Sin tarjeta.</div>
+        <div id="s5-cta">→ Crear mi equipo gratis</div>
+      </div>
+    </div>
+
+    <!-- Crossfade overlay — always in DOM, GSAP controls opacity -->
+    <div id="fade-overlay"></div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ─── Scene 1 entrances (t=0) ───
+      tl.from("#s1-glow",    { scale: 0.4, opacity: 0, duration: 1.4, ease: "power1.out"   }, 0.1);
+      tl.from("#s1-eyebrow", { y: -24, opacity: 0, duration: 0.5, ease: "power3.out"        }, 0.25);
+      tl.from("#s1-title",   { y: 64,  opacity: 0, duration: 0.75, ease: "expo.out"         }, 0.45);
+      tl.from("#s1-sub",     { y: 32,  opacity: 0, duration: 0.55, ease: "power2.out"       }, 0.75);
+
+      // ─── Crossfade 1 → 2 ───
+      tl.to("#fade-overlay", { opacity: 1, duration: 0.32, ease: "power1.in"  }, 4.0);
+      tl.to("#fade-overlay", { opacity: 0, duration: 0.32, ease: "power1.out" }, 4.5);
+
+      // ─── Scene 2 entrances (t=4.5) ───
+      tl.from("#s2-label",   { x: -32, opacity: 0, duration: 0.45, ease: "power2.out"       }, 4.72);
+      tl.from("#s2-title",   { y: 52,  opacity: 0, duration: 0.65, ease: "expo.out"         }, 4.92);
+      tl.from("#s2-c1",      { x: -44, opacity: 0, duration: 0.5,  ease: "back.out(1.5)"   }, 5.35);
+      tl.from("#s2-c2",      { x: -44, opacity: 0, duration: 0.5,  ease: "back.out(1.5)"   }, 5.55);
+      tl.from("#s2-c3",      { x: -44, opacity: 0, duration: 0.5,  ease: "back.out(1.5)"   }, 5.75);
+
+      // ─── Crossfade 2 → 3 ───
+      tl.to("#fade-overlay", { opacity: 1, duration: 0.32, ease: "power1.in"  }, 8.5);
+      tl.to("#fade-overlay", { opacity: 0, duration: 0.32, ease: "power1.out" }, 9.0);
+
+      // ─── Scene 3 entrances (t=9) ───
+      tl.from("#s3-label",   { y: -24, opacity: 0, duration: 0.42, ease: "power2.out"       }, 9.22);
+      tl.from("#s3-title",   { y: 52,  opacity: 0, duration: 0.65, ease: "expo.out"         }, 9.42);
+      tl.from("#s3-teamA",   { x: -64, opacity: 0, duration: 0.62, ease: "power3.out"       }, 9.85);
+      tl.from("#s3-vs",      { scale: 1.6, opacity: 0, duration: 0.42, ease: "power2.out"   }, 10.25);
+      tl.from("#s3-teamB",   { x: 64,  opacity: 0, duration: 0.62, ease: "power3.out"       }, 10.45);
+
+      // ─── Crossfade 3 → 4 ───
+      tl.to("#fade-overlay", { opacity: 1, duration: 0.32, ease: "power1.in"  }, 13.5);
+      tl.to("#fade-overlay", { opacity: 0, duration: 0.32, ease: "power1.out" }, 14.0);
+
+      // ─── Scene 4 entrances (t=14) ───
+      tl.from("#s4-label",   { x: -32, opacity: 0, duration: 0.42, ease: "power2.out"       }, 14.22);
+      tl.from("#s4-title",   { y: 52,  opacity: 0, duration: 0.65, ease: "expo.out"         }, 14.42);
+      tl.from("#s4-st1",     { y: 44,  opacity: 0, duration: 0.52, ease: "back.out(1.3)"   }, 14.85);
+      tl.from("#s4-st2",     { y: 44,  opacity: 0, duration: 0.52, ease: "back.out(1.3)"   }, 15.05);
+      tl.from("#s4-st3",     { y: 44,  opacity: 0, duration: 0.52, ease: "back.out(1.3)"   }, 15.25);
+
+      // ─── Crossfade 4 → 5 ───
+      tl.to("#fade-overlay", { opacity: 1, duration: 0.32, ease: "power1.in"  }, 18.0);
+      tl.to("#fade-overlay", { opacity: 0, duration: 0.32, ease: "power1.out" }, 18.5);
+
+      // ─── Scene 5 entrances (t=18.5) ───
+      tl.from("#s5-glow",    { scale: 0.2, opacity: 0, duration: 1.1,  ease: "power1.out"   }, 18.55);
+      tl.from("#s5-logo",    { y: -22, opacity: 0, duration: 0.42, ease: "power2.out"        }, 18.75);
+      tl.from("#s5-title",   { scale: 0.86, opacity: 0, duration: 0.7, ease: "expo.out"     }, 18.95);
+      tl.from("#s5-sub",     { y: 32,  opacity: 0, duration: 0.5,  ease: "power2.out"       }, 19.5);
+      tl.from("#s5-cta",     { y: 22,  opacity: 0, duration: 0.5,  ease: "back.out(1.6)"   }, 19.8);
+
+      // ─── Scene 5 exit — fade to black (final scene only) ───
+      tl.to("#s5", { opacity: 0, duration: 0.85, ease: "power2.in" }, 21.15);
+
+      window.__timelines["club-pro-hero"] = tl;
+    </script>
+  </div>
+</body>
+</html>
