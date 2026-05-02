@@ -19,6 +19,14 @@ import TeamSelection from './pages/TeamSelection';
 import Arena from './pages/Arena';
 import SuperAdmin from './pages/SuperAdmin';
 import ResetPassword from './pages/ResetPassword';
+import SobreNosotros from './pages/SobreNosotros';
+import CentroDeAyuda from './pages/CentroDeAyuda';
+import Tutoriales from './pages/Tutoriales';
+import PreguntasFrecuentes from './pages/PreguntasFrecuentes';
+import Contacto from './pages/Contacto';
+import TerminosDeServicio from './pages/TerminosDeServicio';
+import PoliticaDePrivacidad from './pages/PoliticaDePrivacidad';
+import Seguridad from './pages/Seguridad';
 
 function App() {
   return (
@@ -30,6 +38,14 @@ function App() {
           <Route path="/register-captain" element={<RegisterCaptain />} />
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/sobre-nosotros" element={<SobreNosotros />} />
+          <Route path="/centro-de-ayuda" element={<CentroDeAyuda />} />
+          <Route path="/tutoriales" element={<Tutoriales />} />
+          <Route path="/preguntas-frecuentes" element={<PreguntasFrecuentes />} />
+          <Route path="/contacto" element={<Contacto />} />
+          <Route path="/terminos-de-servicio" element={<TerminosDeServicio />} />
+          <Route path="/politica-de-privacidad" element={<PoliticaDePrivacidad />} />
+          <Route path="/seguridad" element={<Seguridad />} />
           
           <Route element={<ProtectedRoute />}>
             <Route path="/teams" element={<TeamSelection />} />

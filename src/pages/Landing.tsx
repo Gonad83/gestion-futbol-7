@@ -522,12 +522,16 @@ export default function Landing() {
             <p className="text-white font-bold text-sm mb-4">MiClubPro</p>
             <div className="w-8 h-0.5 mb-5" style={{ background: '#ffd08b' }} />
             <div className="space-y-3">
-              {['Sobre nosotros', 'Funcionalidades', 'Precios', 'Blog'].map(l => (
-                <a key={l} href="#" className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
+              {[
+                { label: 'Sobre nosotros', to: '/sobre-nosotros' },
+                { label: 'Funcionalidades', to: '/#features' },
+                { label: 'Precios', to: '/#pricing' },
+              ].map(l => (
+                <Link key={l.label} to={l.to} className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
-                  {l}
-                </a>
+                  {l.label}
+                </Link>
               ))}
             </div>
           </div>
@@ -537,12 +541,17 @@ export default function Landing() {
             <p className="text-white font-bold text-sm mb-4">Soporte</p>
             <div className="w-8 h-0.5 mb-5" style={{ background: '#44f3a9' }} />
             <div className="space-y-3">
-              {['Centro de ayuda', 'Tutoriales', 'Preguntas frecuentes', 'Contacto'].map(l => (
-                <a key={l} href="#" className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
+              {[
+                { label: 'Centro de ayuda', to: '/centro-de-ayuda' },
+                { label: 'Tutoriales', to: '/tutoriales' },
+                { label: 'Preguntas frecuentes', to: '/preguntas-frecuentes' },
+                { label: 'Contacto', to: '/contacto' },
+              ].map(l => (
+                <Link key={l.label} to={l.to} className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
-                  {l}
-                </a>
+                  {l.label}
+                </Link>
               ))}
             </div>
           </div>
@@ -552,12 +561,16 @@ export default function Landing() {
             <p className="text-white font-bold text-sm mb-4">Legal</p>
             <div className="w-8 h-0.5 mb-5" style={{ background: '#9acbff' }} />
             <div className="space-y-3">
-              {['Términos de servicio', 'Política de privacidad', 'Seguridad'].map(l => (
-                <a key={l} href="#" className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
+              {[
+                { label: 'Términos de servicio', to: '/terminos-de-servicio' },
+                { label: 'Política de privacidad', to: '/politica-de-privacidad' },
+                { label: 'Seguridad', to: '/seguridad' },
+              ].map(l => (
+                <Link key={l.label} to={l.to} className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
-                  {l}
-                </a>
+                  {l.label}
+                </Link>
               ))}
             </div>
           </div>
