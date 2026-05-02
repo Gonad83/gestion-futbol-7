@@ -282,14 +282,14 @@ export default function Landing() {
           style={{ opacity: showSplash && !splashFading ? 0 : 1, transition: 'opacity 0.8s ease' }}>
           <span className="inline-block text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-6"
             style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>
-            Para equipos de Fútbol 7
+            Para equipos deportivos
           </span>
           <h1 className="font-headline font-black text-5xl sm:text-6xl md:text-7xl text-white tracking-tight leading-[1.05] mb-6">
             Gestiona tu equipo<br />
             <span style={{ color: '#44f3a9' }}>como un profesional</span>
           </h1>
           <p className="text-white/50 text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed">
-            Asistencia, equipos balanceados, caja, votación MVP y más — todo en una sola app para tu equipo de Fútbol 7.
+            Asistencia, equipos balanceados, caja, votación MVP y más — todo en una sola app para tu equipo deportivo.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a href="#pricing"
@@ -514,7 +514,7 @@ export default function Landing() {
               <img src="/logo.png" alt="MiClubPro" className="w-8 h-8 object-contain" />
               <span className="font-headline font-black text-white text-base uppercase tracking-tight">MiClubPro</span>
             </div>
-            <p className="text-white/35 text-sm leading-relaxed">Gestión inteligente para equipos de Fútbol 7 en Chile.</p>
+            <p className="text-white/35 text-sm leading-relaxed">Gestión inteligente para equipos deportivos en Chile.</p>
           </div>
 
           {/* Col 1 */}

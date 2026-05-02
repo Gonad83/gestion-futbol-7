@@ -3,10 +3,10 @@ import { ChevronDown } from 'lucide-react';
 import StaticLayout from '../components/StaticLayout';
 
 const FAQS = [
-  { q: '¿Qué es MiClubPro?', a: 'MiClubPro es una plataforma de gestión para equipos de Fútbol 7. Te permite administrar jugadores, confirmar asistencia, armar equipos equilibrados, controlar la caja del equipo y votar al MVP de cada partido.' },
+  { q: '¿Qué es MiClubPro?', a: 'MiClubPro es una plataforma de gestión para equipos deportivos. Te permite administrar jugadores, confirmar asistencia, armar equipos equilibrados, controlar la caja del equipo y votar al MVP de cada partido.' },
   { q: '¿Necesito instalar algo?', a: 'No. MiClubPro funciona 100% desde el navegador de tu celular o computador. Solo necesitas crear una cuenta y ya puedes empezar.' },
   { q: '¿Cómo funciona el período de prueba?', a: 'Al registrarte obtienes 1 mes completamente gratis con hasta 10 jugadores registrados y 4 invitados. Sin tarjeta de crédito requerida.' },
-  { q: '¿Cuántos jugadores puedo tener en el plan gratuito?', a: 'El plan gratuito permite hasta 10 jugadores registrados en tu squad y hasta 4 jugadores invitados para el Matchmaking, ideal para partidos de 7vs7.' },
+  { q: '¿Cuántos jugadores puedo tener en el plan gratuito?', a: 'El plan gratuito permite hasta 10 jugadores registrados en tu squad y hasta 4 jugadores invitados para el Matchmaking, ideal para equipos pequeños o torneos amateur.' },
   { q: '¿Cómo confirman asistencia los jugadores?', a: 'Los jugadores reciben un email con un link único. Con un clic confirman o rechazan su asistencia. El capitán también puede confirmar manualmente desde el panel admin.' },
   { q: '¿Cómo funciona el armado automático de equipos?', a: 'El sistema toma los jugadores confirmados, analiza su rating y posición, y los divide en dos equipos lo más equilibrados posible. El resultado se puede exportar directo a WhatsApp.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí, sin preguntas ni penalidades. Tu equipo y datos quedan guardados por 90 días después de cancelar.' },

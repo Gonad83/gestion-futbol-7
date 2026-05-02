@@ -2,7 +2,7 @@ import StaticLayout from '../components/StaticLayout';
 
 const SECTIONS = [
   { title: '1. Aceptación de los términos', text: 'Al registrarte y usar MiClubPro, aceptas estos Términos de Servicio. Si no estás de acuerdo con alguna de las condiciones, no debes usar el servicio.' },
-  { title: '2. Descripción del servicio', text: 'MiClubPro es una plataforma SaaS de gestión para equipos de Fútbol 7 que incluye administración de plantilla, calendario, control de asistencia, matchmaking, caja y votación MVP. El servicio se presta a través de internet y no requiere instalación.' },
+  { title: '2. Descripción del servicio', text: 'MiClubPro es una plataforma SaaS de gestión para equipos deportivos que incluye administración de plantilla, calendario, control de asistencia, matchmaking, caja y votación MVP. El servicio se presta a través de internet y no requiere instalación.' },
   { title: '3. Registro y cuenta', text: 'Debes proporcionar información veraz al crear tu cuenta. Eres responsable de mantener la confidencialidad de tu contraseña y de todas las actividades que ocurran bajo tu cuenta.' },
   { title: '4. Planes y pagos', text: 'MiClubPro ofrece un plan gratuito por 1 mes y planes de pago mensual y anual. Los pagos se procesan a través de Mercado Pago. No realizamos reembolsos por períodos ya utilizados.' },
   { title: '5. Uso aceptable', text: 'Te comprometes a no usar MiClubPro para actividades ilegales, enviar spam, suplantar identidades, ni intentar acceder a cuentas de otros usuarios. Nos reservamos el derecho de suspender cuentas que violen estas normas.' },
