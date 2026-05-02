@@ -185,27 +185,26 @@ export default function Landing() {
           <img src="/logo.png" alt="Club Pro Logo" className="w-9 h-9 object-contain" />
           <span className="font-headline font-black text-white text-lg tracking-tight uppercase">Club Pro</span>
         </Link>
-        {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-7">
+        {/* Desktop links — pill bar */}
+        <div className="hidden md:flex items-center rounded-xl p-1"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
           {[
             { label: 'Funcionalidades', href: '#features' },
             { label: 'Cómo funciona', href: '#how-it-works' },
             { label: 'Precios', href: '#pricing' },
           ].map(l => (
             <a key={l.label} href={l.href}
-              className="text-sm font-semibold text-white/50 hover:text-white transition-colors">
+              className="text-sm font-semibold px-4 py-1.5 rounded-lg transition-all hover:text-white hover:bg-white/10"
+              style={{ color: 'rgba(255,255,255,0.55)' }}>
               {l.label}
             </a>
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/login" className="hidden sm:flex items-center gap-1.5 text-sm font-bold text-white/50 hover:text-white transition-colors">
-            Iniciar sesión
-          </Link>
           <Link to="/login"
             className="flex items-center gap-1.5 text-sm font-black px-4 py-2 rounded-xl transition-all hover:brightness-110"
             style={{ background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822' }}>
-            Ingresar a la app <ArrowRight size={13} />
+            Ingresar a MiClubPro <ArrowRight size={13} />
           </Link>
           <button className="md:hidden p-2 text-white/40 hover:text-white" onClick={() => setMobileMenuOpen(v => !v)}>
             <Menu size={20} />
@@ -219,7 +218,6 @@ export default function Landing() {
             { label: 'Funcionalidades', href: '#features' },
             { label: 'Cómo funciona', href: '#how-it-works' },
             { label: 'Precios', href: '#pricing' },
-            { label: 'Iniciar sesión', href: '/login' },
           ].map(l => (
             <a key={l.label} href={l.href} onClick={() => setMobileMenuOpen(false)}
               className="block text-sm font-semibold text-white/60 hover:text-white py-2 transition-colors">
@@ -508,14 +506,70 @@ export default function Landing() {
       </section>
 
       {/* FOOTER */}
-      <footer className="px-6 py-8 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <img src="/logo.png" alt="Club Pro Logo" className="w-8 h-8 object-contain" />
-          <span className="font-headline font-black text-white text-lg uppercase">Club Pro</span>
+      <footer style={{ background: '#0d1117', borderTop: '1px solid rgba(255,255,255,0.06)', fontFamily: 'Manrope, sans-serif' }}>
+        <div className="max-w-6xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-10">
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <div className="flex items-center gap-2 mb-3">
+              <img src="/logo.png" alt="MiClubPro" className="w-8 h-8 object-contain" />
+              <span className="font-headline font-black text-white text-base uppercase tracking-tight">MiClubPro</span>
+            </div>
+            <p className="text-white/35 text-sm leading-relaxed">Gestión inteligente para equipos de Fútbol 7 en Chile.</p>
+          </div>
+
+          {/* Col 1 */}
+          <div>
+            <p className="text-white font-bold text-sm mb-4">MiClubPro</p>
+            <div className="w-8 h-0.5 mb-5" style={{ background: '#ffd08b' }} />
+            <div className="space-y-3">
+              {['Sobre nosotros', 'Funcionalidades', 'Precios', 'Blog'].map(l => (
+                <a key={l} href="#" className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
+                  {l}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Col 2 */}
+          <div>
+            <p className="text-white font-bold text-sm mb-4">Soporte</p>
+            <div className="w-8 h-0.5 mb-5" style={{ background: '#44f3a9' }} />
+            <div className="space-y-3">
+              {['Centro de ayuda', 'Tutoriales', 'Preguntas frecuentes', 'Contacto'].map(l => (
+                <a key={l} href="#" className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
+                  {l}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Col 3 */}
+          <div>
+            <p className="text-white font-bold text-sm mb-4">Legal</p>
+            <div className="w-8 h-0.5 mb-5" style={{ background: '#9acbff' }} />
+            <div className="space-y-3">
+              {['Términos de servicio', 'Política de privacidad', 'Seguridad'].map(l => (
+                <a key={l} href="#" className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
+                  {l}
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
-        <p className="text-white/20 text-xs">Gestión de Equipos de Fútbol 7 · Hecho con ❤️ en Chile</p>
-        <div className="flex items-center justify-center gap-4 mt-4">
-          <Link to="/login" className="text-white/30 hover:text-white/60 text-xs transition-colors">Iniciar sesión</Link>
+
+        {/* Bottom bar */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-center">
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              © 2025 MiClubPro.cl · Todos los derechos reservados.
+            </p>
+          </div>
         </div>
       </footer>
 
