@@ -175,7 +175,7 @@ export default function Landing() {
   const selectedPlan = PLANS.find(p => p.id === billing)!;
 
   return (
-    <div className="min-h-screen" style={{ background: '#10141a', fontFamily: 'Manrope, sans-serif', color: '#fff' }}>
+    <div className="min-h-screen" style={{ background: 'radial-gradient(ellipse at 60% 0%, #0e1e35 0%, #0d1520 35%, #0b1018 100%)', fontFamily: 'Manrope, sans-serif', color: '#fff' }}>
 
 
       {/* NAV */}
@@ -506,7 +506,7 @@ export default function Landing() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{ background: '#0d1117', borderTop: '1px solid rgba(255,255,255,0.06)', fontFamily: 'Manrope, sans-serif' }}>
+      <footer style={{ background: '#07090f', borderTop: '1px solid rgba(255,255,255,0.06)', fontFamily: 'Manrope, sans-serif' }}>
         <div className="max-w-6xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-1">
