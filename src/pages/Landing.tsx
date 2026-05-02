@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users, CalendarDays, DollarSign, Star, Zap,
@@ -111,6 +111,23 @@ export default function Landing() {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
   const [form, setForm] = useState({ name: '', email: '', teamName: '' });
+
+  const [showSplash, setShowSplash] = useState(false);
+  const [splashFading, setSplashFading] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const seen = localStorage.getItem('clubpro_intro_seen');
+    if (!seen) setShowSplash(true);
+  }, []);
+
+  const closeSplash = () => {
+    setSplashFading(true);
+    setTimeout(() => {
+      setShowSplash(false);
+      localStorage.setItem('clubpro_intro_seen', '1');
+    }, 700);
+  };
   const whatsappLink = 'https://wa.me/56900000000?text=Hola%2C%20quiero%20info%20sobre%20la%20app%20de%20gesti%C3%B3n%20de%20f%C3%BAtbol';
 
   const openModal = (plan: Plan) => {
@@ -159,6 +176,44 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen" style={{ background: '#10141a', fontFamily: 'Manrope, sans-serif', color: '#fff' }}>
+
+      {/* SPLASH INTRO */}
+      {showSplash && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: '#000',
+            opacity: splashFading ? 0 : 1,
+            transition: 'opacity 0.7s ease',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <video
+            ref={videoRef}
+            src="/intro.mp4"
+            autoPlay
+            muted
+            playsInline
+            onEnded={closeSplash}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          <button
+            onClick={closeSplash}
+            style={{
+              position: 'absolute', bottom: 32, right: 32,
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#fff', fontFamily: 'Manrope, sans-serif',
+              fontWeight: 700, fontSize: 14,
+              padding: '10px 22px', borderRadius: 10,
+              cursor: 'pointer', backdropFilter: 'blur(8px)',
+              letterSpacing: '0.05em',
+            }}
+          >
+            Saltar →
+          </button>
+        </div>
+      )}
 
       {/* NAV */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4"
