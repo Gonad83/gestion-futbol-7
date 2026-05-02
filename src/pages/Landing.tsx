@@ -177,43 +177,6 @@ export default function Landing() {
   return (
     <div className="min-h-screen" style={{ background: '#10141a', fontFamily: 'Manrope, sans-serif', color: '#fff' }}>
 
-      {/* SPLASH INTRO */}
-      {showSplash && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
-            background: '#000',
-            opacity: splashFading ? 0 : 1,
-            transition: 'opacity 0.7s ease',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <video
-            ref={videoRef}
-            src="/intro.mp4"
-            autoPlay
-            muted
-            playsInline
-            onEnded={closeSplash}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-          <button
-            onClick={closeSplash}
-            style={{
-              position: 'absolute', bottom: 32, right: 32,
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: '#fff', fontFamily: 'Manrope, sans-serif',
-              fontWeight: 700, fontSize: 14,
-              padding: '10px 22px', borderRadius: 10,
-              cursor: 'pointer', backdropFilter: 'blur(8px)',
-              letterSpacing: '0.05em',
-            }}
-          >
-            Saltar →
-          </button>
-        </div>
-      )}
 
       {/* NAV */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4"
@@ -268,11 +231,47 @@ export default function Landing() {
 
       {/* HERO */}
       <section className="relative overflow-hidden px-6 pt-24 pb-28 text-center">
+
+        {/* Video intro overlay — solo primera visita */}
+        {showSplash && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 20,
+            opacity: splashFading ? 0 : 1,
+            transition: 'opacity 0.8s ease',
+          }}>
+            <video
+              ref={videoRef}
+              src="/intro.mp4"
+              autoPlay
+              muted
+              playsInline
+              onEnded={closeSplash}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+            <button
+              onClick={closeSplash}
+              style={{
+                position: 'absolute', bottom: 24, right: 24,
+                background: 'rgba(0,0,0,0.5)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: '#fff', fontFamily: 'Manrope, sans-serif',
+                fontWeight: 700, fontSize: 13,
+                padding: '8px 20px', borderRadius: 8,
+                cursor: 'pointer', backdropFilter: 'blur(8px)',
+                letterSpacing: '0.05em',
+              }}
+            >
+              Saltar →
+            </button>
+          </div>
+        )}
+
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full"
             style={{ background: 'radial-gradient(ellipse, rgba(68,243,169,0.08) 0%, transparent 70%)' }} />
         </div>
-        <div className="relative max-w-3xl mx-auto">
+        <div className="relative max-w-3xl mx-auto"
+          style={{ opacity: showSplash && !splashFading ? 0 : 1, transition: 'opacity 0.8s ease' }}>
           <span className="inline-block text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-6"
             style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>
             Para equipos de Fútbol 7
