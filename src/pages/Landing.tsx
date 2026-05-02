@@ -244,6 +244,27 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* HERO VIDEO */}
+      <section className="px-4 sm:px-6 pb-16 max-w-5xl mx-auto">
+        <div className="relative mx-auto" style={{ perspective: '1400px' }}>
+          <div style={{ transform: 'rotateX(4deg)', transformOrigin: 'center top', transformStyle: 'preserve-3d' }}>
+            <div className="rounded-2xl overflow-hidden" style={{
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 48px 140px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px rgba(68,243,169,0.06)'
+            }}>
+              <video
+                src="/hero.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full block"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* APP PREVIEW */}
       <section className="px-4 sm:px-6 pb-24 max-w-6xl mx-auto">
         <div className="text-center mb-10">
