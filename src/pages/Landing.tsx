@@ -130,13 +130,14 @@ export default function Landing() {
   };
   const whatsappLink = 'https://wa.me/56900000000?text=Hola%2C%20quiero%20info%20sobre%20la%20app%20de%20gesti%C3%B3n%20de%20f%C3%BAtbol';
 
-  const openModal = (plan: Plan) => {
+  const openModal = (plan: Plan, cycle?: 'mensual' | 'anual') => {
     if (plan === 'free') {
       setShowModal(true);
       setBilling(plan);
       return;
     }
-    window.location.href = `/checkout?plan=${plan}`;
+    const billingPeriod = cycle === 'anual' ? 'annual' : 'monthly';
+    window.location.href = `/checkout?plan=${billingPeriod}`;
   };
 
   const handleCheckout = async (e: React.FormEvent) => {

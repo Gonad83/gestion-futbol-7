@@ -6,7 +6,7 @@ type Cycle = 'mensual' | 'anual';
 type PlanId = 'free' | 'pro' | 'elite';
 
 interface AuroraPricingProps {
-  onSelectPlan: (plan: PlanId) => void;
+  onSelectPlan: (plan: PlanId, cycle: Cycle) => void;
 }
 
 const PLANS = [
@@ -318,7 +318,7 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
 
                 {/* CTA */}
                 <button
-                  onClick={() => onSelectPlan(plan.id)}
+                  onClick={() => onSelectPlan(plan.id, cycle)}
                   className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-black text-sm transition-all hover:brightness-110 relative z-10"
                   style={plan.highlight
                     ? { background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822', boxShadow: '0 4px 24px rgba(68,243,169,0.25)' }
