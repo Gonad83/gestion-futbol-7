@@ -11,12 +11,14 @@ type TopPlayer = { id: string; count: number; name: string; nickname: string; ph
 const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
 
 export default function Dashboard() {
-  const { isAdmin, teamId } = useAuth();
+  const { isAdmin, isMatchmaker, teamId } = useAuth();
   const [teamSettings, setTeamSettings] = useState({ team_name: 'Real Ebolo FC', logo_url: '', join_code: '', payment_link: '', payment_button_enabled: false, banner_url: '' });
   const [loading, setLoading] = useState(true);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [guestList, setGuestList] = useState<{ id: string; name: string }[]>([]);
+  const [guestInput, setGuestInput] = useState('');
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState({
     nextMatch: null as any,
@@ -299,21 +301,41 @@ export default function Dashboard() {
     setShowAttendanceModal(true);
     setAttendanceLoading(true);
     try {
-      const { data: attendanceData } = await supabase
-        .from('attendance')
-        .select('player_id, status')
-        .eq('match_id', stats.nextMatch.id);
+      const [attendanceRes, guestsRes] = await Promise.all([
+        supabase.from('attendance').select('player_id, status').eq('match_id', stats.nextMatch.id),
+        supabase.from('match_guests').select('id, name').eq('match_id', stats.nextMatch.id),
+      ]);
       const statusMap: Record<string, string> = {};
-      attendanceData?.forEach((a: any) => { statusMap[a.player_id] = a.status; });
+      attendanceRes.data?.forEach((a: any) => { statusMap[a.player_id] = a.status; });
       const merged = stats.allPlayers
         .filter((p: any) => p.status === 'Activo')
         .map((p: any) => ({ ...p, attendanceStatus: statusMap[p.id] || 'Pendiente' }));
       setAttendanceList(merged);
+      setGuestList(guestsRes.data ?? []);
     } catch (e) {
       console.error(e);
     } finally {
       setAttendanceLoading(false);
     }
+  };
+
+  const addGuest = async () => {
+    const name = guestInput.trim();
+    if (!name || !stats.nextMatch || !teamId) return;
+    const { data, error } = await supabase
+      .from('match_guests')
+      .insert({ match_id: stats.nextMatch.id, team_id: teamId, name })
+      .select('id, name')
+      .single();
+    if (!error && data) {
+      setGuestList(prev => [...prev, data]);
+      setGuestInput('');
+    }
+  };
+
+  const removeGuest = async (guestId: string) => {
+    await supabase.from('match_guests').delete().eq('id', guestId);
+    setGuestList(prev => prev.filter(g => g.id !== guestId));
   };
 
   const handleAttendanceChange = async (playerId: string, newStatus: 'Voy' | 'No voy' | 'Pendiente') => {
@@ -1005,41 +1027,92 @@ export default function Dashboard() {
               <span className="flex items-center gap-1 text-amber-400 ml-3"><Clock size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Pendiente').length} Pendiente</span>
             </div>
 
-            <div className="overflow-y-auto custom-scrollbar space-y-2 pr-1">
+            <div className="overflow-y-auto custom-scrollbar space-y-2 pr-1 flex-1">
               {attendanceLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="w-7 h-7 rounded-full border-2 border-t-soccer-green animate-spin" />
                 </div>
-              ) : attendanceList.map(player => (
-                <div key={player.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-black flex-shrink-0" style={{ background: '#31353c' }}>
-                      {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : player.name.charAt(0)}
+              ) : (
+                <>
+                  {/* Jugadores del squad */}
+                  {attendanceList.map(player => (
+                    <div key={player.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-black flex-shrink-0" style={{ background: '#31353c' }}>
+                          {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : player.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white leading-tight">{player.name}</p>
+                          {player.nickname && <p className="text-[10px] text-white/30">"{player.nickname}"</p>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => handleAttendanceChange(player.id, 'Voy')}
+                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${player.attendanceStatus === 'Voy' ? 'bg-soccer-green text-black' : 'bg-soccer-green/10 text-soccer-green/50 hover:bg-soccer-green/20'}`}
+                        >Voy</button>
+                        <button onClick={() => handleAttendanceChange(player.id, 'No voy')}
+                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${player.attendanceStatus === 'No voy' ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-400/50 hover:bg-red-500/20'}`}
+                        >No voy</button>
+                        {player.attendanceStatus !== 'Pendiente' && (
+                          <button onClick={() => handleAttendanceChange(player.id, 'Pendiente')}
+                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-black bg-white/5 text-white/30 hover:bg-white/10 transition-all"
+                            title="Quitar respuesta"
+                          ><X size={10} /></button>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white leading-tight">{player.name}</p>
-                      {player.nickname && <p className="text-[10px] text-white/30">"{player.nickname}"</p>}
+                  ))}
+
+                  {/* Sección invitados — solo capitán/subcapitán */}
+                  {isMatchmaker && (
+                    <div className="mt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                        <span className="text-[9px] font-black uppercase tracking-widest px-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Invitados</span>
+                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                      </div>
+
+                      {/* Lista de invitados */}
+                      {guestList.map(g => (
+                        <div key={g.id} className="flex items-center justify-between p-2.5 rounded-xl mb-1.5" style={{ background: 'rgba(154,203,255,0.06)', border: '1px solid rgba(154,203,255,0.12)' }}>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ background: 'rgba(154,203,255,0.15)', color: '#9acbff' }}>
+                              {g.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-white leading-tight">{g.name}</p>
+                              <p className="text-[9px]" style={{ color: 'rgba(154,203,255,0.6)' }}>Invitado · Confirmado</p>
+                            </div>
+                          </div>
+                          <button onClick={() => removeGuest(g.id)}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center transition-all hover:bg-red-500/20"
+                            style={{ color: 'rgba(255,255,255,0.25)' }}
+                          ><X size={11} /></button>
+                        </div>
+                      ))}
+
+                      {/* Input agregar invitado */}
+                      <div className="flex gap-2 mt-2">
+                        <input
+                          type="text"
+                          placeholder="Nombre del invitado..."
+                          value={guestInput}
+                          onChange={e => setGuestInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && addGuest()}
+                          className="flex-1 rounded-xl px-3 py-2 text-sm text-white outline-none"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(154,203,255,0.2)' }}
+                        />
+                        <button
+                          onClick={addGuest}
+                          disabled={!guestInput.trim()}
+                          className="px-3 py-2 rounded-xl text-xs font-black transition-all disabled:opacity-40"
+                          style={{ background: 'rgba(154,203,255,0.15)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}
+                        >+ Agregar</button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => handleAttendanceChange(player.id, 'Voy')}
-                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${player.attendanceStatus === 'Voy' ? 'bg-soccer-green text-black' : 'bg-soccer-green/10 text-soccer-green/50 hover:bg-soccer-green/20'}`}
-                    >Voy</button>
-                    <button
-                      onClick={() => handleAttendanceChange(player.id, 'No voy')}
-                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${player.attendanceStatus === 'No voy' ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-400/50 hover:bg-red-500/20'}`}
-                    >No voy</button>
-                    {player.attendanceStatus !== 'Pendiente' && (
-                      <button
-                        onClick={() => handleAttendanceChange(player.id, 'Pendiente')}
-                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-black bg-white/5 text-white/30 hover:bg-white/10 transition-all"
-                        title="Quitar respuesta"
-                      ><X size={10} /></button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
