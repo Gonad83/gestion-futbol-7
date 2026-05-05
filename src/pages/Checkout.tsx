@@ -5,30 +5,94 @@ import { CheckCircle2, ArrowLeft, Lock, Loader2 } from 'lucide-react';
 const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
 const FLOW_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-flow-preference`;
 
-const MONTHLY = 4990;
-const ANNUAL_TOTAL = 2495 * 12;
+type PlanId = 'pro' | 'elite';
+type Cycle = 'mensual' | 'anual';
 
-const PLAN_INFO = {
-  monthly: {
-    label: 'Plan Mensual',
-    price: `$${MONTHLY.toLocaleString('es-CL')}`,
-    period: '/mes',
-    color: '#9acbff',
-    features: ['Jugadores ilimitados', 'Todas las funciones', 'Soporte por WhatsApp'],
+const PLAN_INFO: Record<PlanId, Record<Cycle, {
+  label: string; price: string; period: string; subtext: string;
+  amount: number; color: string; features: string[];
+}>> = {
+  pro: {
+    mensual: {
+      label: 'Plan Pro Mensual',
+      price: '$2.990',
+      period: '/mes',
+      subtext: 'Facturación mensual · Cancela cuando quieras',
+      amount: 2990,
+      color: '#9acbff',
+      features: [
+        'Hasta 22 jugadores — titulares y suplentes',
+        'Matchmaking inteligente por posición y nivel',
+        'Confirmación automática de asistencia por email',
+        'Caja del equipo: detecta morosos al instante',
+        'Exporta alineaciones y equipos a WhatsApp',
+        'Estadísticas de asistencia por jugador',
+        'Votación MVP al finalizar cada partido',
+        'Soporte por WhatsApp en horario hábil',
+      ],
+    },
+    anual: {
+      label: 'Plan Pro Anual',
+      price: '$17.940',
+      period: '/año',
+      subtext: '$1.495/mes · Ahorras $17.940 vs mensual',
+      amount: 17940,
+      color: '#9acbff',
+      features: [
+        'Hasta 22 jugadores — titulares y suplentes',
+        'Matchmaking inteligente por posición y nivel',
+        'Confirmación automática de asistencia por email',
+        'Caja del equipo: detecta morosos al instante',
+        'Exporta alineaciones y equipos a WhatsApp',
+        'Estadísticas de asistencia por jugador',
+        'Votación MVP al finalizar cada partido',
+        'Soporte por WhatsApp en horario hábil',
+      ],
+    },
   },
-  annual: {
-    label: 'Plan Anual',
-    price: `$${ANNUAL_TOTAL.toLocaleString('es-CL')}`,
-    period: '/año',
-    color: '#44f3a9',
-    features: ['Jugadores ilimitados', 'Todas las funciones', '50% de descuento', 'Soporte prioritario'],
+  elite: {
+    mensual: {
+      label: 'Plan Elite Mensual',
+      price: '$4.990',
+      period: '/mes',
+      subtext: 'Facturación mensual · Cancela cuando quieras',
+      amount: 4990,
+      color: '#44f3a9',
+      features: [
+        'Todo lo del plan Pro incluido',
+        'Jugadores y equipos ilimitados',
+        'Gestiona toda tu liga desde un panel',
+        'Dashboard con ranking MVP histórico',
+        'Arena: genera fixtures automáticos',
+        'Soporte prioritario (respuesta < 1h)',
+        'Acceso anticipado a nuevas funciones',
+      ],
+    },
+    anual: {
+      label: 'Plan Elite Anual',
+      price: '$29.940',
+      period: '/año',
+      subtext: '$2.495/mes · Ahorras $29.940 vs mensual',
+      amount: 29940,
+      color: '#44f3a9',
+      features: [
+        'Todo lo del plan Pro incluido',
+        'Jugadores y equipos ilimitados',
+        'Gestiona toda tu liga desde un panel',
+        'Dashboard con ranking MVP histórico',
+        'Arena: genera fixtures automáticos',
+        'Soporte prioritario (respuesta < 1h)',
+        'Acceso anticipado a nuevas funciones',
+      ],
+    },
   },
 };
 
 export default function Checkout() {
   const [params] = useSearchParams();
-  const plan = (params.get('plan') as 'monthly' | 'annual') || 'monthly';
-  const info = PLAN_INFO[plan] ?? PLAN_INFO.monthly;
+  const planId = (params.get('plan') as PlanId) === 'elite' ? 'elite' : 'pro';
+  const cycle = (params.get('cycle') as Cycle) === 'anual' ? 'anual' : 'mensual';
+  const info = PLAN_INFO[planId][cycle];
 
   const [form, setForm] = useState({ name: '', email: '', teamName: '' });
   const [loadingMP, setLoadingMP] = useState(false);
@@ -49,7 +113,10 @@ export default function Checkout() {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          plan,
+          plan: planId,
+          cycle,
+          amount: info.amount,
+          planLabel: info.label,
           origin: window.location.origin,
           payer: { name: form.name, email: form.email, teamName: form.teamName },
         }),
@@ -76,7 +143,10 @@ export default function Checkout() {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          plan,
+          plan: planId,
+          cycle,
+          amount: info.amount,
+          planLabel: info.label,
           origin: window.location.origin,
           payer: { name: form.name, email: form.email, teamName: form.teamName },
         }),
@@ -112,10 +182,11 @@ export default function Checkout() {
         <div className="rounded-2xl p-6 sticky top-8" style={{ background: 'rgba(28,32,38,0.7)', border: `1px solid ${info.color}30` }}>
           <p className="text-xs font-black uppercase tracking-[0.2em] mb-1" style={{ color: info.color }}>Resumen del pedido</p>
           <h2 className="font-headline font-black text-2xl text-white mb-1">{info.label}</h2>
-          <div className="flex items-end gap-1 mb-5">
+          <div className="flex items-end gap-1 mb-1">
             <span className="font-headline font-black text-4xl text-white">{info.price}</span>
             <span className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{info.period}</span>
           </div>
+          <p className="text-xs mb-5" style={{ color: info.color }}>{info.subtext}</p>
           <div className="space-y-2 mb-6">
             {info.features.map(f => (
               <div key={f} className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
@@ -177,7 +248,6 @@ export default function Checkout() {
               <Loader2 size={20} className="animate-spin" />
             ) : (
               <>
-                {/* MP Logo SVG */}
                 <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="16" cy="16" r="16" fill="white" fillOpacity="0.2"/>
                   <path d="M8 16C8 11.582 11.582 8 16 8C20.418 8 24 11.582 24 16C24 20.418 20.418 24 16 24C11.582 24 8 20.418 8 16Z" fill="white"/>
@@ -205,12 +275,9 @@ export default function Checkout() {
             {loadingFlow ? (
               <Loader2 size={20} className="animate-spin" />
             ) : (
-              <>
-                {/* Flow Logo SVG */}
-                <svg width="52" height="20" viewBox="0 0 80 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <text x="0" y="22" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="24" fill="white">flow</text>
-                </svg>
-              </>
+              <svg width="52" height="20" viewBox="0 0 80 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <text x="0" y="22" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="24" fill="white">flow</text>
+              </svg>
             )}
           </button>
 

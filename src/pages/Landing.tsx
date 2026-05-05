@@ -136,8 +136,9 @@ export default function Landing() {
       setBilling(plan);
       return;
     }
-    const billingPeriod = cycle === 'anual' ? 'annual' : 'monthly';
-    window.location.href = `/checkout?plan=${billingPeriod}`;
+    const planId = plan === 'elite' ? 'elite' : 'pro';
+    const billingCycle = cycle ?? 'mensual';
+    window.location.href = `/checkout?plan=${planId}&cycle=${billingCycle}`;
   };
 
   const handleCheckout = async (e: React.FormEvent) => {

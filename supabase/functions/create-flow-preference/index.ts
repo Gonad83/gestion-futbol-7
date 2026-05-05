@@ -21,26 +21,24 @@ serve(async (req) => {
   }
 
   try {
-    const { plan, origin, payer } = await req.json();
+    const { plan, cycle, amount, planLabel, origin, payer } = await req.json();
 
     const FLOW_API_KEY = Deno.env.get('FLOW_API_KEY');
     const FLOW_SECRET_KEY = Deno.env.get('FLOW_SECRET_KEY');
     if (!FLOW_API_KEY || !FLOW_SECRET_KEY) throw new Error('FLOW_API_KEY / FLOW_SECRET_KEY no configurados en Supabase');
 
-    const isAnnual = plan === 'annual';
-    const amount = isAnnual ? 29940 : 4990;
-    const commerceOrder = `clubpro_${plan}_${Date.now()}`;
+    const commerceOrder = `clubpro_${plan}_${cycle}_${Date.now()}`;
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 
     const params: Record<string, string> = {
       apiKey: FLOW_API_KEY,
       commerceOrder,
-      subject: isAnnual ? 'Club Pro — Plan Anual' : 'Club Pro — Plan Mensual',
+      subject: planLabel || `Club Pro — Plan ${plan}`,
       currency: 'CLP',
       amount: String(amount),
       email: payer?.email || '',
       urlConfirmation: `${supabaseUrl}/functions/v1/flow-webhook`,
-      urlReturn: `${origin}/payment-success?gateway=flow&plan=${plan}&email=${encodeURIComponent(payer?.email || '')}&name=${encodeURIComponent(payer?.name || '')}&team=${encodeURIComponent(payer?.teamName || '')}`,
+      urlReturn: `${origin}/payment-success?gateway=flow&plan=${plan}&cycle=${cycle}&email=${encodeURIComponent(payer?.email || '')}&name=${encodeURIComponent(payer?.name || '')}&team=${encodeURIComponent(payer?.teamName || '')}`,
       paymentMethod: '9',
     };
 
