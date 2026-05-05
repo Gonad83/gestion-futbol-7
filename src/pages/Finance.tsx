@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Calculator, TrendingUp, TrendingDown, DollarSign, Plus, ChevronLeft, ChevronRight, ArrowUpCircle, Pencil, Check, X, Search, Trash2, Download } from 'lucide-react';
+import { Calculator, TrendingUp, TrendingDown, DollarSign, Plus, ChevronLeft, ChevronRight, ArrowUpCircle, Pencil, Check, X, Search, Trash2, Download, FileText } from 'lucide-react';
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -313,6 +313,101 @@ export default function Finance() {
     URL.revokeObjectURL(url);
   };
 
+  const exportToPDF = () => {
+    let title = '';
+    let tableHTML = '';
+
+    if (activeTab === 'cuotas') {
+      title = `Control de Cuotas — ${MONTHS[selectedMonth - 1]} ${selectedYear}`;
+      const pagados = payments.filter(p => p.status === 'Pagado').length;
+      const pendientes = payments.filter(p => p.status !== 'Pagado').length;
+      const totalMes = payments.filter(p => p.status === 'Pagado').reduce((acc, p) => acc + Number(p.amount), 0);
+      tableHTML = `
+        <div class="summary">
+          <span>✅ Pagados: <b>${pagados}</b></span>
+          <span>⏳ Pendientes: <b>${pendientes}</b></span>
+          <span>💰 Total recaudado: <b>${clp(totalMes)}</b></span>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Jugador</th><th>Estado</th><th>Monto</th></tr></thead>
+          <tbody>
+            ${payments.map((p, i) => `
+              <tr class="${p.status === 'Pagado' ? 'paid' : 'pending'}">
+                <td>${i + 1}</td>
+                <td>${p.name}${p.nickname ? ` <span class="nick">"${p.nickname}"</span>` : ''}</td>
+                <td><span class="badge ${p.status === 'Pagado' ? 'badge-paid' : 'badge-pending'}">${p.status}</span></td>
+                <td>${clp(p.amount)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } else if (activeTab === 'ingresos') {
+      title = 'Ingresos de Caja';
+      tableHTML = `
+        <div class="summary"><span>💰 Total: <b>${clp(totalCashIncomes)}</b></span></div>
+        <table>
+          <thead><tr><th>#</th><th>Concepto</th><th>Monto</th><th>Fecha</th></tr></thead>
+          <tbody>
+            ${cashIncomes.map((i, idx) => `
+              <tr>
+                <td>${idx + 1}</td><td>${i.concept}</td>
+                <td class="green">+${clp(i.amount)}</td>
+                <td>${new Date(new Date(i.date).getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString('es-CL')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } else {
+      title = 'Registro de Gastos';
+      tableHTML = `
+        <div class="summary"><span>💸 Total gastos: <b>${clp(totalExpenses)}</b></span></div>
+        <table>
+          <thead><tr><th>#</th><th>Concepto</th><th>Monto</th><th>Fecha</th></tr></thead>
+          <tbody>
+            ${expenses.map((e, i) => `
+              <tr>
+                <td>${i + 1}</td><td>${e.concept}</td>
+                <td class="red">-${clp(e.amount)}</td>
+                <td>${new Date(new Date(e.date).getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString('es-CL')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+      <title>${title}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; padding: 32px; font-size: 13px; }
+        h1 { font-size: 20px; font-weight: 900; color: #003822; margin-bottom: 4px; }
+        .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
+        .summary { display: flex; gap: 24px; background: #f0faf5; border-left: 4px solid #00c97a; padding: 10px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #003822; color: white; }
+        th { padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+        td { padding: 9px 12px; border-bottom: 1px solid #e8e8e8; }
+        tr:last-child td { border-bottom: none; }
+        tr.paid { background: #f0fdf4; }
+        tr.pending { background: #fffbeb; }
+        .nick { color: #999; font-size: 11px; }
+        .badge { padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+        .badge-paid { background: #d1fae5; color: #065f46; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .green { color: #059669; font-weight: 700; }
+        .red { color: #dc2626; font-weight: 700; }
+        .footer { margin-top: 24px; font-size: 10px; color: #aaa; text-align: right; }
+        @media print { body { padding: 16px; } }
+      </style>
+    </head><body>
+      <h1>${title}</h1>
+      <p class="meta">Generado el ${new Date().toLocaleDateString('es-CL')} · MiClubPro</p>
+      ${tableHTML}
+      <p class="footer">MiClubPro.cl — Gestión de Fútbol 7</p>
+      <script>window.onload = () => { window.print(); }<\/script>
+    </body></html>`;
+
+    const win = window.open('', '_blank');
+    if (win) { win.document.write(html); win.document.close(); }
+  };
+
   const exportToCSV = () => {
     if (activeTab === 'cuotas') {
       const headers = ['Jugador', 'Estado', 'Monto Pagado', 'Mes', 'Año'];
@@ -348,15 +443,26 @@ export default function Finance() {
           </h1>
         </div>
         {isAdmin && (
-          <button
-            onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:brightness-110"
-            style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}
-            title="Exportar datos actuales a Excel/CSV"
-          >
-            <Download size={15} />
-            Exportar CSV
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={exportToPDF}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:brightness-110"
+              style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
+              title="Exportar como PDF"
+            >
+              <FileText size={15} />
+              PDF
+            </button>
+            <button
+              onClick={exportToCSV}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:brightness-110"
+              style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}
+              title="Exportar datos actuales a Excel/CSV"
+            >
+              <Download size={15} />
+              CSV / Excel
+            </button>
+          </div>
         )}
       </div>
 
