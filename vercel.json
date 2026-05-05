@@ -1,8 +1,17 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!robots.txt|sitemap.xml|og-image.png|favicon.svg|logo.png).*)",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/og-image.png",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
     }
   ]
 }
