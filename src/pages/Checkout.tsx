@@ -247,7 +247,7 @@ export default function Checkout() {
             {loadingMP ? (
               <Loader2 size={20} className="animate-spin" style={{ color: '#009ee3' }} />
             ) : (
-              <img src="/logo-mp.png" alt="Mercado Pago" style={{ height: 44, objectFit: 'contain' }} />
+              <img src="/logo-mp.png" alt="Mercado Pago" style={{ height: 64, objectFit: 'contain' }} />
             )}
           </button>
 
@@ -268,7 +268,7 @@ export default function Checkout() {
             {loadingFlow ? (
               <Loader2 size={20} className="animate-spin" style={{ color: '#c8e800' }} />
             ) : (
-              <img src="/logo-flow.png" alt="Flow" style={{ height: 44, objectFit: 'contain' }} />
+              <img src="/logo-flow.png" alt="Flow" style={{ height: 64, objectFit: 'contain' }} />
             )}
           </button>
 
