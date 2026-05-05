@@ -241,20 +241,13 @@ export default function Checkout() {
           <button
             onClick={handleMP}
             disabled={loadingMP || loadingFlow}
-            className="w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-base mb-3 transition-all hover:brightness-110 disabled:opacity-60"
-            style={{ background: '#009ee3', color: '#fff' }}
+            className="w-full flex items-center justify-center py-3 rounded-xl mb-3 transition-all hover:brightness-95 disabled:opacity-60"
+            style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)' }}
           >
             {loadingMP ? (
-              <Loader2 size={20} className="animate-spin" />
+              <Loader2 size={20} className="animate-spin" style={{ color: '#009ee3' }} />
             ) : (
-              <>
-                <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="16" cy="16" r="16" fill="white" fillOpacity="0.2"/>
-                  <path d="M8 16C8 11.582 11.582 8 16 8C20.418 8 24 11.582 24 16C24 20.418 20.418 24 16 24C11.582 24 8 20.418 8 16Z" fill="white"/>
-                  <path d="M13 16L15 18L19 14" stroke="#009ee3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Pagar con Mercado Pago
-              </>
+              <img src="/logo-mp.png" alt="Mercado Pago" style={{ height: 44, objectFit: 'contain' }} />
             )}
           </button>
 
@@ -269,15 +262,13 @@ export default function Checkout() {
           <button
             onClick={handleFlow}
             disabled={loadingMP || loadingFlow}
-            className="w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-base transition-all hover:brightness-110 disabled:opacity-60"
-            style={{ background: '#1a1464', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+            className="w-full flex items-center justify-center py-3 rounded-xl transition-all hover:brightness-110 disabled:opacity-60"
+            style={{ background: '#4a5c0a' }}
           >
             {loadingFlow ? (
-              <Loader2 size={20} className="animate-spin" />
+              <Loader2 size={20} className="animate-spin" style={{ color: '#c8e800' }} />
             ) : (
-              <svg width="52" height="20" viewBox="0 0 80 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <text x="0" y="22" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="24" fill="white">flow</text>
-              </svg>
+              <img src="/logo-flow.png" alt="Flow" style={{ height: 44, objectFit: 'contain' }} />
             )}
           </button>
 
