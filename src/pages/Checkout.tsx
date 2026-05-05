@@ -21,7 +21,7 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
       amount: 2990,
       color: '#9acbff',
       features: [
-        'Hasta 22 jugadores — titulares y suplentes',
+        'Hasta 14 jugadores — titulares y suplentes',
         'Matchmaking inteligente por posición y nivel',
         'Confirmación automática de asistencia por email',
         'Caja del equipo: detecta morosos al instante',
@@ -39,7 +39,7 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
       amount: 17940,
       color: '#9acbff',
       features: [
-        'Hasta 22 jugadores — titulares y suplentes',
+        'Hasta 14 jugadores — titulares y suplentes',
         'Matchmaking inteligente por posición y nivel',
         'Confirmación automática de asistencia por email',
         'Caja del equipo: detecta morosos al instante',
@@ -60,7 +60,7 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
       color: '#44f3a9',
       features: [
         'Todo lo del plan Pro incluido',
-        'Jugadores y equipos ilimitados',
+        'Jugadores ilimitados en tu squad',
         'Gestiona toda tu liga desde un panel',
         'Dashboard con ranking MVP histórico',
         'Arena: genera fixtures automáticos',
@@ -77,7 +77,7 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
       color: '#44f3a9',
       features: [
         'Todo lo del plan Pro incluido',
-        'Jugadores y equipos ilimitados',
+        'Jugadores ilimitados en tu squad',
         'Gestiona toda tu liga desde un panel',
         'Dashboard con ranking MVP histórico',
         'Arena: genera fixtures automáticos',
