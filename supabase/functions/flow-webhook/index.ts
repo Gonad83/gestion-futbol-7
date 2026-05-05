@@ -1,12 +1,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { hmac } from 'https://deno.land/x/hmac@v2.0.1/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const FLOW_API_URL = 'https://www.flow.cl/api';
 
-function signParams(params: Record<string, string>, secretKey: string): string {
+async function signParams(params: Record<string, string>, secretKey: string): Promise<string> {
   const sorted = Object.keys(params).sort().map(k => `${k}${params[k]}`).join('');
-  return hmac('sha256', secretKey, sorted, 'utf8', 'hex') as string;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', encoder.encode(secretKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(sorted));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 serve(async (req) => {
@@ -19,7 +21,7 @@ serve(async (req) => {
     const FLOW_SECRET_KEY = Deno.env.get('FLOW_SECRET_KEY')!;
 
     const params: Record<string, string> = { apiKey: FLOW_API_KEY, token };
-    params['s'] = signParams(params, FLOW_SECRET_KEY);
+    params['s'] = await signParams(params, FLOW_SECRET_KEY);
 
     const res = await fetch(`${FLOW_API_URL}/payment/getStatus?${new URLSearchParams(params)}`);
     const payment = await res.json();
@@ -30,8 +32,7 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
       );
 
-      const ref: string = payment.commerceOrder ?? '';
-      const plan = ref.includes('annual') ? 'annual' : 'monthly';
+      const plan = (payment.commerceOrder ?? '').includes('annual') ? 'annual' : 'monthly';
 
       await supabase.from('flow_payments').upsert({
         token,

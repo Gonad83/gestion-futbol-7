@@ -1,5 +1,4 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { hmac } from 'https://deno.land/x/hmac@v2.0.1/mod.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -8,9 +7,12 @@ const CORS = {
 
 const FLOW_API_URL = 'https://www.flow.cl/api';
 
-function signParams(params: Record<string, string>, secretKey: string): string {
+async function signParams(params: Record<string, string>, secretKey: string): Promise<string> {
   const sorted = Object.keys(params).sort().map(k => `${k}${params[k]}`).join('');
-  return hmac('sha256', secretKey, sorted, 'utf8', 'hex') as string;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', encoder.encode(secretKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(sorted));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 serve(async (req) => {
@@ -39,23 +41,21 @@ serve(async (req) => {
       email: payer?.email || '',
       urlConfirmation: `${supabaseUrl}/functions/v1/flow-webhook`,
       urlReturn: `${origin}/payment-success?gateway=flow&plan=${plan}&email=${encodeURIComponent(payer?.email || '')}&name=${encodeURIComponent(payer?.name || '')}&team=${encodeURIComponent(payer?.teamName || '')}`,
-      paymentMethod: '9', // todos los medios disponibles
+      paymentMethod: '9',
     };
 
-    params['s'] = signParams(params, FLOW_SECRET_KEY);
+    params['s'] = await signParams(params, FLOW_SECRET_KEY);
 
-    const body = new URLSearchParams(params);
     const res = await fetch(`${FLOW_API_URL}/payment/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
+      body: new URLSearchParams(params).toString(),
     });
 
     const data = await res.json();
     if (!res.ok || data.code) throw new Error(data.message || JSON.stringify(data));
 
-    const paymentUrl = `${data.url}?token=${data.token}`;
-    return new Response(JSON.stringify({ url: paymentUrl }), {
+    return new Response(JSON.stringify({ url: `${data.url}?token=${data.token}` }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
