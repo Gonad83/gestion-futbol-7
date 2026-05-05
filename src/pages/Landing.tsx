@@ -25,7 +25,7 @@ const FEATURES = [
   { icon: <DollarSign size={22} />, color: '#44f3a9', title: 'Caja y Cuotas', desc: 'Registra cuotas, egresos e ingresos. Identifica morosos al instante. Filtra por estado de pago.' },
   { icon: <Star size={22} />, color: '#ffd700', title: 'Votación MVP Semanal', desc: 'Vota al mejor jugador de cada partido Deportivo. El sistema genera un historial de MVPs y ranking.' },
   { icon: <BarChart3 size={22} />, color: '#9acbff', title: 'Estadísticas de Participación', desc: 'Seguimiento anual de partidos jugados y % de asistencia por jugador, con indicador visual de color.' },
-  { icon: <Shield size={22} />, color: '#44f3a9', title: 'Roles Admin / Jugador', desc: 'El administrador gestiona todo. Los jugadores ven su perfil, confirman asistencia y votan al MVP.' },
+  { icon: <Shield size={22} />, color: '#44f3a9', title: 'Roles Capitán / Jugador', desc: 'El capitán gestiona todo. Los jugadores ven su perfil, confirman asistencia y votan al MVP.' },
   { icon: <Smartphone size={22} />, color: '#9acbff', title: 'Diseño Mobile-First', desc: 'Funciona perfecto en el celular. Comparte listas de asistencia y equipos directo a WhatsApp.' },
 ];
 
@@ -131,9 +131,12 @@ export default function Landing() {
   const whatsappLink = 'https://wa.me/56900000000?text=Hola%2C%20quiero%20info%20sobre%20la%20app%20de%20gesti%C3%B3n%20de%20f%C3%BAtbol';
 
   const openModal = (plan: Plan) => {
-    setBilling(plan);
-    setPayError('');
-    setShowModal(true);
+    if (plan === 'free') {
+      setShowModal(true);
+      setBilling(plan);
+      return;
+    }
+    window.location.href = `/checkout?plan=${plan}`;
   };
 
   const handleCheckout = async (e: React.FormEvent) => {
