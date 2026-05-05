@@ -175,25 +175,31 @@ export default function Dashboard() {
       let lastMvpWinner: any = null;
       let mvpWinHistory: TopPlayer[] = [];
       try {
-        const dayOfWeek = new Date().getDay();
-        const couldBeOpen = dayOfWeek !== 1; // Not Monday
-        if (couldBeOpen) {
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-          const { data: recentDeportivo } = (await withTimeout(
-            supabase.from('matches').select('id').eq('team_id', teamId)
-              .eq('event_type', 'Deportivo').lt('date', new Date().toISOString())
-              .gt('date', sevenDaysAgo.toISOString()).order('date', { ascending: false }).limit(1) as any,
-            5000
-          )) as any;
-          if (recentDeportivo?.[0]) {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const { data: recentDeportivo } = (await withTimeout(
+          supabase.from('matches').select('id, date').eq('team_id', teamId)
+            .eq('event_type', 'Deportivo').lt('date', new Date().toISOString())
+            .gt('date', sevenDaysAgo.toISOString()).order('date', { ascending: false }).limit(1) as any,
+          5000
+        )) as any;
+
+        if (recentDeportivo?.[0]) {
+          const matchDate = new Date(recentDeportivo[0].date);
+          const matchDay = matchDate.getDay(); // 0=Dom, 6=Sáb
+          const daysUntilSunday = matchDay === 0 ? 0 : 7 - matchDay;
+          const closingSunday = new Date(matchDate);
+          closingSunday.setDate(matchDate.getDate() + daysUntilSunday);
+          closingSunday.setHours(23, 59, 59, 999);
+          const now = new Date();
+          const voteMatchId = recentDeportivo[0].id;
+
+          if (now <= closingSunday) {
+            // Dentro del período de votación
             votingIsOpen = true;
-            openVoteMatchId = recentDeportivo[0].id;
+            openVoteMatchId = voteMatchId;
             const { data: liveVotes } = (await withTimeout(
-              supabase
-                .from('match_mvp_votes')
-                .select('voted_player_id')
-                .eq('match_id', openVoteMatchId) as any,
+              supabase.from('match_mvp_votes').select('voted_player_id').eq('match_id', voteMatchId) as any,
               5000
             )) as any;
             if (liveVotes && liveVotes.length > 0) {
@@ -209,12 +215,38 @@ export default function Dashboard() {
                   return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
                 });
             }
+          } else {
+            // Período cerrado — auto-guardar ganador si no existe aún
+            const { data: existingWinner } = (await supabase
+              .from('mvp_winners').select('id').eq('match_id', voteMatchId).maybeSingle()) as any;
+            if (!existingWinner) {
+              const { data: votes } = (await supabase
+                .from('match_mvp_votes').select('voted_player_id').eq('match_id', voteMatchId)) as any;
+              if (votes && votes.length > 0) {
+                const counts: Record<string, number> = {};
+                votes.forEach((v: any) => {
+                  if (v.voted_player_id) counts[v.voted_player_id] = (counts[v.voted_player_id] || 0) + 1;
+                });
+                const [[winnerId, voteCount]] = Object.entries(counts).sort((a: any, b: any) => b[1] - a[1]);
+                const winner = allPlayers.find((p: any) => p.id === winnerId);
+                if (winner) {
+                  await supabase.from('mvp_winners').insert({
+                    match_id: voteMatchId,
+                    player_id: winnerId,
+                    player_name: winner.name,
+                    player_photo_url: (winner as any).photo_url || null,
+                    vote_count: voteCount,
+                    week_date: new Date().toISOString().split('T')[0],
+                  });
+                }
+              }
+            }
           }
         }
+
         const { data: winnersData, error: winnersError } = (await withTimeout(
-          supabase
-            .from('mvp_winners')
-            .select('player_id, player_name, player_photo_url, vote_count, created_at')
+          supabase.from('mvp_winners')
+            .select('player_id, player_name, player_photo_url, vote_count, week_date, created_at')
             .order('created_at', { ascending: false }) as any,
           5000
         )) as any;
@@ -227,7 +259,7 @@ export default function Dashboard() {
           });
           mvpWinHistory = Object.entries(winCounts)
             .sort((a, b) => b[1].count - a[1].count)
-            .slice(0, 3)
+            .slice(0, 5)
             .map(([id, v]) => ({ id, count: v.count, name: v.name, nickname: '', photo_url: v.photo }));
         }
       } catch {
@@ -744,48 +776,66 @@ export default function Dashboard() {
           ) : (
             <div className="flex-1 flex flex-col gap-3">
               {stats.lastMvpWinner ? (
-                <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.15)' }}>
-                  <div className="relative flex-shrink-0">
-                    <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center" style={{ background: '#31353c', border: '2px solid #ffd700' }}>
-                      {stats.lastMvpWinner.player_photo_url
-                        ? <img src={stats.lastMvpWinner.player_photo_url} alt={stats.lastMvpWinner.player_name} className="w-full h-full object-cover" />
-                        : <span className="text-xl font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{stats.lastMvpWinner.player_name.charAt(0)}</span>
-                      }
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px]" style={{ background: '#ffd700' }}>🏆</div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#ffd700' }}>MVP de la semana</p>
-                    <p className="font-headline font-black text-white text-lg leading-tight truncate">{stats.lastMvpWinner.player_name}</p>
-                    <p className="text-[10px] text-white/30">{stats.lastMvpWinner.vote_count} votos</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center py-6 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
-                  <p className="text-white/30 text-sm text-center">Sin MVPs registrados aún.</p>
-                  <p className="text-white/20 text-xs text-center mt-1">Votación abierta de martes a domingo.</p>
-                </div>
-              )}
-              {stats.mvpWinHistory.length > 0 && (
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">Histórico de MVP</p>
-                  <div className="space-y-1.5">
-                    {stats.mvpWinHistory.map((p, i) => (
-                      <div key={p.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.15)' }}>
-                        <span className="text-xs font-black w-4 text-center" style={{ color: RANK_COLORS[i] }}>{i + 1}</span>
-                        <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.3)' }}>
-                          {p.photo_url ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" /> : p.name.charAt(0)}
+                <>
+                  {/* Foto grande del jugador de la semana */}
+                  <div className="relative rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.08) 0%, rgba(255,180,0,0.04) 100%)', border: '1px solid rgba(255,215,0,0.2)' }}>
+                    <div className="flex items-center gap-4 p-4">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center" style={{ background: '#31353c', border: '2px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.2)' }}>
+                          {stats.lastMvpWinner.player_photo_url
+                            ? <img src={stats.lastMvpWinner.player_photo_url} alt={stats.lastMvpWinner.player_name} className="w-full h-full object-cover" />
+                            : <span className="text-3xl font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{stats.lastMvpWinner.player_name.charAt(0)}</span>
+                          }
                         </div>
-                        <p className="flex-1 text-xs text-white font-semibold truncate">{p.name}</p>
-                        <span className="text-xs font-black" style={{ color: RANK_COLORS[i] }}>{p.count}x</span>
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-sm" style={{ background: '#ffd700' }}>🏆</div>
                       </div>
-                    ))}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: '#ffd700' }}>Jugador de la semana</p>
+                        <p className="font-headline font-black text-white text-xl leading-tight truncate">{stats.lastMvpWinner.player_name}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Star size={10} fill="#ffd700" style={{ color: '#ffd700' }} />
+                          <span className="text-[10px] font-bold" style={{ color: '#ffd700' }}>{stats.lastMvpWinner.vote_count} votos</span>
+                          {stats.lastMvpWinner.week_date && (
+                            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                              · {format(new Date(stats.lastMvpWinner.week_date), "d MMM", { locale: es })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Ranking histórico */}
+                  {stats.mvpWinHistory.length > 0 && (
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Ranking de MVPs</p>
+                      <div className="space-y-1.5">
+                        {stats.mvpWinHistory.map((p, i) => (
+                          <div key={p.id} className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: i === 0 ? 'rgba(255,215,0,0.06)' : 'rgba(0,0,0,0.15)', border: i === 0 ? '1px solid rgba(255,215,0,0.12)' : '1px solid transparent' }}>
+                            <span className="text-sm font-black w-5 text-center" style={{ color: RANK_COLORS[i] ?? 'rgba(255,255,255,0.2)' }}>
+                              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+                            </span>
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.3)', border: i === 0 ? '1.5px solid rgba(255,215,0,0.4)' : 'none' }}>
+                              {p.photo_url ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" /> : p.name.charAt(0)}
+                            </div>
+                            <p className="flex-1 text-sm text-white font-semibold truncate">{p.name}</p>
+                            <div className="flex items-center gap-1">
+                              <Trophy size={10} style={{ color: RANK_COLORS[i] ?? 'rgba(255,255,255,0.2)' }} />
+                              <span className="text-xs font-black" style={{ color: RANK_COLORS[i] ?? 'rgba(255,255,255,0.2)' }}>{p.count}x</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center py-8 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+                  <Trophy size={32} className="mb-3" style={{ color: 'rgba(255,215,0,0.2)' }} />
+                  <p className="text-white/30 text-sm text-center">Sin MVPs registrados aún.</p>
+                  <p className="text-white/20 text-xs text-center mt-1">La votación cierra cada domingo a las 23:59.</p>
                 </div>
               )}
-              <Link to="/vote" className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-xl text-xs font-semibold transition-all" style={{ color: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                Ver historial <ArrowRight size={11} />
-              </Link>
             </div>
           )}
         </div>
