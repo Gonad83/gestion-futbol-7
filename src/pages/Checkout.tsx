@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle2, ArrowLeft, Lock, Loader2 } from 'lucide-react';
 
 const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
+const FLOW_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-flow-preference`;
 
 const MONTHLY = 4990;
 const ANNUAL_TOTAL = 2495 * 12;
@@ -67,11 +68,27 @@ export default function Checkout() {
     if (!isValid) { setError('Completa todos los campos antes de continuar.'); return; }
     setError('');
     setLoadingFlow(true);
-    // TODO: implementar integración Flow
-    setTimeout(() => {
-      setError('Flow estará disponible muy pronto.');
+    try {
+      const res = await fetch(FLOW_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          plan,
+          origin: window.location.origin,
+          payer: { name: form.name, email: form.email, teamName: form.teamName },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Error al crear el pago con Flow');
+      window.open(data.url, '_blank', 'noopener,noreferrer');
       setLoadingFlow(false);
-    }, 800);
+    } catch (err: any) {
+      setError(err.message || 'Error al conectar con Flow');
+      setLoadingFlow(false);
+    }
   };
 
   return (
