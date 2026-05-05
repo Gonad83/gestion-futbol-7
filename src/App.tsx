@@ -27,6 +27,7 @@ import Contacto from './pages/Contacto';
 import TerminosDeServicio from './pages/TerminosDeServicio';
 import PoliticaDePrivacidad from './pages/PoliticaDePrivacidad';
 import Seguridad from './pages/Seguridad';
+import Checkout from './pages/Checkout';
 
 function App() {
   return (
@@ -46,7 +47,8 @@ function App() {
           <Route path="/terminos-de-servicio" element={<TerminosDeServicio />} />
           <Route path="/politica-de-privacidad" element={<PoliticaDePrivacidad />} />
           <Route path="/seguridad" element={<Seguridad />} />
-          
+          <Route path="/checkout" element={<Checkout />} />
+
           <Route element={<ProtectedRoute />}>
             <Route path="/teams" element={<TeamSelection />} />
             <Route element={<Layout />}>
