@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Calculator, TrendingUp, TrendingDown, DollarSign, Plus, ChevronLeft, ChevronRight, ArrowUpCircle, Pencil, Check, X, Search, Trash2 } from 'lucide-react';
+import { Calculator, TrendingUp, TrendingDown, DollarSign, Plus, ChevronLeft, ChevronRight, ArrowUpCircle, Pencil, Check, X, Search, Trash2, Download } from 'lucide-react';
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -300,7 +300,40 @@ export default function Finance() {
     await fetchData();
   };
 
-  // Removed getMonthsForAmount
+  const downloadCSV = (data: any[][], filename: string) => {
+    const csv = data.map(row =>
+      row.map((cell: any) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToCSV = () => {
+    if (activeTab === 'cuotas') {
+      const headers = ['Jugador', 'Estado', 'Monto Pagado', 'Mes', 'Año'];
+      const rows = payments.map(p => [
+        p.name,
+        p.status,
+        p.amount,
+        MONTHS[selectedMonth - 1],
+        selectedYear,
+      ]);
+      downloadCSV([headers, ...rows], `cuotas-${MONTHS[selectedMonth - 1]}-${selectedYear}`);
+    } else if (activeTab === 'ingresos') {
+      const headers = ['Concepto', 'Monto', 'Fecha'];
+      const rows = cashIncomes.map(i => [i.concept, i.amount, i.date]);
+      downloadCSV([headers, ...rows], 'ingresos-caja');
+    } else {
+      const headers = ['Concepto', 'Monto', 'Fecha'];
+      const rows = expenses.map(e => [e.concept, e.amount, e.date]);
+      downloadCSV([headers, ...rows], 'gastos');
+    }
+  };
 
   return (
     <div className="fade-in pb-20 md:pb-0">
@@ -314,6 +347,17 @@ export default function Finance() {
             Caja
           </h1>
         </div>
+        {isAdmin && (
+          <button
+            onClick={exportToCSV}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:brightness-110"
+            style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}
+            title="Exportar datos actuales a Excel/CSV"
+          >
+            <Download size={15} />
+            Exportar CSV
+          </button>
+        )}
       </div>
 
       {/* Summary Cards */}
