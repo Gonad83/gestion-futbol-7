@@ -179,8 +179,8 @@ export default function Layout() {
           })}
         </nav>
 
-        {/* Upgrade Banner - free plan only */}
-        {isAdmin && teamSettings.plan === 'free' && (
+        {/* Upgrade Banner - free plan only, hidden for super admin */}
+        {isAdmin && teamSettings.plan === 'free' && !isSuperAdmin && (
           <div className="mx-3 mb-2 p-3 rounded-xl" style={{
             background: 'linear-gradient(135deg, rgba(255,208,139,0.1) 0%, rgba(255,208,139,0.05) 100%)',
             border: '1px solid rgba(255,208,139,0.25)'
