@@ -55,7 +55,8 @@ export default function Checkout() {
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error || 'Error al crear el pago');
-      window.location.href = data.url;
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+      setLoadingMP(false);
     } catch (err: any) {
       setError(err.message || 'Error al conectar con Mercado Pago');
       setLoadingMP(false);
