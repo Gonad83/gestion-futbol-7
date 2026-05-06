@@ -80,7 +80,15 @@ export default function PlayerModal({ isOpen, onClose, onSave, player }: PlayerM
 
       // Remove virtual fields from payload to avoid Supabase errors
       const { matchesPlayed, participationPct, ...cleanData } = formData as any;
-      const payload = { ...cleanData, photo_url: finalPhotoUrl };
+      // Convert empty strings to null for optional date/text fields
+      const payload = {
+        ...cleanData,
+        photo_url: finalPhotoUrl,
+        birth_date: cleanData.birth_date || null,
+        nickname: cleanData.nickname || null,
+        secondary_position: cleanData.secondary_position || null,
+        email: cleanData.email || null,
+      };
 
       if (player?.id) {
         const { error } = await supabase.from('players').update(payload).eq('id', player.id);
