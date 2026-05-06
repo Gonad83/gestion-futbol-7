@@ -42,6 +42,7 @@ export default function Login() {
   const [success, setSuccess] = useState('');
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [playerForgotMode, setPlayerForgotMode] = useState(false);
 
   useEffect(() => {
     if (user) navigate('/dashboard');
@@ -67,6 +68,26 @@ export default function Login() {
     setJoinTeam(null);
     setReturningEmail('');
     setReturningPassword('');
+    setPlayerForgotMode(false);
+  };
+
+  const handlePlayerForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!returningEmail.trim()) { setError('Ingresa tu email primero.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(returningEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (err) throw err;
+      setSuccess(`Te enviamos un link a ${returningEmail}. Revisa tu correo (y el spam).`);
+      setPlayerForgotMode(false);
+    } catch (err: any) {
+      setError(err.message || 'Error al enviar el correo');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ─── Recuperar contraseña ────────────────────────────────────────────────────
@@ -412,6 +433,29 @@ export default function Login() {
             <button type="submit" disabled={loading} className="btn-primary w-full py-3">
               {loading ? 'Entrando...' : 'Entrar al equipo'}
             </button>
+
+            {!playerForgotMode ? (
+              <button type="button" onClick={() => setPlayerForgotMode(true)}
+                className="w-full text-center text-xs mt-2 transition-colors"
+                style={{ color: 'rgba(255,255,255,0.3)' }}>
+                ¿Olvidaste tu contraseña?
+              </button>
+            ) : (
+              <form onSubmit={handlePlayerForgotPassword} className="mt-3 space-y-2">
+                <p className="text-[10px] text-white/40 text-center">Ingresa tu email y te enviamos un link para recuperarla</p>
+                <input type="email" required value={returningEmail}
+                  onChange={e => setReturningEmail(e.target.value)}
+                  className="input-field" placeholder="tu@email.com" />
+                <button type="submit" disabled={loading} className="w-full py-2 rounded-xl text-xs font-black transition-all"
+                  style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>
+                  {loading ? 'Enviando...' : 'Enviar link de recuperación'}
+                </button>
+                <button type="button" onClick={() => setPlayerForgotMode(false)}
+                  className="w-full text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  Cancelar
+                </button>
+              </form>
+            )}
           </form>
         )}
 
