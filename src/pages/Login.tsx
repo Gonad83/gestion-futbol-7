@@ -187,43 +187,44 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const { data: existing } = await supabase
+      // Verificar si ya existe en players (puede haber sido agregado por el admin)
+      const { data: existingPlayer } = await supabase
         .from('players')
         .select('id')
         .ilike('email', playerEmail.trim())
         .maybeSingle();
-      if (existing) { setError('Este email ya tiene un perfil. Usa "Ya tengo cuenta" para entrar.'); return; }
 
+      // Crear cuenta Auth — si ya existe en Auth, Supabase lo indica con identities vacío
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
         email: playerEmail.trim(),
         password: playerPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/login`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/login` },
       });
       if (signUpErr) throw signUpErr;
       if (signUpData.user?.identities?.length === 0) {
-        throw new Error('Este email ya tiene una cuenta. Usa "Ya tengo cuenta" para entrar.');
+        throw new Error('Ya tienes una cuenta de acceso. Usa "Ya tengo cuenta" para entrar.');
       }
 
-      // Insert directo — más robusto que el RPC
-      const { error: playerErr } = await supabase.from('players').insert({
-        team_id: joinTeam!.id,
-        name: playerName.trim(),
-        email: playerEmail.trim().toLowerCase(),
-        position: playerPosition,
-        status: 'Activo',
-      });
-      if (playerErr) {
-        // Fallback: intentar vía RPC con security definer
-        const { error: rpcErr } = await supabase.rpc('register_new_player', {
-          p_team_id: joinTeam!.id,
-          p_name: playerName.trim(),
-          p_email: playerEmail.trim().toLowerCase(),
-          p_position: playerPosition,
+      // Si no existía en players, crearlo ahora
+      if (!existingPlayer) {
+        const { error: playerErr } = await supabase.from('players').insert({
+          team_id: joinTeam!.id,
+          name: playerName.trim(),
+          email: playerEmail.trim().toLowerCase(),
+          position: playerPosition,
+          status: 'Activo',
         });
-        if (rpcErr) throw new Error('No se pudo crear tu perfil en el equipo. Contacta a tu capitán.');
+        if (playerErr) {
+          const { error: rpcErr } = await supabase.rpc('register_new_player', {
+            p_team_id: joinTeam!.id,
+            p_name: playerName.trim(),
+            p_email: playerEmail.trim().toLowerCase(),
+            p_position: playerPosition,
+          });
+          if (rpcErr) throw new Error('No se pudo crear tu perfil en el equipo. Contacta a tu capitán.');
+        }
       }
+      // Si existingPlayer → el admin ya lo tenía en la plantilla, Auth se vincula automáticamente por email
 
       if (signUpData.user && !signUpData.session) {
         setSuccess(`¡Cuenta creada! Revisa tu correo "${playerEmail}" para confirmarla y luego entra con "Ya tengo cuenta".`);
