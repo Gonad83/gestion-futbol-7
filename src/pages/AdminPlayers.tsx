@@ -602,7 +602,7 @@ export default function AdminPlayers() {
         </div>
       </div>
 
-      <PlayerModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={fetchPlayers} player={selectedPlayer} />
+      <PlayerModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={fetchPlayers} player={selectedPlayer} teamId={teamId} />
     </div>
   );
 }

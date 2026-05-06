@@ -15,9 +15,10 @@ interface PlayerModalProps {
   onClose: () => void;
   onSave: () => void;
   player?: any;
+  teamId?: number | null;
 }
 
-export default function PlayerModal({ isOpen, onClose, onSave, player }: PlayerModalProps) {
+export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }: PlayerModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     nickname: '',
@@ -94,7 +95,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player }: PlayerM
         const { error } = await supabase.from('players').update(payload).eq('id', player.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('players').insert([payload]);
+        const { error } = await supabase.from('players').insert([{ ...payload, team_id: teamId }]);
         if (error) throw error;
       }
       onSave();
