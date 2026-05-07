@@ -40,7 +40,7 @@ export default function Finance() {
       setLoading(true);
       // Phase 1: get team players first (need playerIds to filter payments)
       const { data: players } = (await withTimeout(
-        supabase.from('players').select('id, name, nickname, status').eq('status', 'Activo').eq('team_id', teamId) as any,
+        supabase.from('players').select('id, name, nickname, status, created_at').eq('status', 'Activo').eq('team_id', teamId) as any,
         10000
       )) as any;
       const playerIds: string[] = (players || []).map((p: any) => p.id);
@@ -88,7 +88,13 @@ export default function Finance() {
         });
         
         const payment = playerPayments.length > 0 ? playerPayments[0] : undefined;
-        
+
+        // If the selected month/year is before the player joined → exempt
+        const joinDate = p.created_at ? new Date(p.created_at) : null;
+        const joinYear = joinDate?.getFullYear() ?? selectedYear;
+        const joinMonth = joinDate ? joinDate.getMonth() + 1 : selectedMonth;
+        const isExempt = selectedYear < joinYear || (selectedYear === joinYear && selectedMonth < joinMonth);
+
         // N8N Compatibility: n8n inserts Pendiente with amount=quotaAmount to represent the debt.
         // We want 'amount' to always represent the 'paid amount'.
         let actualPaidAmount = payment?.amount ?? 0;
@@ -102,7 +108,8 @@ export default function Finance() {
           nickname: p.nickname,
           payment_id: payment?.id ?? null,
           amount: actualPaidAmount,
-          status: payment?.status ?? 'Pendiente',
+          status: isExempt ? 'Exento' : (payment?.status ?? 'Pendiente'),
+          isExempt,
           notified_at: payment?.notified_at ?? null,
         };
       });
@@ -127,7 +134,7 @@ export default function Finance() {
     const matchesSearch = !search.trim() || `${p.name} ${p.nickname ?? ''}`.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'todos'
       || (statusFilter === 'pagado' && p.status === 'Pagado')
-      || (statusFilter === 'pendiente' && p.status !== 'Pagado');
+      || (statusFilter === 'pendiente' && p.status !== 'Pagado' && p.status !== 'Exento');
     return matchesSearch && matchesStatus;
   });
 
@@ -320,7 +327,7 @@ export default function Finance() {
     if (activeTab === 'cuotas') {
       title = `Control de Cuotas — ${MONTHS[selectedMonth - 1]} ${selectedYear}`;
       const pagados = payments.filter(p => p.status === 'Pagado').length;
-      const pendientes = payments.filter(p => p.status !== 'Pagado').length;
+      const pendientes = payments.filter(p => p.status !== 'Pagado' && p.status !== 'Exento').length;
       const totalMes = payments.filter(p => p.status === 'Pagado').reduce((acc, p) => acc + Number(p.amount), 0);
       tableHTML = `
         <div class="summary">
@@ -493,7 +500,7 @@ export default function Finance() {
           </div>
           <p className="text-4xl font-black tracking-tighter text-white relative z-10">{clp(monthlyIncome)}</p>
           <p className="text-[10px] text-slate-500 mt-2 relative z-10">
-            {selectedMonth <= 2 ? 'Mes sin cobros asignados' : `${payments.filter(p => p.status === 'Pagado').length}/${payments.length} jugadores al día`}
+            {selectedMonth <= 2 ? 'Mes sin cobros asignados' : `${payments.filter(p => p.status === 'Pagado').length}/${payments.filter(p => !p.isExempt).length} jugadores al día`}
           </p>
           <div className="mt-3 h-1 w-12 bg-emerald-500/30 rounded-full"></div>
         </div>
@@ -621,7 +628,7 @@ export default function Finance() {
                           <>
                             <span><span className="text-emerald-400 font-bold">{payments.filter(p => p.status === 'Pagado').length}</span> al día</span>
                             <span className="w-px h-5 bg-glass-border"></span>
-                            <span><span className="text-red-400 font-bold">{payments.filter(p => p.status !== 'Pagado').length}</span> pendientes</span>
+                            <span><span className="text-red-400 font-bold">{payments.filter(p => p.status !== 'Pagado' && p.status !== 'Exento').length}</span> pendientes</span>
                           </>
                         )}
                       </div>
@@ -648,19 +655,23 @@ export default function Finance() {
                               </td>
                               <td className="px-5 py-4 text-center">
                                 <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                  selectedMonth <= 2
-                                    ? 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
-                                    : p.status === 'Pagado'
-                                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                      : p.amount > 0
-                                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                  p.isExempt
+                                    ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                                    : selectedMonth <= 2
+                                      ? 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
+                                      : p.status === 'Pagado'
+                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                        : p.amount > 0
+                                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                                 }`}>
-                                  {selectedMonth <= 2 ? 'Sin Cuota' : (p.status === 'Pendiente' && p.amount > 0 ? 'Abonado' : p.status)}
+                                  {p.isExempt ? 'No aplica' : selectedMonth <= 2 ? 'Sin Cuota' : (p.status === 'Pendiente' && p.amount > 0 ? 'Abonado' : p.status)}
                                 </span>
                               </td>
                               <td className="px-5 py-4 text-center">
-                                {p.notified_at ? (
+                                {p.isExempt ? (
+                                  <span className="text-slate-600 text-xs italic">—</span>
+                                ) : p.notified_at ? (
                                   <div className="flex flex-col items-center gap-0.5">
                                     <span className="text-emerald-400">✅ Enviado</span>
                                     <span className="text-[10px] text-slate-500">{new Date(p.notified_at).toLocaleDateString()}</span>
@@ -670,7 +681,9 @@ export default function Finance() {
                                 )}
                               </td>
                               <td className="px-5 py-4 text-right font-medium">
-                                {isAdmin && p.status !== 'Pagado' ? (
+                                {p.isExempt ? (
+                                  <span className="text-slate-600">—</span>
+                                ) : isAdmin && p.status !== 'Pagado' ? (
                                   <div className="flex flex-col items-end gap-1">
                                     <input
                                       type="number"
@@ -690,25 +703,27 @@ export default function Finance() {
                               </td>
                               {isAdmin && (
                                 <td className="px-5 py-4 text-right">
-                                  <div className="flex justify-end items-center gap-2">
-                                    {p.amount > 0 && (
-                                      <button
-                                        onClick={() => handleCancelPayment(p)}
-                                        className="text-[10px] font-bold px-2 py-1.5 rounded transition-colors border border-red-500/30 text-red-500 hover:bg-red-500/10"
-                                        title="Anular pago"
-                                      >
-                                        Anular
-                                      </button>
-                                    )}
-                                    {p.status !== 'Pagado' && selectedMonth > 2 && (
+                                  {!p.isExempt && (
+                                    <div className="flex justify-end items-center gap-2">
+                                      {p.amount > 0 && (
+                                        <button
+                                          onClick={() => handleCancelPayment(p)}
+                                          className="text-[10px] font-bold px-2 py-1.5 rounded transition-colors border border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                          title="Anular pago"
+                                        >
+                                          Anular
+                                        </button>
+                                      )}
+                                      {p.status !== 'Pagado' && selectedMonth > 2 && (
                                         <button
                                           onClick={() => handlePaymentToggle(p)}
                                           className="text-xs font-bold px-3 py-1.5 rounded-lg border border-soccer-green/50 text-soccer-green hover:bg-soccer-green/10 bg-soccer-green/5 transition-all whitespace-nowrap"
                                         >
                                           Abonar / Pagar
                                         </button>
-                                    )}
-                                  </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </td>
                               )}
                             </tr>
