@@ -279,15 +279,17 @@ export default function Finance() {
   };
 
   const handleDeleteIncome = async (id: string) => {
+    if (!isAdmin || !teamId) return;
     if (!confirm('¿Eliminar este ingreso?')) return;
-    const { error } = await supabase.from('cash_incomes').delete().eq('id', id);
+    const { error } = await supabase.from('cash_incomes').delete().eq('id', id).eq('team_id', teamId);
     if (error) { alert('Error: ' + error.message); return; }
     await fetchData();
   };
 
   const handleDeleteExpense = async (id: string) => {
+    if (!isAdmin || !teamId) return;
     if (!confirm('¿Eliminar este gasto?')) return;
-    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    const { error } = await supabase.from('expenses').delete().eq('id', id).eq('team_id', teamId);
     if (error) { alert('Error: ' + error.message); return; }
     await fetchData();
   };

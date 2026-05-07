@@ -57,13 +57,15 @@ function App() {
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/matchmaking" element={<Matchmaking />} />
               <Route path="/finance" element={<Finance />} />
-              <Route path="/settings" element={<Settings />} />
               {/* Future routes will go here */}
-              <Route path="/admin" element={<AdminPlayers />} />
               <Route path="/profile" element={<MyProfile />} />
               <Route path="/vote" element={<Vote />} />
               <Route path="/arena" element={<Arena />} />
               <Route path="/superadmin" element={<SuperAdmin />} />
+              <Route element={<ProtectedRoute requireAdmin />}>
+                <Route path="/admin" element={<AdminPlayers />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
             </Route>
           </Route>
           

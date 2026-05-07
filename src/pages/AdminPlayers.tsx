@@ -7,7 +7,7 @@ import PlayerModal from '../components/PlayerModal';
 import { useAuth } from '../hooks/useAuth';
 
 export default function AdminPlayers() {
-  const { teamId } = useAuth();
+  const { teamId, isAdmin } = useAuth();
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,6 +67,7 @@ export default function AdminPlayers() {
   };
 
   const toggleAttendance = async (playerId: string) => {
+    if (!isAdmin || !teamId) return;
     if (!nextMatch) return;
     setTogglingId(playerId + 'att');
     const existing = attendances.find(a => a.player_id === playerId);
@@ -86,19 +87,22 @@ export default function AdminPlayers() {
   };
 
   const toggleField = async (player: any, field: 'notify' | 'visible') => {
+    if (!isAdmin || !teamId) return;
     setTogglingId(player.id + field);
     const update: any = field === 'notify' ? { notify: !player.notify } : { status: player.status === 'Activo' ? 'Inactivo' : 'Activo' };
-    await supabase.from('players').update(update).eq('id', player.id);
+    await supabase.from('players').update(update).eq('id', player.id).eq('team_id', teamId);
     setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, ...update } : p));
     setTogglingId(null);
   };
 
   const changeStatus = async (player: any, newStatus: string) => {
-    await supabase.from('players').update({ status: newStatus }).eq('id', player.id);
+    if (!isAdmin || !teamId) return;
+    await supabase.from('players').update({ status: newStatus }).eq('id', player.id).eq('team_id', teamId);
     setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, status: newStatus } : p));
   };
 
   const handleDelete = async (player: any) => {
+    if (!isAdmin || !teamId) return;
     if (!confirm(`¿Eliminar a ${player.name}? Esta acción no se puede deshacer.`)) return;
     await supabase.from('attendance').delete().eq('player_id', player.id);
     await supabase.from('payments').delete().eq('player_id', player.id);
@@ -109,6 +113,7 @@ export default function AdminPlayers() {
   const handleEdit = (player: any) => { setSelectedPlayer(player); setIsModalOpen(true); };
 
   const toggleCaptainRole = async (player: any) => {
+    if (!isAdmin || !teamId) return;
     const captains = players.filter(p => p.match_role === 'captain' && p.id !== player.id);
     const subcaptains = players.filter(p => p.match_role === 'subcaptain' && p.id !== player.id);
     let newRole: string | null = null;
@@ -119,12 +124,13 @@ export default function AdminPlayers() {
       if (captains.length >= 1) { alert('Ya hay un capitán. Quita el actual primero.'); return; }
       newRole = 'captain';
     }
-    await supabase.from('players').update({ match_role: newRole }).eq('id', player.id);
+    await supabase.from('players').update({ match_role: newRole }).eq('id', player.id).eq('team_id', teamId);
     setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, match_role: newRole } : p));
   };
 
   const bulkNotify = async (value: boolean) => {
-    await supabase.from('players').update({ notify: value }).neq('id', '00000000-0000-0000-0000-000000000000');
+    if (!isAdmin || !teamId) return;
+    await supabase.from('players').update({ notify: value }).eq('team_id', teamId);
     setPlayers(prev => prev.map(p => ({ ...p, notify: value })));
   };
 
