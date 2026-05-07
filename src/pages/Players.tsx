@@ -31,6 +31,13 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; border: string }
 const POS_FILTERS = ['Todos', 'Portero', 'Defensa', 'Medio', 'Delantero'] as const;
 type PosFilter = typeof POS_FILTERS[number];
 
+const getInitials = (name: string) => name
+  .split(' ')
+  .filter(Boolean)
+  .slice(0, 2)
+  .map(part => part.charAt(0).toUpperCase())
+  .join('');
+
 export default function Players() {
   const { isAdmin, teamId } = useAuth();
   const [players, setPlayers] = useState<any[]>([]);
@@ -106,7 +113,8 @@ export default function Players() {
       <div className="flex justify-between items-end">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Equipo</p>
-          <h1 className="font-headline text-3xl font-black text-white tracking-tight">Plantilla de Jugadores</h1>
+          <h1 className="font-headline text-3xl font-black text-white tracking-tight">Plantilla</h1>
+          <p className="text-white/35 text-sm mt-1">Perfiles del equipo, posiciones y asistencia del año.</p>
         </div>
         {isAdmin && (
           <button onClick={handleNew} className="btn-primary">
@@ -198,76 +206,93 @@ export default function Players() {
             return (
               <div
                 key={player.id}
-                className="relative flex flex-col items-center p-6 rounded-2xl transition-all duration-300 hover:translate-y-[-2px] group"
-                style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 4px 24px rgba(0,0,0,0.35)' }}
+                className="relative overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 group"
+                style={{ background: '#f4f7f4', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 16px 40px rgba(0,0,0,0.28)' }}
               >
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                  style={{ background: 'linear-gradient(135deg, rgba(68,243,169,0.03) 0%, transparent 60%)' }} />
-
                 <div
-                  className={`w-24 h-24 rounded-full mb-5 overflow-hidden flex-shrink-0 flex items-center justify-center ${player.photo_url ? 'cursor-zoom-in' : ''}`}
-                  style={{ background: '#262a31', border: `2px solid ${player.photo_url ? 'rgba(68,243,169,0.2)' : 'rgba(255,255,255,0.06)'}` }}
+                  className={`relative h-72 overflow-hidden flex items-end justify-center ${player.photo_url ? 'cursor-zoom-in' : ''}`}
+                  style={{ background: 'linear-gradient(180deg, #e8eee8 0%, #d6ddd6 100%)' }}
                   onClick={() => player.photo_url && setZoomPhoto(player.photo_url)}
                 >
-                  {player.photo_url
-                    ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                    : <span className="text-3xl font-black text-white/20">{player.name.charAt(0)}</span>
-                  }
-                </div>
-
-                <h3 className="font-headline text-lg font-bold text-white text-center w-full truncate" title={player.name}>
-                  {player.name}
-                </h3>
-                {player.nickname && <p className="text-white/35 text-xs mb-1 truncate">"{player.nickname}"</p>}
-
-                <div className="h-10 flex flex-col items-center justify-center mb-4 w-full">
-                  <p className="text-xs font-bold text-center px-2" style={{ color: '#44f3a9' }}>{player.position}</p>
-                  {player.secondary_position && <p className="text-[10px] text-white/30 mt-0.5 text-center px-2">{player.secondary_position}</p>}
-                </div>
-
-                <div className="flex items-center justify-around w-full rounded-xl p-3 mb-3" style={{ background: '#0a0e14' }}>
-                  <div className="text-center">
-                    <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1.5 font-bold">Calidad</p>
-                    <div className="flex gap-0.5 justify-center">
-                      {Array.from({ length: 7 }, (_, i) => (
-                        <Star key={i} size={11} className={i < player.rating ? 'fill-current' : ''} style={{ color: i < player.rating ? '#ffd08b' : 'rgba(255,255,255,0.1)' }} />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.06)' }} />
-                  <div className="text-center">
-                    <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1.5 font-bold">Estado</p>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
+                  <div className="absolute left-4 top-4 z-10">
+                    <span
+                      className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
+                      style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}
+                    >
                       {player.status}
                     </span>
                   </div>
+                  <div className="absolute right-4 top-4 z-10 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
+                    style={{ background: 'rgba(10,14,20,0.9)', color: '#44f3a9' }}>
+                    {getPositionGroup(player.position)}
+                  </div>
+                  {player.photo_url
+                    ? <img src={player.photo_url} alt={player.name} className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105" />
+                    : (
+                      <div className="mb-16 flex h-28 w-28 items-center justify-center rounded-full text-4xl font-black"
+                        style={{ background: '#10141a', color: 'rgba(255,255,255,0.22)' }}>
+                        {getInitials(player.name) || '?'}
+                      </div>
+                    )
+                  }
+                  <div className="absolute inset-x-0 bottom-0 h-28 pointer-events-none"
+                    style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(10,14,20,0.9) 100%)' }} />
                 </div>
 
-                <div className="w-full rounded-xl px-3 py-2.5 mb-4" style={{ background: '#0a0e14' }}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-[9px] text-white/25 uppercase tracking-wider font-bold">Asistencia {new Date().getFullYear()}</p>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-black" style={{ color: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }}>
-                        {player.participationPct}%
-                      </span>
-                      <span className="text-[9px] text-white/25">{player.matchesPlayed}/{totalMatchesYear}</span>
+                <div className="p-5" style={{ background: '#10141a' }}>
+                  <div className="min-h-[82px]">
+                    <h3 className="font-headline text-2xl font-black uppercase leading-none text-white" title={player.name}>
+                      {player.name}
+                    </h3>
+                    {player.nickname && <p className="mt-1 text-xs font-semibold text-white/35 truncate">"{player.nickname}"</p>}
+                    <p className="mt-3 text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: '#44f3a9' }}>
+                      {player.position}
+                    </p>
+                    {player.secondary_position && <p className="mt-1 text-[10px] text-white/30">{player.secondary_position}</p>}
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <p className="text-[9px] text-white/25 uppercase tracking-wider mb-2 font-bold">Calidad</p>
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 7 }, (_, i) => (
+                          <Star key={i} size={11} className={i < player.rating ? 'fill-current' : ''} style={{ color: i < player.rating ? '#ffd08b' : 'rgba(255,255,255,0.12)' }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1 font-bold">Asistencia</p>
+                      <div className="flex items-end gap-1">
+                        <span className="font-headline text-2xl font-black leading-none"
+                          style={{ color: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }}>
+                          {player.participationPct}
+                        </span>
+                        <span className="pb-0.5 text-[10px] font-bold text-white/25">%</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    <div className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${player.participationPct}%`, background: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }} />
-                  </div>
-                </div>
 
-                {isAdmin && (
-                  <button
-                    onClick={() => handleEdit(player)}
-                    className="flex w-full items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 hover:text-soccer-green"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}
-                  >
-                    <Edit2 size={14} /> Editar Perfil
-                  </button>
-                )}
+                  <div className="mt-3">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Partidos</span>
+                      <span className="text-[10px] font-bold text-white/35">{player.matchesPlayed}/{totalMatchesYear}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${player.participationPct}%`, background: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }} />
+                    </div>
+                  </div>
+
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleEdit(player)}
+                      className="mt-4 flex w-full items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 hover:text-soccer-green"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}
+                    >
+                      <Edit2 size={14} /> Editar Perfil
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
