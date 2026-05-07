@@ -207,7 +207,7 @@ export default function Players() {
               <div
                 key={player.id}
                 className="relative overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 group"
-                style={{ background: '#f4f7f4', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 16px 40px rgba(0,0,0,0.28)' }}
+                style={{ background: '#10141a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 16px 40px rgba(0,0,0,0.28)' }}
               >
                 <div
                   className={`relative h-72 overflow-hidden flex items-end justify-center ${player.photo_url ? 'cursor-zoom-in' : ''}`}
