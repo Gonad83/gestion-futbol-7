@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell } from 'lucide-react';
+import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2 } from 'lucide-react';
 
 interface MatchDetailsModalProps {
   isOpen: boolean;
@@ -28,6 +28,9 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
     event_type: 'Deportivo',
     description: ''
   });
+  const [recurring, setRecurring] = useState(false);
+  const [repeatDay, setRepeatDay] = useState(2); // 0=Dom, 1=Lun, 2=Mar, ...
+  const [repeatWeeks, setRepeatWeeks] = useState(8);
 
   useEffect(() => {
     if (match?.id) {
@@ -82,6 +85,35 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
     try {
       const [hours, minutes] = formData.time.split(':');
+
+      // Recurring: bulk insert multiple matches (only for new events)
+      if (recurring && !match?.id) {
+        const start = new Date(formData.date + 'T12:00:00');
+        // advance to the first occurrence of repeatDay
+        while (start.getDay() !== repeatDay) start.setDate(start.getDate() + 1);
+
+        const payloads = Array.from({ length: repeatWeeks }, (_, i) => {
+          const d = new Date(start);
+          d.setDate(d.getDate() + i * 7);
+          d.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+          return {
+            date: d.toISOString(),
+            location: formData.location,
+            match_type: formData.event_type === 'Recreacional' ? '7vs7' : formData.match_type,
+            status: formData.status,
+            event_type: formData.event_type,
+            description: formData.description,
+            team_id: teamId,
+          };
+        });
+
+        const { error: insertError } = await supabase.from('matches').insert(payloads);
+        if (insertError) throw insertError;
+        onSave();
+        onClose();
+        return;
+      }
+
       const baseDate = match?.date ? new Date(match.date) : new Date(formData.date);
       const matchDate = new Date(baseDate);
       matchDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
@@ -102,23 +134,23 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       } else {
         const { data: newMatch, error: insertError } = await supabase.from('matches').insert([payload]).select();
         if (insertError) throw insertError;
-        
+
         // Trigger n8n Webhook for new match
         if (newMatch && newMatch.length > 0) {
           const { data: activePlayers } = await supabase.from('players').select('id, name, email').eq('team_id', teamId).eq('status', 'Activo').eq('notify', true).not('email', 'is', null);
-          
+
           if (activePlayers && activePlayers.length > 0) {
             const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
             if (webhookUrl) {
               fetch(webhookUrl, {
                 method: 'POST',
-                headers: { 
+                headers: {
                   'Content-Type': 'application/json',
                   'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
                 },
-                body: JSON.stringify({ 
-                  match: newMatch[0], 
-                  players: activePlayers 
+                body: JSON.stringify({
+                  match: newMatch[0],
+                  players: activePlayers
                 })
               }).catch(err => console.error('Error triggering webhook:', err));
             } else {
@@ -352,8 +384,53 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                       <option>Cancelado</option>
                     </select>
                   </div>
+
+                  {/* Recurring options — only for new events */}
+                  {!match?.id && (
+                    <div className="rounded-xl border border-glass-border bg-black/20 p-3 space-y-3">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={recurring}
+                          onChange={e => setRecurring(e.target.checked)}
+                          className="w-4 h-4 accent-soccer-green"
+                        />
+                        <Repeat2 size={15} className="text-soccer-green" />
+                        <span className="text-sm text-slate-300 font-medium">Repetir semanalmente</span>
+                      </label>
+                      {recurring && (
+                        <div className="grid grid-cols-2 gap-3 pt-1">
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-1">Día de la semana</label>
+                            <select className="input-field bg-slate-900 text-sm" value={repeatDay} onChange={e => setRepeatDay(parseInt(e.target.value))}>
+                              <option value={1}>Lunes</option>
+                              <option value={2}>Martes</option>
+                              <option value={3}>Miércoles</option>
+                              <option value={4}>Jueves</option>
+                              <option value={5}>Viernes</option>
+                              <option value={6}>Sábado</option>
+                              <option value={0}>Domingo</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-1">Nº de semanas</label>
+                            <input
+                              type="number" min="1" max="52"
+                              className="input-field text-sm"
+                              value={repeatWeeks}
+                              onChange={e => setRepeatWeeks(Math.max(1, parseInt(e.target.value) || 1))}
+                            />
+                          </div>
+                          <p className="col-span-2 text-[10px] text-slate-500">
+                            Se crearán {repeatWeeks} eventos cada {['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][repeatDay]}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <button type="submit" disabled={loading} className="btn-primary w-full mt-4">
-                    {loading ? 'Guardando...' : `Guardar ${formData.event_type}`}
+                    {loading ? 'Guardando...' : recurring && !match?.id ? `Crear ${repeatWeeks} eventos` : `Guardar ${formData.event_type}`}
                   </button>
                   {match?.id && (
                     <button type="button" onClick={handleDelete} disabled={loading} className="w-full mt-2 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
