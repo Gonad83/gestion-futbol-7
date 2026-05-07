@@ -30,7 +30,12 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
   });
   const [recurring, setRecurring] = useState(false);
   const [repeatDay, setRepeatDay] = useState(2); // 0=Dom, 1=Lun, 2=Mar, ...
-  const [repeatWeeks, setRepeatWeeks] = useState(8);
+  const [repeatStartDate, setRepeatStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [repeatEndDate, setRepeatEndDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3);
+    return format(d, 'yyyy-MM-dd');
+  });
 
   useEffect(() => {
     if (match?.id) {
@@ -88,15 +93,15 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
       // Recurring: bulk insert multiple matches (only for new events)
       if (recurring && !match?.id) {
-        const start = new Date(formData.date + 'T12:00:00');
-        // advance to the first occurrence of repeatDay
-        while (start.getDay() !== repeatDay) start.setDate(start.getDate() + 1);
+        const cur = new Date(repeatStartDate + 'T12:00:00');
+        while (cur.getDay() !== repeatDay) cur.setDate(cur.getDate() + 1);
+        const end = new Date(repeatEndDate + 'T23:59:59');
 
-        const payloads = Array.from({ length: repeatWeeks }, (_, i) => {
-          const d = new Date(start);
-          d.setDate(d.getDate() + i * 7);
+        const payloads: any[] = [];
+        while (cur <= end) {
+          const d = new Date(cur);
           d.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-          return {
+          payloads.push({
             date: d.toISOString(),
             location: formData.location,
             match_type: formData.event_type === 'Recreacional' ? '7vs7' : formData.match_type,
@@ -104,9 +109,11 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
             event_type: formData.event_type,
             description: formData.description,
             team_id: teamId,
-          };
-        });
+          });
+          cur.setDate(cur.getDate() + 7);
+        }
 
+        if (payloads.length === 0) { alert('No hay fechas válidas en ese rango.'); setLoading(false); return; }
         const { error: insertError } = await supabase.from('matches').insert(payloads);
         if (insertError) throw insertError;
         onSave();
@@ -413,16 +420,33 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Nº de semanas</label>
+                            <label className="block text-xs text-slate-400 mb-1">Fecha de inicio</label>
                             <input
-                              type="number" min="1" max="52"
+                              type="date"
                               className="input-field text-sm"
-                              value={repeatWeeks}
-                              onChange={e => setRepeatWeeks(Math.max(1, parseInt(e.target.value) || 1))}
+                              value={repeatStartDate}
+                              onChange={e => setRepeatStartDate(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-400 mb-1">Fecha de término</label>
+                            <input
+                              type="date"
+                              className="input-field text-sm"
+                              value={repeatEndDate}
+                              onChange={e => setRepeatEndDate(e.target.value)}
                             />
                           </div>
                           <p className="col-span-2 text-[10px] text-slate-500">
-                            Se crearán {repeatWeeks} eventos cada {['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][repeatDay]}
+                            {(() => {
+                              const cur = new Date(repeatStartDate + 'T12:00:00');
+                              while (cur.getDay() !== repeatDay) cur.setDate(cur.getDate() + 1);
+                              const end = new Date(repeatEndDate + 'T23:59:59');
+                              let count = 0;
+                              const tmp = new Date(cur);
+                              while (tmp <= end) { count++; tmp.setDate(tmp.getDate() + 7); }
+                              return `Se crearán ${count} eventos cada ${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][repeatDay]}`;
+                            })()}
                           </p>
                         </div>
                       )}
@@ -430,7 +454,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                   )}
 
                   <button type="submit" disabled={loading} className="btn-primary w-full mt-4">
-                    {loading ? 'Guardando...' : recurring && !match?.id ? `Crear ${repeatWeeks} eventos` : `Guardar ${formData.event_type}`}
+                    {loading ? 'Guardando...' : recurring && !match?.id ? 'Crear eventos recurrentes' : `Guardar ${formData.event_type}`}
                   </button>
                   {match?.id && (
                     <button type="button" onClick={handleDelete} disabled={loading} className="w-full mt-2 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
