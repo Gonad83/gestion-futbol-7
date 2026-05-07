@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CheckCircle2, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, ArrowRight, Globe, ChevronDown } from 'lucide-react';
+
+const REGIONS_CL = [
+  'Región Metropolitana','Arica y Parinacota','Tarapacá','Antofagasta','Atacama',
+  'Coquimbo','Valparaíso',"O'Higgins",'Maule','Ñuble','Biobío','La Araucanía',
+  'Los Ríos','Los Lagos','Aysén','Magallanes',
+];
+const AGE_RANGES = ['Open','Sub-18','Sub-21','25+','35+','40+','Mixto'];
+const FORMATS    = ['5vs5','7vs7','11vs11','Todos'];
 
 function generateJoinCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -25,6 +33,12 @@ export default function RegisterCaptain() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showArena, setShowArena] = useState(false);
+  const [city, setCity] = useState('');
+  const [commune, setCommune] = useState('');
+  const [region, setRegion] = useState('');
+  const [ageRange, setAgeRange] = useState('Open');
+  const [preferredFormat, setPreferredFormat] = useState('7vs7');
 
   const planLabel = planParam === 'annual' ? 'Anual' : planParam === 'monthly' ? 'Mensual' : 'Prueba Gratis';
   const planColor = planParam === 'annual' ? '#44f3a9' : planParam === 'monthly' ? '#9acbff' : 'rgba(255,255,255,0.5)';
@@ -58,6 +72,13 @@ export default function RegisterCaptain() {
         p_owner_id: signUpData.user.id,
       });
       if (regErr) throw regErr;
+
+      // Save Arena profile if any field was filled
+      if (signUpData.session && (city || commune || region)) {
+        await supabase.from('team_settings')
+          .update({ city: city || null, commune: commune || null, region: region || null, age_range: ageRange, preferred_format: preferredFormat })
+          .eq('owner_id', signUpData.user.id);
+      }
 
       // Email confirmation required
       if (!signUpData.session) {
@@ -141,6 +162,54 @@ export default function RegisterCaptain() {
               <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Confirmar contraseña</label>
               <input type={showPassword ? 'text' : 'password'} required value={confirm}
                 onChange={e => setConfirm(e.target.value)} className="input-field" placeholder="••••••••" />
+            </div>
+
+            {/* Arena profile — optional, collapsible */}
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(68,243,169,0.2)', background: 'rgba(68,243,169,0.03)' }}>
+              <button
+                type="button"
+                onClick={() => setShowArena(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left"
+              >
+                <span className="flex items-center gap-2 text-xs font-black uppercase tracking-widest" style={{ color: '#44f3a9' }}>
+                  <Globe size={14} /> Perfil Arena (opcional)
+                </span>
+                <ChevronDown size={14} className="text-soccer-green/60 transition-transform" style={{ transform: showArena ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+              </button>
+              {showArena && (
+                <div className="px-4 pb-4 space-y-3">
+                  <p className="text-[10px] text-white/30">Completa estos datos para que otros equipos te encuentren en la Arena.</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Ciudad</label>
+                      <input type="text" className="input-field" value={city} onChange={e => setCity(e.target.value)} placeholder="Santiago" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Comuna</label>
+                      <input type="text" className="input-field" value={commune} onChange={e => setCommune(e.target.value)} placeholder="Las Condes" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Región</label>
+                      <select className="input-field bg-slate-900" value={region} onChange={e => setRegion(e.target.value)}>
+                        <option value="">-- Seleccionar --</option>
+                        {REGIONS_CL.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Rango Etario</label>
+                      <select className="input-field bg-slate-900" value={ageRange} onChange={e => setAgeRange(e.target.value)}>
+                        {AGE_RANGES.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Formato Preferido</label>
+                      <select className="input-field bg-slate-900" value={preferredFormat} onChange={e => setPreferredFormat(e.target.value)}>
+                        {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <button type="submit" disabled={loading}

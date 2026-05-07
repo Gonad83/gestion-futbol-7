@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Settings as SettingsIcon, Save, CreditCard, Camera, Image, CheckCircle2 } from 'lucide-react';
+import { Settings as SettingsIcon, Save, CreditCard, Camera, Image, CheckCircle2, Globe } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+
+const REGIONS_CL = [
+  'Región Metropolitana','Arica y Parinacota','Tarapacá','Antofagasta','Atacama',
+  'Coquimbo','Valparaíso',"O'Higgins",'Maule','Ñuble','Biobío','La Araucanía',
+  'Los Ríos','Los Lagos','Aysén','Magallanes',
+];
+const AGE_RANGES = ['Open','Sub-18','Sub-21','25+','35+','40+','Mixto'];
+const FORMATS    = ['5vs5','7vs7','11vs11','Todos'];
 
 export default function Settings() {
   const { isAdmin, loading: authLoading, teamId } = useAuth();
@@ -21,6 +29,15 @@ export default function Settings() {
   const [bannerPreview, setBannerPreview] = useState('');
   const bannerRef = useRef<HTMLInputElement>(null);
 
+  // Arena profile fields
+  const [city, setCity] = useState('');
+  const [commune, setCommune] = useState('');
+  const [region, setRegion] = useState('');
+  const [ageRange, setAgeRange] = useState('Open');
+  const [preferredFormat, setPreferredFormat] = useState('7vs7');
+  const [arenaVisible, setArenaVisible] = useState(true);
+  const [teamDescription, setTeamDescription] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -37,6 +54,13 @@ export default function Settings() {
       setLogoPreview(data.logo_url || '');
       setBannerUrl(data.banner_url || '');
       setBannerPreview(data.banner_url || '');
+      setCity(data.city || '');
+      setCommune(data.commune || '');
+      setRegion(data.region || '');
+      setAgeRange(data.age_range || 'Open');
+      setPreferredFormat(data.preferred_format || '7vs7');
+      setArenaVisible(data.arena_visible ?? true);
+      setTeamDescription(data.team_description || '');
     }
     setLoading(false);
   };
@@ -78,6 +102,13 @@ export default function Settings() {
         banner_url: finalBannerUrl,
         payment_link: paymentLink,
         payment_button_enabled: paymentEnabled,
+        city: city || null,
+        commune: commune || null,
+        region: region || null,
+        age_range: ageRange,
+        preferred_format: preferredFormat,
+        arena_visible: arenaVisible,
+        team_description: teamDescription || null,
       }).eq('id', teamId);
 
       if (updateError) throw updateError;
@@ -248,6 +279,65 @@ export default function Settings() {
                 style={{ opacity: paymentEnabled ? 1 : 0.4 }}
               />
               <p className="text-xs text-slate-400 mt-2">Link de Mercado Pago u otra plataforma de pago.</p>
+            </div>
+          </div>
+
+          {/* Arena Profile */}
+          <div className="p-5 rounded-2xl space-y-4" style={{ background: 'rgba(68,243,169,0.03)', border: '1px solid rgba(68,243,169,0.15)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
+                  <Globe size={16} />
+                </div>
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-widest text-white">Perfil Arena</label>
+                  <p className="text-xs text-slate-400 mt-0.5">Datos que verán otros equipos al buscarte en la Arena.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setArenaVisible(v => !v)}
+                className="flex-shrink-0 relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none"
+                style={{ background: arenaVisible ? '#44f3a9' : 'rgba(255,255,255,0.1)' }}
+                title={arenaVisible ? 'Visible en Arena' : 'Oculto en Arena'}
+              >
+                <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300"
+                  style={{ transform: arenaVisible ? 'translateX(24px)' : 'translateX(0)' }} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Ciudad</label>
+                <input type="text" className="input-field" value={city} onChange={e => setCity(e.target.value)} placeholder="Ej: Santiago" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Comuna</label>
+                <input type="text" className="input-field" value={commune} onChange={e => setCommune(e.target.value)} placeholder="Ej: Las Condes" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Región</label>
+                <select className="input-field bg-slate-900" value={region} onChange={e => setRegion(e.target.value)}>
+                  <option value="">-- Seleccionar --</option>
+                  {REGIONS_CL.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Rango Etario</label>
+                <select className="input-field bg-slate-900" value={ageRange} onChange={e => setAgeRange(e.target.value)}>
+                  {AGE_RANGES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Formato Preferido</label>
+                <select className="input-field bg-slate-900" value={preferredFormat} onChange={e => setPreferredFormat(e.target.value)}>
+                  {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Descripción (opcional)</label>
+                <input type="text" className="input-field" value={teamDescription} onChange={e => setTeamDescription(e.target.value)} placeholder="Ej: Equipo amateur, jugamos los martes" />
+              </div>
             </div>
           </div>
 
