@@ -14,7 +14,10 @@ export default function Finance() {
   const [cashIncomes, setCashIncomes] = useState<any[]>([]);
   const [quotaAmount, setQuotaAmount] = useState(8000);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'cuotas' | 'ingresos' | 'gastos'>('cuotas');
+  const [activeTab, setActiveTab] = useState<'cuotas' | 'ingresos' | 'gastos' | 'morosidad'>('cuotas');
+  const [morosos, setMorosos] = useState<any[]>([]);
+  const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedPlayer, setCopiedPlayer] = useState<string | null>(null);
 
   const today = new Date().toISOString().split('T')[0];
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -56,7 +59,7 @@ export default function Finance() {
       const noAnyPlayers = allPlayerIds.length === 0;
 
       // Phase 2: everything else filtered by team
-      const [payDataRes, allPaidRes, expDataRes, incomeDataRes, settingsDataRes] = await Promise.all([
+      const [payDataRes, allPaidRes, expDataRes, incomeDataRes, settingsDataRes, allHistoryRes] = await Promise.all([
         noPlayers
           ? Promise.resolve({ data: [] })
           : withTimeout(
@@ -73,12 +76,19 @@ export default function Finance() {
         withTimeout(supabase.from('expenses').select('*').eq('team_id', teamId).order('date', { ascending: false }) as any, 10000),
         withTimeout(supabase.from('cash_incomes').select('*').eq('team_id', teamId).order('date', { ascending: false }) as any, 10000),
         withTimeout(supabase.from('team_settings').select('id, quota_amount').eq('id', teamId).single() as any, 10000),
+        noPlayers
+          ? Promise.resolve({ data: [] })
+          : withTimeout(
+              supabase.from('payments').select('player_id, month, year, amount, status').in('player_id', playerIds) as any,
+              10000
+            ),
       ]);
       const payData = (payDataRes as any).data || [];
       const allPaid = (allPaidRes as any).data || [];
       const expData = (expDataRes as any).data || [];
       const incomeData = (incomeDataRes as any).data || [];
       const settingsData = (settingsDataRes as any).data;
+      const allHistory = (allHistoryRes as any).data || [];
 
     const quota = Number(settingsData?.quota_amount ?? 8000);
     setQuotaAmount(quota);
@@ -120,9 +130,31 @@ export default function Finance() {
           status: isExempt ? 'Exento' : (payment?.status ?? 'Pendiente'),
           isExempt,
           notified_at: payment?.notified_at ?? null,
+          payment_method: payment?.payment_method ?? null,
         };
       });
     }
+
+    // Compute morosos across all months
+    const curMonth = now.getMonth() + 1;
+    const curYear = now.getFullYear();
+    const morososData: any[] = (players || []).map((p: any) => {
+      const joinDate = p.created_at ? new Date(p.created_at) : null;
+      let jYear = joinDate?.getFullYear() ?? curYear;
+      let jMonth = joinDate ? joinDate.getMonth() + 1 : curMonth;
+      const paidSet = new Set(
+        allHistory.filter((h: any) => h.player_id === p.id && h.status === 'Pagado').map((h: any) => `${h.year}-${h.month}`)
+      );
+      const pending: { year: number; month: number }[] = [];
+      let y = jYear; let m = jMonth;
+      while (y < curYear || (y === curYear && m <= curMonth)) {
+        if (m > 2 && !paidSet.has(`${y}-${m}`)) pending.push({ year: y, month: m });
+        m++; if (m > 12) { m = 1; y++; }
+      }
+      return { id: p.id, name: p.name, nickname: p.nickname, pendingMonths: pending, totalDebt: pending.length * quota };
+    }).filter((p: any) => p.pendingMonths.length > 0)
+      .sort((a: any, b: any) => b.pendingMonths.length - a.pendingMonths.length);
+    setMorosos(morososData);
 
     setPayments(mergedPayments);
     setAllPaidAmount(allPaid.reduce((acc: number, p: any) => acc + Number(p.amount), 0));
@@ -531,13 +563,13 @@ export default function Finance() {
       {/* Tabs */}
       <div className="glass-card overflow-hidden p-0">
         <div className="flex border-b border-glass-border">
-          {(['cuotas', 'ingresos', 'gastos'] as const).map(tab => (
+          {(['cuotas', 'morosidad', 'ingresos', 'gastos'] as const).map(tab => (
             <button
               key={tab}
-              className={`flex-1 md:flex-none px-6 py-4 font-semibold text-sm transition-all ${activeTab === tab ? 'bg-soccer-green/10 text-soccer-green border-b-2 border-soccer-green' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`flex-1 md:flex-none px-6 py-4 font-semibold text-sm transition-all ${activeTab === tab ? (tab === 'morosidad' ? 'bg-red-500/10 text-red-400 border-b-2 border-red-400' : 'bg-soccer-green/10 text-soccer-green border-b-2 border-soccer-green') : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab === 'cuotas' ? 'Control de Cuotas' : tab === 'ingresos' ? 'Ingresos de Caja' : 'Registro de Gastos'}
+              {tab === 'cuotas' ? 'Control de Cuotas' : tab === 'morosidad' ? `⚠️ Morosidad (${morosos.length})` : tab === 'ingresos' ? 'Ingresos de Caja' : 'Registro de Gastos'}
             </button>
           ))}
         </div>
@@ -765,6 +797,93 @@ export default function Finance() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {/* ── MOROSIDAD TAB ── */}
+              {activeTab === 'morosidad' && (
+                <div className="fade-in space-y-6">
+                  {/* Summary row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-2xl p-5" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Morosos</p>
+                      <p className="text-3xl font-black text-white">{morosos.length}</p>
+                      <p className="text-xs text-slate-500 mt-1">jugadores con cuotas pendientes</p>
+                    </div>
+                    <div className="rounded-2xl p-5" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Deuda Total</p>
+                      <p className="text-3xl font-black text-white">{clp(morosos.reduce((acc, p) => acc + p.totalDebt, 0))}</p>
+                      <p className="text-xs text-slate-500 mt-1">monto adeudado al equipo</p>
+                    </div>
+                  </div>
+
+                  {morosos.length === 0 ? (
+                    <div className="text-center py-16 rounded-2xl" style={{ background: 'rgba(68,243,169,0.04)', border: '1px dashed rgba(68,243,169,0.2)' }}>
+                      <p className="text-soccer-green font-bold text-lg mb-1">¡Todos al día!</p>
+                      <p className="text-slate-500 text-sm">No hay jugadores con cuotas pendientes.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Copy all button */}
+                      <button
+                        onClick={() => {
+                          const lines = morosos.map((p, i) =>
+                            `${i + 1}. ${p.name}${p.nickname ? ` "${p.nickname}"` : ''} — ${p.pendingMonths.length} mes${p.pendingMonths.length > 1 ? 'es' : ''} (${clp(p.totalDebt)})\n   ${p.pendingMonths.map((m: any) => `${MONTHS[m.month - 1]} ${m.year}`).join(', ')}`
+                          ).join('\n\n');
+                          const total = morosos.reduce((acc, p) => acc + p.totalDebt, 0);
+                          const msg = `⚠️ *Cuotas pendientes*\n\n${lines}\n\n💰 *Total adeudado: ${clp(total)}*`;
+                          navigator.clipboard.writeText(msg);
+                          setCopiedAll(true);
+                          setTimeout(() => setCopiedAll(false), 2500);
+                        }}
+                        className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                        style={{ background: copiedAll ? 'rgba(68,243,169,0.15)' : 'rgba(255,255,255,0.05)', color: copiedAll ? '#44f3a9' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedAll ? 'rgba(68,243,169,0.3)' : 'rgba(255,255,255,0.1)'}` }}
+                      >
+                        {copiedAll ? '✅ ¡Copiado para WhatsApp!' : '📋 Copiar lista para WhatsApp'}
+                      </button>
+
+                      {/* Player list */}
+                      <div className="space-y-3">
+                        {morosos.map((p, i) => (
+                          <div key={p.id} className="rounded-2xl p-4" style={{ background: i === 0 ? 'rgba(248,113,113,0.07)' : 'rgba(0,0,0,0.15)', border: `1px solid ${i === 0 ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.05)'}` }}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1.5px solid rgba(248,113,113,0.3)' }}>
+                                  {p.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-white text-sm">{p.name}{p.nickname && <span className="text-slate-500 font-normal ml-1 text-xs">"{p.nickname}"</span>}</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {p.pendingMonths.map((m: any) => (
+                                      <span key={`${m.year}-${m.month}`} className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+                                        {MONTHS[m.month - 1].slice(0, 3)} {m.year}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                <p className="font-black text-white text-sm">{clp(p.totalDebt)}</p>
+                                <button
+                                  onClick={() => {
+                                    const months = p.pendingMonths.map((m: any) => `• ${MONTHS[m.month - 1]} ${m.year}`).join('\n');
+                                    const msg = `Hola ${p.name.split(' ')[0]}! 👋\nTienes ${p.pendingMonths.length} cuota${p.pendingMonths.length > 1 ? 's' : ''} pendiente${p.pendingMonths.length > 1 ? 's' : ''}:\n${months}\n\n💰 Total: ${clp(p.totalDebt)}`;
+                                    navigator.clipboard.writeText(msg);
+                                    setCopiedPlayer(p.id);
+                                    setTimeout(() => setCopiedPlayer(null), 2500);
+                                  }}
+                                  className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all"
+                                  style={{ background: copiedPlayer === p.id ? 'rgba(68,243,169,0.15)' : 'rgba(255,255,255,0.05)', color: copiedPlayer === p.id ? '#44f3a9' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedPlayer === p.id ? 'rgba(68,243,169,0.3)' : 'rgba(255,255,255,0.08)'}` }}
+                                >
+                                  {copiedPlayer === p.id ? '✅ Copiado' : '📋 WhatsApp'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
