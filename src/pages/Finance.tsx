@@ -713,10 +713,10 @@ export default function Finance() {
                                     {p.status === 'Pagado' && p.payment_method && (
                                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{
                                         background: p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.1)' : p.payment_method === 'Flow' ? 'rgba(154,203,255,0.1)' : 'rgba(255,208,139,0.1)',
-                                        color: p.payment_method === 'Efectivo' ? '#44f3a9' : p.payment_method === 'Flow' ? '#9acbff' : '#ffd08b',
-                                        border: `1px solid ${p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.25)' : p.payment_method === 'Flow' ? 'rgba(154,203,255,0.25)' : 'rgba(255,208,139,0.25)'}`,
+                                        color: p.payment_method === 'Efectivo' ? '#44f3a9' : p.payment_method === 'Link de Pago' ? '#9acbff' : '#ffd08b',
+                                        border: `1px solid ${p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.25)' : p.payment_method === 'Link de Pago' ? 'rgba(154,203,255,0.25)' : 'rgba(255,208,139,0.25)'}`,
                                       }}>
-                                        {p.payment_method === 'Efectivo' ? '💵' : p.payment_method === 'Flow' ? '💳' : '🏦'} {p.payment_method}
+                                        {p.payment_method === 'Efectivo' ? '💵' : p.payment_method === 'Link de Pago' ? '💳' : '🏦'} {p.payment_method}
                                       </span>
                                     )}
                                   </div>
@@ -745,7 +745,7 @@ export default function Finance() {
                                           >
                                             <option value="Transferencia">🏦 Transferencia</option>
                                             <option value="Efectivo">💵 Efectivo</option>
-                                            <option value="Flow">💳 Flow</option>
+                                            <option value="Link de Pago">💳 Link de Pago</option>
                                           </select>
                                           <button
                                             onClick={() => handlePaymentToggle(p)}
