@@ -34,8 +34,10 @@ export default function Dashboard() {
     allPlayers: [] as any[],
     votingIsOpen: false,
     openVoteMatchId: null as string | null,
+    openVoteMatchDate: null as string | null,
     lastMvpWinner: null as any,
     mvpWinHistory: [] as TopPlayer[],
+    mvpHistory: [] as any[],
   });
 
   useEffect(() => {
@@ -177,8 +179,10 @@ export default function Dashboard() {
       let topMvp: TopPlayer[] = [];
       let votingIsOpen = false;
       let openVoteMatchId: string | null = null;
+      let openVoteMatchDate: string | null = null;
       let lastMvpWinner: any = null;
       let mvpWinHistory: TopPlayer[] = [];
+      let mvpHistory: any[] = [];
       try {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -203,6 +207,7 @@ export default function Dashboard() {
             // Dentro del período de votación
             votingIsOpen = true;
             openVoteMatchId = voteMatchId;
+            openVoteMatchDate = recentDeportivo[0].date;
             const { data: liveVotes } = (await withTimeout(
               supabase.from('match_mvp_votes').select('voted_player_id').eq('match_id', voteMatchId) as any,
               5000
@@ -214,7 +219,7 @@ export default function Dashboard() {
               });
               topMvp = Object.entries(counts)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 1)
+                .slice(0, 3)
                 .map(([id, count]) => {
                   const p = allPlayers.find((pl: any) => pl.id === id);
                   return { id, count, name: p?.name || '?', nickname: (p as any)?.nickname || '', photo_url: (p as any)?.photo_url || '' };
@@ -257,6 +262,7 @@ export default function Dashboard() {
         )) as any;
         if (!winnersError && winnersData && winnersData.length > 0) {
           lastMvpWinner = winnersData[0];
+          mvpHistory = winnersData;
           const winCounts: Record<string, { name: string; photo: string; count: number }> = {};
           winnersData.forEach((w: any) => {
             if (!winCounts[w.player_id]) winCounts[w.player_id] = { name: w.player_name, photo: w.player_photo_url || '', count: 0 };
@@ -289,8 +295,10 @@ export default function Dashboard() {
         allPlayers,
         votingIsOpen,
         openVoteMatchId,
+        openVoteMatchDate,
         lastMvpWinner,
         mvpWinHistory,
+        mvpHistory,
       });
     } catch (e) {
       console.error('Error loading dashboard data:', e);
@@ -747,24 +755,50 @@ export default function Dashboard() {
 
           {stats.votingIsOpen ? (
             <div className="flex-1 flex flex-col gap-3">
+              {/* Match date identifier */}
+              {stats.openVoteMatchDate && (
+                <p className="text-[9px] text-white/25 text-center uppercase tracking-widest">
+                  Partido · {format(new Date(stats.openVoteMatchDate), "d 'de' MMMM yyyy", { locale: es })}
+                </p>
+              )}
               {stats.topMvp.length > 0 ? (
-                <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.15)' }}>
-                  <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: '#31353c', border: '2px solid rgba(255,215,0,0.4)' }}>
-                    {stats.topMvp[0].photo_url
-                      ? <img src={stats.topMvp[0].photo_url} alt={stats.topMvp[0].name} className="w-full h-full object-cover" />
-                      : <span className="text-xl font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{stats.topMvp[0].name.charAt(0)}</span>
-                    }
+                <>
+                  {/* Leader — big card */}
+                  <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.15)' }}>
+                    <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: '#31353c', border: '2px solid rgba(255,215,0,0.4)' }}>
+                      {stats.topMvp[0].photo_url
+                        ? <img src={stats.topMvp[0].photo_url} alt={stats.topMvp[0].name} className="w-full h-full object-cover" />
+                        : <span className="text-xl font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{stats.topMvp[0].name.charAt(0)}</span>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#ffd700' }}>🏆 Líder actual</p>
+                      <p className="font-headline font-black text-white text-lg leading-tight truncate">{stats.topMvp[0].name}</p>
+                      {stats.topMvp[0].nickname && <p className="text-[10px] text-white/30">"{stats.topMvp[0].nickname}"</p>}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-headline font-black text-2xl leading-none" style={{ color: '#ffd700' }}>{stats.topMvp[0].count}</p>
+                      <p className="text-[9px] text-white/30 uppercase">votos</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#ffd700' }}>Líder actual</p>
-                    <p className="font-headline font-black text-white text-lg leading-tight truncate">{stats.topMvp[0].name}</p>
-                    {stats.topMvp[0].nickname && <p className="text-[10px] text-white/30">"{stats.topMvp[0].nickname}"</p>}
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="font-headline font-black text-2xl leading-none" style={{ color: '#ffd700' }}>{stats.topMvp[0].count}</p>
-                    <p className="text-[9px] text-white/30 uppercase">votos</p>
-                  </div>
-                </div>
+                  {/* 2nd and 3rd — smaller cards */}
+                  {stats.topMvp.length > 1 && (
+                    <div className="flex gap-2">
+                      {stats.topMvp.slice(1, 3).map((p, i) => (
+                        <div key={p.id} className="flex-1 flex items-center gap-2 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${i === 0 ? 'rgba(192,192,192,0.2)' : 'rgba(205,127,50,0.2)'}` }}>
+                          <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-sm font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.3)', border: `1.5px solid ${i === 0 ? '#c0c0c0' : '#cd7f32'}` }}>
+                            {p.photo_url ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" /> : p.name.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[8px] font-black uppercase tracking-wider leading-none mb-0.5" style={{ color: i === 0 ? '#c0c0c0' : '#cd7f32' }}>{i === 0 ? '2°' : '3°'}</p>
+                            <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                          </div>
+                          <p className="font-headline font-black text-sm flex-shrink-0" style={{ color: i === 0 ? '#c0c0c0' : '#cd7f32' }}>{p.count}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-6 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
                   <Star size={28} className="mb-2" style={{ color: 'rgba(255,215,0,0.25)' }} />
@@ -830,10 +864,36 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Ranking histórico */}
-                  {stats.mvpWinHistory.length > 0 && (
+                  {/* Historial por partido */}
+                  {stats.mvpHistory.length > 0 && (
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Ranking de MVPs</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Historial por partido</p>
+                      <div className="space-y-1.5 overflow-y-auto max-h-[200px] custom-scrollbar pr-1">
+                        {stats.mvpHistory.map((w: any, i: number) => (
+                          <div key={w.created_at || i} className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: i === 0 ? 'rgba(255,215,0,0.06)' : 'rgba(0,0,0,0.15)', border: i === 0 ? '1px solid rgba(255,215,0,0.12)' : '1px solid rgba(255,255,255,0.04)' }}>
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.3)', border: i === 0 ? '1.5px solid rgba(255,215,0,0.4)' : 'none' }}>
+                              {w.player_photo_url ? <img src={w.player_photo_url} alt={w.player_name} className="w-full h-full object-cover" /> : w.player_name?.charAt(0)}
+                            </div>
+                            <p className="flex-1 text-sm text-white font-semibold truncate">{w.player_name}</p>
+                            {w.week_date && (
+                              <span className="text-[9px] flex-shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                                {format(new Date(w.week_date + 'T12:00:00'), "d MMM yy", { locale: es })}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Star size={9} fill="#ffd700" style={{ color: '#ffd700' }} />
+                              <span className="text-xs font-black" style={{ color: '#ffd700' }}>{w.vote_count}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ranking total de MVPs */}
+                  {stats.mvpWinHistory.length > 1 && (
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Más veces MVP</p>
                       <div className="space-y-1.5">
                         {stats.mvpWinHistory.map((p, i) => (
                           <div key={p.id} className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: i === 0 ? 'rgba(255,215,0,0.06)' : 'rgba(0,0,0,0.15)', border: i === 0 ? '1px solid rgba(255,215,0,0.12)' : '1px solid transparent' }}>
