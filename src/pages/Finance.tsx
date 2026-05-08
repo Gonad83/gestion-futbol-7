@@ -892,7 +892,14 @@ export default function Finance() {
 
                       {/* Player list */}
                       <div className="space-y-3">
-                        {morosos.map((p, i) => (
+                        {morosos.map((p, i) => {
+                          const curM = now.getMonth() + 1;
+                          const curY = now.getFullYear();
+                          const oldest = p.pendingMonths[0];
+                          const monthsAgo = oldest ? (curY - oldest.year) * 12 + (curM - oldest.month) : 0;
+                          const agingColor = monthsAgo === 0 ? '#44f3a9' : monthsAgo <= 2 ? '#ffd08b' : '#f87171';
+                          const agingLabel = monthsAgo === 0 ? 'Reciente' : monthsAgo <= 2 ? `${monthsAgo}m atraso` : `${monthsAgo}m atraso`;
+                          return (
                           <div key={p.id} className="rounded-2xl p-4" style={{ background: i === 0 ? 'rgba(248,113,113,0.07)' : 'rgba(0,0,0,0.15)', border: `1px solid ${i === 0 ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.05)'}` }}>
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center gap-3">
@@ -900,7 +907,10 @@ export default function Finance() {
                                   {p.name.charAt(0)}
                                 </div>
                                 <div>
-                                  <p className="font-bold text-white text-sm">{p.name}{p.nickname && <span className="text-slate-500 font-normal ml-1 text-xs">"{p.nickname}"</span>}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-white text-sm">{p.name}{p.nickname && <span className="text-slate-500 font-normal ml-1 text-xs">"{p.nickname}"</span>}</p>
+                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: `${agingColor}18`, color: agingColor, border: `1px solid ${agingColor}40` }}>{agingLabel}</span>
+                                  </div>
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {p.pendingMonths.map((m: any) => (
                                       <span key={`${m.year}-${m.month}`} className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
@@ -928,7 +938,7 @@ export default function Finance() {
                               </div>
                             </div>
                           </div>
-                        ))}
+                        ); })}
                       </div>
                     </>
                   )}
