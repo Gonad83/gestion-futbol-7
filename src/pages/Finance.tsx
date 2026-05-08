@@ -45,7 +45,7 @@ export default function Finance() {
       // Phase 1: get players — active ones for the table, all for balance
       const [{ data: players }, { data: allPlayersData }] = await Promise.all([
         withTimeout(
-          supabase.from('players').select('id, name, nickname, status, created_at').eq('status', 'Activo').eq('team_id', teamId) as any,
+          supabase.from('players').select('id, name, nickname, status, created_at').in('status', ['Activo', 'Lesionado']).eq('team_id', teamId) as any,
           10000
         ) as any,
         withTimeout(
