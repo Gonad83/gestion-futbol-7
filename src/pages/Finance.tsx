@@ -38,13 +38,21 @@ export default function Finance() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Phase 1: get team players first (need playerIds to filter payments)
-      const { data: players } = (await withTimeout(
-        supabase.from('players').select('id, name, nickname, status, created_at').eq('status', 'Activo').eq('team_id', teamId) as any,
-        10000
-      )) as any;
+      // Phase 1: get players — active ones for the table, all for balance
+      const [{ data: players }, { data: allPlayersData }] = await Promise.all([
+        withTimeout(
+          supabase.from('players').select('id, name, nickname, status, created_at').eq('status', 'Activo').eq('team_id', teamId) as any,
+          10000
+        ) as any,
+        withTimeout(
+          supabase.from('players').select('id').eq('team_id', teamId) as any,
+          10000
+        ) as any,
+      ]);
       const playerIds: string[] = (players || []).map((p: any) => p.id);
+      const allPlayerIds: string[] = (allPlayersData || []).map((p: any) => p.id);
       const noPlayers = playerIds.length === 0;
+      const noAnyPlayers = allPlayerIds.length === 0;
 
       // Phase 2: everything else filtered by team
       const [payDataRes, allPaidRes, expDataRes, incomeDataRes, settingsDataRes] = await Promise.all([
@@ -55,10 +63,10 @@ export default function Finance() {
                 .eq('month', selectedMonth).eq('year', selectedYear).in('player_id', playerIds) as any,
               10000
             ),
-        noPlayers
+        noAnyPlayers
           ? Promise.resolve({ data: [] })
           : withTimeout(
-              supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', playerIds) as any,
+              supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', allPlayerIds) as any,
               10000
             ),
         withTimeout(supabase.from('expenses').select('*').eq('team_id', teamId).order('date', { ascending: false }) as any, 10000),
