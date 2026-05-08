@@ -23,9 +23,9 @@ const getPositionGroup = (pos: string) => {
 };
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; border: string }> = {
-  Activo:   { bg: 'rgba(68,243,169,0.1)',  color: '#44f3a9', border: 'rgba(68,243,169,0.2)' },
-  Lesionado:{ bg: 'rgba(248,113,113,0.1)', color: '#f87171', border: 'rgba(248,113,113,0.2)' },
-  Inactivo: { bg: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: 'rgba(255,255,255,0.08)' },
+  Activo:   { bg: 'rgba(4,20,12,0.88)',  color: '#44f3a9', border: 'rgba(68,243,169,0.35)' },
+  Lesionado:{ bg: 'rgba(20,4,4,0.88)', color: '#f87171', border: 'rgba(248,113,113,0.35)' },
+  Inactivo: { bg: 'rgba(10,14,20,0.88)', color: 'rgba(255,255,255,0.45)', border: 'rgba(255,255,255,0.15)' },
 };
 
 const POS_FILTERS = ['Todos', 'Portero', 'Defensa', 'Medio', 'Delantero'] as const;
