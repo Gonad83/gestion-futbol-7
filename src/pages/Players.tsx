@@ -283,7 +283,7 @@ export default function Players() {
                     </div>
                   </div>
 
-                  {player.participationPct < 25 && totalMatchesYear >= 4 && (
+                  {isAdmin && player.participationPct < 25 && totalMatchesYear >= 4 && (
                     <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.2)' }}>
                       <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: '#fb923c' }}>⚠ Riesgo deserción</span>
                     </div>
