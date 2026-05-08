@@ -131,7 +131,7 @@ export default function Dashboard() {
       const morososWithDetails = activePlayersList.map((player: any) => {
         const playerPayments = payments.filter((p: any) => p.player_id === player.id);
         const paidMonths = new Set(
-          playerPayments.filter((p: any) => p.status === 'Pagado').map((p: any) => `${p.year}-${p.month}`)
+          playerPayments.filter((p: any) => p.status === 'Pagado' || p.status === 'Exento').map((p: any) => `${p.year}-${p.month}`)
         );
         let pendingInfo = playerPayments.filter((p: any) =>
           p.status === 'Pendiente' &&

@@ -147,7 +147,7 @@ export default function Finance() {
       let jYear = joinDate?.getFullYear() ?? curYear;
       let jMonth = joinDate ? joinDate.getMonth() + 1 : curMonth;
       const paidSet = new Set(
-        allHistory.filter((h: any) => h.player_id === p.id && h.status === 'Pagado').map((h: any) => `${h.year}-${h.month}`)
+        allHistory.filter((h: any) => h.player_id === p.id && (h.status === 'Pagado' || h.status === 'Exento')).map((h: any) => `${h.year}-${h.month}`)
       );
       const pending: { year: number; month: number }[] = [];
       let y = jYear; let m = jMonth;
