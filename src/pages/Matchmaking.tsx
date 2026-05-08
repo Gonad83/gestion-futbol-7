@@ -45,6 +45,10 @@ export default function Matchmaking() {
   const isUpcomingProgrammedMatch = (match: any) =>
     match?.status === 'Programado' && new Date(match.date).getTime() >= Date.now();
 
+  const currentMatchObj = matches.find(m => m.id === selectedMatch);
+  const isPastMatch = !!currentMatchObj && !isUpcomingProgrammedMatch(currentMatchObj);
+  const canEdit = canManage && !isPastMatch;
+
   const FORMATIONS: any = {
     '5vs5': [
       { name: 'El Rombo', value: '1-2-1' },
@@ -553,6 +557,11 @@ export default function Matchmaking() {
             <RefreshCw size={14} className={loading ? 'animate-spin text-soccer-green' : ''} />
           </div>
         </div>
+        {isPastMatch && (
+          <span className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest" style={{ background: 'rgba(148,163,184,0.1)', color: 'rgba(148,163,184,0.7)', border: '1px solid rgba(148,163,184,0.2)' }}>
+            👁 Solo vista
+          </span>
+        )}
       </div>
 
       {!selectedMatch ? (
@@ -576,7 +585,7 @@ export default function Matchmaking() {
                 <span className="text-sm font-black text-white min-w-[2ch]">{confirmedPlayers.length}</span>
               </div>
               
-              {!teamsGenerated && canManage && (
+              {!teamsGenerated && canEdit && (
                 <>
                   <button
                     onClick={() => setShowGuestForm(!showGuestForm)}
@@ -617,7 +626,7 @@ export default function Matchmaking() {
                 <Copy size={14} />
                 <span>{copied ? '¡Copiado!' : 'WhatsApp'}</span>
               </button>
-              {canManage && (
+              {canEdit && (
                 <>
                   <button
                     onClick={generateTeams}
@@ -656,7 +665,7 @@ export default function Matchmaking() {
 
           {!teamsGenerated ? (
             <div className="space-y-6">
-              {showGuestForm && canManage && (
+              {showGuestForm && canEdit && (
                 <div className="flex flex-col gap-4 p-6 rounded-3xl fade-in bg-white/5 border border-white/10 backdrop-blur-xl">
                   {!canAddGuest ? (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -708,7 +717,7 @@ export default function Matchmaking() {
                 </div>
               )}
 
-              {showAddPlayerPanel && canManage && (() => {
+              {showAddPlayerPanel && canEdit && (() => {
                 const confirmedIds = new Set(confirmedPlayers.map(p => p.id));
                 const unconfirmed = allActivePlayers.filter(p => !confirmedIds.has(p.id));
                 return (
@@ -785,7 +794,7 @@ export default function Matchmaking() {
                         <Star size={10} className="text-yellow-500 fill-yellow-500" />
                         <span className="text-xs font-black text-white/80">{player.rating}</span>
                       </div>
-                      {canManage && (
+                      {canEdit && (
                         <div className="flex gap-2">
                           {(player.isGuest || player.name.includes('(I)')) && (
                             <button
@@ -861,7 +870,7 @@ export default function Matchmaking() {
                           <span className={`text-[10px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
                           <div className="flex gap-1">
                             {getMatchFormations().map((f: any) => (
-                              <button key={f.value} onClick={() => { t === 'A' ? setFormationA(f.value) : setFormationB(f.value); setSaved(false); }}
+                              <button key={f.value} disabled={isPastMatch} onClick={() => { if (isPastMatch) return; t === 'A' ? setFormationA(f.value) : setFormationB(f.value); setSaved(false); }}
                                 className={`text-[10px] px-2.5 py-1 rounded-xl font-bold transition-all border ${
                                   (t === 'A' ? formationA : formationB) === f.value
                                     ? (t === 'A' ? 'bg-soccer-green text-black border-soccer-green shadow-[0_0_15px_rgba(68,243,169,0.3)]' : 'bg-blue-600 text-white border-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]')
@@ -888,7 +897,7 @@ export default function Matchmaking() {
                           <span className={`text-[10px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
                           <div className="flex gap-2">
                             {JERSEY_COLORS.map(c => (
-                              <button key={c.value} onClick={() => { t === 'A' ? setColorA(c.value) : setColorB(c.value); setSaved(false); }}
+                              <button key={c.value} disabled={isPastMatch} onClick={() => { if (isPastMatch) return; t === 'A' ? setColorA(c.value) : setColorB(c.value); setSaved(false); }}
                                 className={`w-5 h-5 rounded-lg border-2 transition-all ${c.class} shadow-lg ${
                                   (t === 'A' ? colorA : colorB) === c.value ? 'scale-125 border-white ring-2 ring-white/20' : 'border-transparent opacity-30 hover:opacity-100'
                                 }`} />
@@ -973,7 +982,7 @@ export default function Matchmaking() {
                                 {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover object-center" alt={p.name} /> : <span className="text-[10px] font-black opacity-30">{p.name.charAt(0)}</span>}
                               </div>
                               <div className="flex-1 min-w-0">
-                                {(p.isGuest || p.name.includes('(I)')) && canManage && editingGuestId === p.id ? (
+                                {(p.isGuest || p.name.includes('(I)')) && canEdit && editingGuestId === p.id ? (
                                   <div className="flex items-center gap-1.5">
                                     <input
                                       type="text"
@@ -995,7 +1004,7 @@ export default function Matchmaking() {
                                     <span className="font-black text-xs text-white/90 uppercase tracking-tight truncate group-hover/item:text-white transition-colors">
                                       {p.name}
                                     </span>
-                                    {(p.isGuest || p.name.includes('(I)')) && canManage && (
+                                    {(p.isGuest || p.name.includes('(I)')) && canEdit && (
                                       <button
                                         onClick={() => {
                                           setEditingGuestId(p.id);
@@ -1006,7 +1015,7 @@ export default function Matchmaking() {
                                         <Edit2 size={11} />
                                       </button>
                                     )}
-                                    {canManage && (
+                                    {canEdit && (
                                       <button
                                         onClick={() => removeFromPool(p)}
                                         className="opacity-0 group-hover/item:opacity-100 text-red-500/40 hover:text-red-500 flex-shrink-0 transition-all ml-1"
@@ -1023,7 +1032,7 @@ export default function Matchmaking() {
                         ))}
                       </div>
                       
-                      {canManage && (
+                      {canEdit && (
                         <button
                           onClick={() => { setShowGuestModal({ team }); setGuestModalName(''); setGuestModalRating('5'); }}
                           className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-white/5 text-[10px] font-black uppercase tracking-[0.3em] text-white/20 hover:text-white/60 hover:border-white/20 hover:bg-white/[0.02] transition-all"
