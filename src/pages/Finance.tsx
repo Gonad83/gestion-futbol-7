@@ -22,6 +22,7 @@ export default function Finance() {
   const [showIncomeForm, setShowIncomeForm] = useState(false);
   const [incomeData, setIncomeData] = useState({ concept: '', amount: '', date: today });
   const [customAmounts, setCustomAmounts] = useState<Record<string, number>>({});
+  const [paymentMethods, setPaymentMethods] = useState<Record<string, string>>({});
 
   const [editingQuota, setEditingQuota] = useState(false);
   const [quotaInput, setQuotaInput] = useState('');
@@ -60,7 +61,7 @@ export default function Finance() {
           ? Promise.resolve({ data: [] })
           : withTimeout(
               supabase.from('payments').select('*, player:players(name, nickname)')
-                .eq('month', selectedMonth).eq('year', selectedYear).in('player_id', playerIds) as any,
+                .eq('month', selectedMonth).eq('year', selectedYear).in('player_id', playerIds).order('created_at', { ascending: false }) as any,
               10000
             ),
         noAnyPlayers
@@ -183,7 +184,8 @@ export default function Finance() {
 
     const remainingDebtForCurrentMonth = Math.max(0, quotaAmount - Number(player.amount || 0));
     const amount = customAmounts[player.player_id] !== undefined ? customAmounts[player.player_id] : remainingDebtForCurrentMonth;
-    
+    const method = paymentMethods[player.player_id] || 'Transferencia';
+
     if (amount <= 0) return;
 
     const confirmMessage = `¿Abonar o pagar ${clp(amount)} a nombre de ${player.name} a partir de ${MONTHS[selectedMonth-1]} ${selectedYear}?`;
@@ -238,7 +240,7 @@ export default function Finance() {
 
         if (existing?.id) {
           const { error } = await supabase.from('payments')
-            .update({ status: newStatus, amount: newTotalPaid })
+            .update({ status: newStatus, amount: newTotalPaid, payment_method: method })
             .eq('id', existing.id);
           if (error) throw error;
         } else {
@@ -248,7 +250,8 @@ export default function Finance() {
               amount: newTotalPaid,
               month: tMonth,
               year: tYear,
-              status: newStatus
+              status: newStatus,
+              payment_method: method,
             }]);
           if (error) throw error;
         }
@@ -259,11 +262,8 @@ export default function Finance() {
         if (offset > 24) break; 
       }
       
-      setCustomAmounts(prev => {
-        const next = { ...prev };
-        delete next[player.player_id];
-        return next;
-      });
+      setCustomAmounts(prev => { const next = { ...prev }; delete next[player.player_id]; return next; });
+      setPaymentMethods(prev => { const next = { ...prev }; delete next[player.player_id]; return next; });
 
       await fetchData();
     } catch (e: any) {
@@ -708,7 +708,18 @@ export default function Finance() {
                                     )}
                                   </div>
                                 ) : (
-                                  <span>{clp(p.amount)}</span>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <span>{clp(p.amount)}</span>
+                                    {p.status === 'Pagado' && p.payment_method && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{
+                                        background: p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.1)' : p.payment_method === 'Flow' ? 'rgba(154,203,255,0.1)' : 'rgba(255,208,139,0.1)',
+                                        color: p.payment_method === 'Efectivo' ? '#44f3a9' : p.payment_method === 'Flow' ? '#9acbff' : '#ffd08b',
+                                        border: `1px solid ${p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.25)' : p.payment_method === 'Flow' ? 'rgba(154,203,255,0.25)' : 'rgba(255,208,139,0.25)'}`,
+                                      }}>
+                                        {p.payment_method === 'Efectivo' ? '💵' : p.payment_method === 'Flow' ? '💳' : '🏦'} {p.payment_method}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </td>
                               {isAdmin && (
@@ -725,12 +736,24 @@ export default function Finance() {
                                         </button>
                                       )}
                                       {p.status !== 'Pagado' && selectedMonth > 2 && (
-                                        <button
-                                          onClick={() => handlePaymentToggle(p)}
-                                          className="text-xs font-bold px-3 py-1.5 rounded-lg border border-soccer-green/50 text-soccer-green hover:bg-soccer-green/10 bg-soccer-green/5 transition-all whitespace-nowrap"
-                                        >
-                                          Abonar / Pagar
-                                        </button>
+                                        <div className="flex items-center gap-1.5">
+                                          <select
+                                            value={paymentMethods[p.player_id] || 'Transferencia'}
+                                            onChange={e => setPaymentMethods(prev => ({ ...prev, [p.player_id]: e.target.value }))}
+                                            className="text-[10px] font-bold rounded-lg px-1.5 py-1.5 border focus:outline-none"
+                                            style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
+                                          >
+                                            <option value="Transferencia">🏦 Transferencia</option>
+                                            <option value="Efectivo">💵 Efectivo</option>
+                                            <option value="Flow">💳 Flow</option>
+                                          </select>
+                                          <button
+                                            onClick={() => handlePaymentToggle(p)}
+                                            className="text-xs font-bold px-3 py-1.5 rounded-lg border border-soccer-green/50 text-soccer-green hover:bg-soccer-green/10 bg-soccer-green/5 transition-all whitespace-nowrap"
+                                          >
+                                            Pagar
+                                          </button>
+                                        </div>
                                       )}
                                     </div>
                                   )}
