@@ -42,6 +42,9 @@ export default function Matchmaking() {
   const { isMatchmaker: canManage, teamId } = useAuth();
   const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '', plan: 'free' });
 
+  const isUpcomingProgrammedMatch = (match: any) =>
+    match?.status === 'Programado' && new Date(match.date).getTime() >= Date.now();
+
   const FORMATIONS: any = {
     '5vs5': [
       { name: 'El Rombo', value: '1-2-1' },
@@ -97,20 +100,62 @@ export default function Matchmaking() {
       if (settings) {
         setTeamSettings({ team_name: settings.team_name, logo_url: settings.logo_url || '', plan: settings.plan || 'free' });
       }
-      const { data } = (await withTimeout(
+      const nowIso = new Date().toISOString();
+
+      const { data: upcomingMatches } = (await withTimeout(
         supabase
           .from('matches')
           .select('*')
           .eq('team_id', teamId)
           .eq('status', 'Programado')
-          .gte('date', new Date().toISOString())
+          .gte('date', nowIso)
           .order('date', { ascending: true }) as any,
         10000
       )) as any;
-      if (data && data.length > 0) {
-        setMatches(data);
-        setSelectedMatch(data[0].id);
+
+      const { data: savedTeams } = (await withTimeout(
+        supabase
+          .from('generated_teams')
+          .select('match_id') as any,
+        10000
+      )) as any;
+
+      const savedMatchIds = Array.from(new Set((savedTeams || []).map((row: any) => row.match_id).filter(Boolean)));
+      const { data: savedMatches } = savedMatchIds.length > 0
+        ? (await withTimeout(
+            supabase
+              .from('matches')
+              .select('*')
+              .eq('team_id', teamId)
+              .in('id', savedMatchIds) as any,
+            10000
+          )) as any
+        : { data: [] };
+
+      const savedIdSet = new Set(savedMatchIds);
+      const byId = new Map<string, any>();
+      [...(upcomingMatches || []), ...(savedMatches || [])].forEach((match: any) => {
+        byId.set(match.id, { ...match, has_saved_teams: savedIdSet.has(match.id) });
+      });
+
+      const allMatches = Array.from(byId.values());
+      const upcoming = allMatches
+        .filter(isUpcomingProgrammedMatch)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const history = allMatches
+        .filter(match => !isUpcomingProgrammedMatch(match) && match.has_saved_teams)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const orderedMatches = [...upcoming, ...history];
+
+      if (orderedMatches.length > 0) {
+        setMatches(orderedMatches);
+        setSelectedMatch(current => {
+          if (current && orderedMatches.some(match => match.id === current)) return current;
+          return upcoming[0]?.id || orderedMatches[0].id;
+        });
       } else {
+        setMatches([]);
+        setSelectedMatch('');
         setLoading(false);
       }
     } catch (e) { 
@@ -511,10 +556,10 @@ export default function Matchmaking() {
               setSelectedMatch(e.target.value);
             }}
           >
-            {matches.length === 0 && <option value="">No hay partidos programados</option>}
+            {matches.length === 0 && <option value="">No hay partidos ni formaciones guardadas</option>}
             {matches.map(m => (
               <option key={m.id} value={m.id} className="bg-slate-900 text-white">
-                ⚽ {format(new Date(m.date), 'dd/MM/yyyy')} — {m.location}
+                {isUpcomingProgrammedMatch(m) ? '⚽ Próximo' : '📚 Historial'} · {format(new Date(m.date), 'dd/MM/yyyy')} — {m.location}
               </option>
             ))}
           </select>

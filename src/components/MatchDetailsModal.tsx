@@ -483,13 +483,15 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                       <p className="font-medium text-white">{match.location}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Users className="text-soccer-green" size={20} />
-                    <div>
-                      <p className="text-xs text-slate-400 uppercase">Formato</p>
-                      <p className="font-medium text-white">{match.match_type || '7vs7'}</p>
+                  {match.event_type !== 'Recreacional' && (
+                    <div className="flex items-center gap-3">
+                      <Users className="text-soccer-green" size={20} />
+                      <div>
+                        <p className="text-xs text-slate-400 uppercase">Formato</p>
+                        <p className="font-medium text-white">{match.match_type || '7vs7'}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <div className="mt-2 text-sm">
                     <span className={`px-2 py-1 rounded-full ${
                       match.status === 'Programado' ? 'bg-blue-500/20 text-blue-400' :
