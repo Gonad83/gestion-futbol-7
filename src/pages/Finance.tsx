@@ -174,6 +174,22 @@ export default function Finance() {
   const totalCashIncomes = cashIncomes.reduce((acc, i) => acc + Number(i.amount), 0);
   const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
   const balance = allPaidAmount + totalCashIncomes - totalExpenses;
+
+  const expByMonth: Record<string, number> = {};
+  expenses.forEach(e => {
+    if (!e.date) return;
+    const key = String(e.date).slice(0, 7);
+    expByMonth[key] = (expByMonth[key] || 0) + Number(e.amount);
+  });
+  const monthlyExpAmounts = Object.values(expByMonth) as number[];
+  const avgMonthlyExp = monthlyExpAmounts.length > 0 ? monthlyExpAmounts.reduce((a, b) => a + b, 0) / monthlyExpAmounts.length : 0;
+  const mesesRespaldo = avgMonthlyExp > 0 ? Math.round((balance / avgMonthlyExp) * 10) / 10 : 0;
+
+  const curMonth = now.getMonth() + 1;
+  const curYear = now.getFullYear();
+  const morososThisMonth = morosos.filter(p => p.pendingMonths.some((m: any) => m.month === curMonth && m.year === curYear)).length;
+  const totalActivePlayers = payments.filter(p => !p.isAutoExempt).length;
+  const tasaMora = totalActivePlayers > 0 ? Math.round((morososThisMonth / totalActivePlayers) * 100) : 0;
   const monthlyIncome = payments.filter(p => p.status === 'Pagado').reduce((acc, p) => acc + Number(p.amount), 0);
   const filteredPayments = payments.filter(p => {
     const matchesSearch = !search.trim() || `${p.name} ${p.nickname ?? ''}`.toLowerCase().includes(search.toLowerCase());
@@ -583,6 +599,48 @@ export default function Finance() {
           </div>
           <p className="text-4xl font-black tracking-tighter text-white relative z-10">{clp(totalExpenses)}</p>
           <div className="mt-4 h-1 w-12 bg-red-500/30 rounded-full"></div>
+        </div>
+      </div>
+
+      {/* Financial Intelligence Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        <div className="rounded-2xl p-6" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">Meses de Respaldo</h3>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{
+              background: mesesRespaldo >= 3 ? 'rgba(68,243,169,0.12)' : mesesRespaldo >= 1 ? 'rgba(255,208,139,0.12)' : 'rgba(248,113,113,0.12)',
+              color: mesesRespaldo >= 3 ? '#44f3a9' : mesesRespaldo >= 1 ? '#ffd08b' : '#f87171',
+            }}>
+              {mesesRespaldo >= 3 ? '✓ Saludable' : mesesRespaldo >= 1 ? '⚠ Ajustado' : balance <= 0 ? '✗ Crítico' : 'Sin datos'}
+            </span>
+          </div>
+          <p className="text-4xl font-black tracking-tighter text-white">{mesesRespaldo > 0 ? mesesRespaldo.toFixed(1) : '—'}</p>
+          <p className="text-[10px] text-slate-500 mt-2">meses que cubre el saldo actual</p>
+          <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-full rounded-full transition-all duration-700" style={{
+              width: `${Math.min(100, (Math.max(0, mesesRespaldo) / 6) * 100)}%`,
+              background: mesesRespaldo >= 3 ? '#44f3a9' : mesesRespaldo >= 1 ? '#ffd08b' : '#f87171',
+            }} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-6" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">Tasa de Morosidad</h3>
+            {tasaMora > 15 && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
+                ⚠ Alerta
+              </span>
+            )}
+          </div>
+          <p className="text-4xl font-black tracking-tighter text-white">{tasaMora}%</p>
+          <p className="text-[10px] text-slate-500 mt-2">jugadores con cuota pendiente este mes</p>
+          <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-full rounded-full transition-all duration-700" style={{
+              width: `${Math.min(100, tasaMora)}%`,
+              background: tasaMora > 15 ? '#f87171' : tasaMora > 5 ? '#ffd08b' : '#44f3a9',
+            }} />
+          </div>
         </div>
       </div>
 

@@ -25,8 +25,6 @@ export default function Dashboard() {
     confirmedCount: 0,
     morosos: [] as any[],
     balance: 0,
-    mesesRespaldo: 0,
-    tasaMora: 0,
     activePlayers: 0,
     totalPlayers: 0,
     declinedCount: 0,
@@ -93,7 +91,7 @@ export default function Dashboard() {
               supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', playerIds) as any,
               15000
             ),
-        withTimeout(supabase.from('expenses').select('amount, date').eq('team_id', teamId) as any, 15000),
+        withTimeout(supabase.from('expenses').select('amount').eq('team_id', teamId) as any, 15000),
         withTimeout(supabase.from('cash_incomes').select('amount').eq('team_id', teamId) as any, 15000),
         noPlayers
           ? Promise.resolve({ data: [] })
@@ -158,27 +156,6 @@ export default function Dashboard() {
       const totalExp = expData.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
       const totalManualIncomes = incomeData.reduce((acc: number, i: any) => acc + Number(i.amount), 0);
       const balance = totalIncome + totalManualIncomes - totalExp;
-
-      // Meses de Respaldo: balance / avg monthly expenses
-      const expByMonth: Record<string, number> = {};
-      expData.forEach((e: any) => {
-        if (!e.date) return;
-        const key = String(e.date).slice(0, 7);
-        expByMonth[key] = (expByMonth[key] || 0) + Number(e.amount);
-      });
-      const monthlyExpAmounts = Object.values(expByMonth) as number[];
-      const avgMonthlyExp = monthlyExpAmounts.length > 0
-        ? monthlyExpAmounts.reduce((a, b) => a + b, 0) / monthlyExpAmounts.length
-        : 0;
-      const mesesRespaldo = avgMonthlyExp > 0 ? Math.round((balance / avgMonthlyExp) * 10) / 10 : 0;
-
-      // Tasa de Morosidad: % active players with pending current month
-      const morososThisMonth = morososWithDetails.filter((p: any) =>
-        p.pendingPayments.some((pm: any) => pm.month === currentMonth && pm.year === currentYear)
-      ).length;
-      const tasaMora = activePlayersList.length > 0
-        ? Math.round((morososThisMonth / activePlayersList.length) * 100)
-        : 0;
 
       // Top Participaciones (filtered by team's players via attendanceRes)
       const allAttendance = (attendanceRes as any).data || [];
@@ -311,8 +288,6 @@ export default function Dashboard() {
         pendingCount,
         morosos: morososWithDetails,
         balance,
-        mesesRespaldo,
-        tasaMora,
         activePlayers: activePlayersList.length,
         totalPlayers: allPlayers.length,
         topParticipations,
@@ -638,50 +613,6 @@ export default function Dashboard() {
             </div>
           </Link>
         ))}
-      </div>
-
-      {/* Financial Intelligence Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Meses de Respaldo */}
-        <div className="rounded-2xl p-5" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Meses de Respaldo</p>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{
-              background: stats.mesesRespaldo >= 3 ? 'rgba(68,243,169,0.12)' : stats.mesesRespaldo >= 1 ? 'rgba(255,208,139,0.12)' : 'rgba(248,113,113,0.12)',
-              color: stats.mesesRespaldo >= 3 ? '#44f3a9' : stats.mesesRespaldo >= 1 ? '#ffd08b' : '#f87171',
-            }}>
-              {stats.mesesRespaldo >= 3 ? '✓ Saludable' : stats.mesesRespaldo >= 1 ? '⚠ Ajustado' : stats.balance <= 0 ? '✗ Crítico' : 'Sin datos'}
-            </span>
-          </div>
-          <p className="font-headline text-3xl font-black text-white mb-1">{stats.mesesRespaldo > 0 ? stats.mesesRespaldo.toFixed(1) : '—'}</p>
-          <p className="text-xs text-white/35 mb-3">meses que cubre el saldo actual</p>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="h-full rounded-full transition-all duration-700" style={{
-              width: `${Math.min(100, (Math.max(0, stats.mesesRespaldo) / 6) * 100)}%`,
-              background: stats.mesesRespaldo >= 3 ? '#44f3a9' : stats.mesesRespaldo >= 1 ? '#ffd08b' : '#f87171',
-            }} />
-          </div>
-        </div>
-
-        {/* Tasa de Morosidad */}
-        <div className="rounded-2xl p-5" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Tasa de Morosidad</p>
-            {stats.tasaMora > 15 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
-                ⚠ Alerta
-              </span>
-            )}
-          </div>
-          <p className="font-headline text-3xl font-black text-white mb-1">{stats.tasaMora}%</p>
-          <p className="text-xs text-white/35 mb-3">jugadores con cuota pendiente este mes</p>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="h-full rounded-full transition-all duration-700" style={{
-              width: `${Math.min(100, stats.tasaMora)}%`,
-              background: stats.tasaMora > 15 ? '#f87171' : stats.tasaMora > 5 ? '#ffd08b' : '#44f3a9',
-            }} />
-          </div>
-        </div>
       </div>
 
       {/* Main Grid */}
