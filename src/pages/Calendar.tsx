@@ -69,7 +69,7 @@ export default function Calendar() {
   const birthdaysThisMonth = players
     .filter(p => p.birth_date)
     .map(p => {
-      const bd = new Date(p.birth_date);
+      const bd = new Date(p.birth_date + 'T12:00:00');
       return { ...p, birthdayDate: new Date(currentDate.getFullYear(), bd.getMonth(), bd.getDate()) };
     })
     .filter(p => p.birthdayDate.getMonth() === currentDate.getMonth());
