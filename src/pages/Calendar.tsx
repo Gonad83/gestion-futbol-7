@@ -61,7 +61,7 @@ export default function Calendar() {
 
   const fetchPlayers = async () => {
     const { data } = await supabase.from('players').select('id, name, nickname, birth_date')
-      .eq('team_id', teamId).eq('status', 'Activo').not('birth_date', 'is', null);
+      .eq('team_id', teamId).not('birth_date', 'is', null);
     if (data) setPlayers(data);
   };
 
