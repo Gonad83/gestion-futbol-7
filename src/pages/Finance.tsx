@@ -112,7 +112,9 @@ export default function Finance() {
         const joinDate = p.created_at ? new Date(p.created_at) : null;
         const joinYear = joinDate?.getFullYear() ?? selectedYear;
         const joinMonth = joinDate ? joinDate.getMonth() + 1 : selectedMonth;
-        const isExempt = selectedYear < joinYear || (selectedYear === joinYear && selectedMonth < joinMonth);
+        const isAutoExempt = selectedYear < joinYear || (selectedYear === joinYear && selectedMonth < joinMonth);
+        const isManualExempt = !isAutoExempt && payment?.status === 'Exento';
+        const isExempt = isAutoExempt || isManualExempt;
 
         // N8N Compatibility: n8n inserts Pendiente with amount=quotaAmount to represent the debt.
         // We want 'amount' to always represent the 'paid amount'.
@@ -129,6 +131,8 @@ export default function Finance() {
           amount: actualPaidAmount,
           status: isExempt ? 'Exento' : (payment?.status ?? 'Pendiente'),
           isExempt,
+          isAutoExempt,
+          isManualExempt,
           notified_at: payment?.notified_at ?? null,
           payment_method: payment?.payment_method ?? null,
         };
@@ -197,6 +201,28 @@ export default function Finance() {
     if (error) { alert('Error al guardar: ' + error.message); return; }
     setQuotaAmount(val);
     setEditingQuota(false);
+  };
+
+  const handleSetExempt = async (player: any) => {
+    if (!isAdmin) return;
+    try {
+      if (player.payment_id) {
+        await supabase.from('payments').update({ status: 'Exento', amount: 0 }).eq('id', player.payment_id);
+      } else {
+        await supabase.from('payments').insert([{ player_id: player.player_id, month: selectedMonth, year: selectedYear, amount: 0, status: 'Exento' }]);
+      }
+      await fetchData();
+    } catch (e: any) { alert(`Error: ${e?.message}`); }
+  };
+
+  const handleUnsetExempt = async (player: any) => {
+    if (!isAdmin) return;
+    try {
+      if (player.payment_id) {
+        await supabase.from('payments').update({ status: 'Pendiente', amount: 0 }).eq('id', player.payment_id);
+      }
+      await fetchData();
+    } catch (e: any) { alert(`Error: ${e?.message}`); }
   };
 
   const handleCancelPayment = async (player: any) => {
@@ -756,39 +782,61 @@ export default function Finance() {
                               </td>
                               {isAdmin && (
                                 <td className="px-5 py-4 text-right">
-                                  {!p.isExempt && (
-                                    <div className="flex justify-end items-center gap-2">
-                                      {p.amount > 0 && (
-                                        <button
-                                          onClick={() => handleCancelPayment(p)}
-                                          className="text-[10px] font-bold px-2 py-1.5 rounded transition-colors border border-red-500/30 text-red-500 hover:bg-red-500/10"
-                                          title="Anular pago"
-                                        >
-                                          Anular
-                                        </button>
-                                      )}
-                                      {p.status !== 'Pagado' && selectedMonth > 2 && (
-                                        <div className="flex items-center gap-1.5">
-                                          <select
-                                            value={paymentMethods[p.player_id] || 'Transferencia'}
-                                            onChange={e => setPaymentMethods(prev => ({ ...prev, [p.player_id]: e.target.value }))}
-                                            className="text-[10px] font-bold rounded-lg px-1.5 py-1.5 border focus:outline-none"
-                                            style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
-                                          >
-                                            <option value="Transferencia">🏦 Transferencia</option>
-                                            <option value="Efectivo">💵 Efectivo</option>
-                                            <option value="Link de Pago">💳 Link de Pago</option>
-                                          </select>
+                                  <div className="flex justify-end items-center gap-2">
+                                    {/* Quitar exención manual */}
+                                    {p.isManualExempt && (
+                                      <button
+                                        onClick={() => handleUnsetExempt(p)}
+                                        className="text-[10px] font-bold px-2 py-1.5 rounded transition-colors border border-slate-500/30 text-slate-400 hover:bg-slate-500/10"
+                                        title="Quitar exención"
+                                      >
+                                        Quitar
+                                      </button>
+                                    )}
+                                    {!p.isExempt && (
+                                      <>
+                                        {p.amount > 0 && (
                                           <button
-                                            onClick={() => handlePaymentToggle(p)}
-                                            className="text-xs font-bold px-3 py-1.5 rounded-lg border border-soccer-green/50 text-soccer-green hover:bg-soccer-green/10 bg-soccer-green/5 transition-all whitespace-nowrap"
+                                            onClick={() => handleCancelPayment(p)}
+                                            className="text-[10px] font-bold px-2 py-1.5 rounded transition-colors border border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                            title="Anular pago"
                                           >
-                                            Pagar
+                                            Anular
                                           </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+                                        )}
+                                        {p.status !== 'Pagado' && selectedMonth > 2 && (
+                                          <>
+                                            <button
+                                              onClick={() => handleSetExempt(p)}
+                                              className="text-[10px] font-bold px-2 py-1.5 rounded-lg transition-all whitespace-nowrap"
+                                              style={{ background: 'rgba(148,163,184,0.08)', color: 'rgba(148,163,184,0.6)', border: '1px solid rgba(148,163,184,0.15)' }}
+                                              title="Marcar como no aplica este mes"
+                                            >
+                                              No aplica
+                                            </button>
+                                            <div className="flex items-center gap-1.5">
+                                              <select
+                                                value={paymentMethods[p.player_id] || 'Transferencia'}
+                                                onChange={e => setPaymentMethods(prev => ({ ...prev, [p.player_id]: e.target.value }))}
+                                                className="text-[10px] font-bold rounded-lg px-1.5 py-1.5 border focus:outline-none"
+                                                style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
+                                              >
+                                                <option value="Transferencia">🏦 Transferencia</option>
+                                                <option value="Efectivo">💵 Efectivo</option>
+                                                <option value="Link de Pago">💳 Link de Pago</option>
+                                              </select>
+                                              <button
+                                                onClick={() => handlePaymentToggle(p)}
+                                                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-soccer-green/50 text-soccer-green hover:bg-soccer-green/10 bg-soccer-green/5 transition-all whitespace-nowrap"
+                                              >
+                                                Pagar
+                                              </button>
+                                            </div>
+                                          </>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
                                 </td>
                               )}
                             </tr>
