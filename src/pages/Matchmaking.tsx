@@ -101,56 +101,42 @@ export default function Matchmaking() {
         setTeamSettings({ team_name: settings.team_name, logo_url: settings.logo_url || '', plan: settings.plan || 'free' });
       }
       const nowIso = new Date().toISOString();
+      const threeWeeks = new Date();
+      threeWeeks.setDate(threeWeeks.getDate() + 21);
+      const threeWeeksIso = threeWeeks.toISOString();
 
+      // Upcoming: next 3 weeks, no recreational
       const { data: upcomingMatches } = (await withTimeout(
-        supabase
-          .from('matches')
-          .select('*')
-          .eq('team_id', teamId)
-          .eq('status', 'Programado')
-          .gte('date', nowIso)
+        supabase.from('matches').select('*').eq('team_id', teamId)
+          .eq('status', 'Programado').neq('event_type', 'Recreacional')
+          .gte('date', nowIso).lte('date', threeWeeksIso)
           .order('date', { ascending: true }) as any,
         10000
       )) as any;
 
-      const { data: savedTeams } = (await withTimeout(
-        supabase
-          .from('generated_teams')
-          .select('match_id') as any,
+      // Past: last 3 non-recreational matches
+      const { data: pastMatches } = (await withTimeout(
+        supabase.from('matches').select('*').eq('team_id', teamId)
+          .neq('event_type', 'Recreacional').lt('date', nowIso)
+          .order('date', { ascending: false }).limit(3) as any,
         10000
       )) as any;
 
-      const savedMatchIds = Array.from(new Set((savedTeams || []).map((row: any) => row.match_id).filter(Boolean)));
-      const { data: savedMatches } = savedMatchIds.length > 0
-        ? (await withTimeout(
-            supabase
-              .from('matches')
-              .select('*')
-              .eq('team_id', teamId)
-              .in('id', savedMatchIds) as any,
-            10000
-          )) as any
+      // Check which matches have saved teams
+      const allIds = [...(upcomingMatches || []), ...(pastMatches || [])].map((m: any) => m.id);
+      const { data: savedTeams } = allIds.length > 0
+        ? (await withTimeout(supabase.from('generated_teams').select('match_id').in('match_id', allIds) as any, 10000)) as any
         : { data: [] };
 
-      const savedIdSet = new Set(savedMatchIds);
-      const byId = new Map<string, any>();
-      [...(upcomingMatches || []), ...(savedMatches || [])].forEach((match: any) => {
-        byId.set(match.id, { ...match, has_saved_teams: savedIdSet.has(match.id) });
-      });
-
-      const allMatches = Array.from(byId.values());
-      const upcoming = allMatches
-        .filter(isUpcomingProgrammedMatch)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      const history = allMatches
-        .filter(match => !isUpcomingProgrammedMatch(match) && match.has_saved_teams)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const savedIdSet = new Set((savedTeams || []).map((r: any) => r.match_id));
+      const upcoming = (upcomingMatches || []).map((m: any) => ({ ...m, has_saved_teams: savedIdSet.has(m.id) }));
+      const history = (pastMatches || []).map((m: any) => ({ ...m, has_saved_teams: savedIdSet.has(m.id) }));
       const orderedMatches = [...upcoming, ...history];
 
       if (orderedMatches.length > 0) {
         setMatches(orderedMatches);
         setSelectedMatch(current => {
-          if (current && orderedMatches.some(match => match.id === current)) return current;
+          if (current && orderedMatches.some((match: any) => match.id === current)) return current;
           return upcoming[0]?.id || orderedMatches[0].id;
         });
       } else {
@@ -559,7 +545,7 @@ export default function Matchmaking() {
             {matches.length === 0 && <option value="">No hay partidos ni formaciones guardadas</option>}
             {matches.map(m => (
               <option key={m.id} value={m.id} className="bg-slate-900 text-white">
-                {isUpcomingProgrammedMatch(m) ? '⚽ Próximo' : '📚 Historial'} · {format(new Date(m.date), 'dd/MM/yyyy')} — {m.location}
+                {isUpcomingProgrammedMatch(m) ? '⚽ Próximo' : '📅 Pasado'} · {format(new Date(m.date), 'dd/MM/yyyy')} — {m.location}
               </option>
             ))}
           </select>
