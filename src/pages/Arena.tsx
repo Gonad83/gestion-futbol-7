@@ -696,43 +696,6 @@ export default function Arena() {
 
         {/* ══ RIGHT: Formation builder ══ */}
         <div className="space-y-4">
-          <div className="rounded-2xl p-4 space-y-3" style={cardStyle}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-black text-white italic">{avg}</p>
-                <p className="text-[9px] text-white/25 uppercase tracking-widest font-bold">rating prom.</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}><RotateCcw size={11} /> Reset</button>
-                <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
-                  style={saved ? { background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.3)' } : { background: '#44f3a9', color: '#003822' }}>
-                  {saved ? <><CheckCircle2 size={12} /> Guardado</> : <><Save size={12} /> Guardar</>}
-                </button>
-              </div>
-            </div>
-            <div>
-              <p className="text-[9px] font-black text-white/25 uppercase tracking-widest mb-2">Táctica</p>
-              <div className="flex flex-wrap gap-2">
-                {FORMATIONS.map(f => (
-                  <button key={f.value} onClick={() => applyFormation(f.value)} className="px-3 py-1.5 rounded-xl text-xs font-bold"
-                    style={formation === f.value ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.4)' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <span className="font-black">{f.value}</span><span className="ml-1 text-[10px] opacity-60">{f.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[9px] font-black text-white/25 uppercase tracking-widest mb-2">Camiseta</p>
-              <div className="flex gap-2 flex-wrap">
-                {JERSEY_COLORS.map(c => (
-                  <button key={c.value} onClick={() => { setColor(c.value); setSaved(false); }} title={c.name}
-                    className={`w-6 h-6 rounded-lg border-2 transition-all ${c.cls} ${color === c.value ? 'scale-125 border-white ring-2 ring-white/20' : 'border-transparent opacity-35 hover:opacity-90'}`} />
-                ))}
-              </div>
-            </div>
-            {anySwap && <p className="text-[10px] text-soccer-green font-bold animate-pulse">⚡ Toca otro jugador para realizar el cambio · Toca el campo para cancelar</p>}
-          </div>
-
           {loadingPitch ? (
             <div className="flex justify-center p-16"><RefreshCw className="animate-spin text-soccer-green" size={28} /></div>
           ) : (
@@ -775,6 +738,43 @@ export default function Arena() {
               </div>
             </div>
           )}
+
+          <div className="rounded-2xl p-4 space-y-3" style={cardStyle}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-black text-white italic">{avg}</p>
+                <p className="text-[9px] text-white/25 uppercase tracking-widest font-bold">rating prom.</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}><RotateCcw size={11} /> Reset</button>
+                <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+                  style={saved ? { background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.3)' } : { background: '#44f3a9', color: '#003822' }}>
+                  {saved ? <><CheckCircle2 size={12} /> Guardado</> : <><Save size={12} /> Guardar</>}
+                </button>
+              </div>
+            </div>
+            <div>
+              <p className="text-[9px] font-black text-white/25 uppercase tracking-widest mb-2">Táctica</p>
+              <div className="flex flex-wrap gap-2">
+                {FORMATIONS.map(f => (
+                  <button key={f.value} onClick={() => applyFormation(f.value)} className="px-3 py-1.5 rounded-xl text-xs font-bold"
+                    style={formation === f.value ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.4)' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <span className="font-black">{f.value}</span><span className="ml-1 text-[10px] opacity-60">{f.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[9px] font-black text-white/25 uppercase tracking-widest mb-2">Camiseta</p>
+              <div className="flex gap-2 flex-wrap">
+                {JERSEY_COLORS.map(c => (
+                  <button key={c.value} onClick={() => { setColor(c.value); setSaved(false); }} title={c.name}
+                    className={`w-6 h-6 rounded-lg border-2 transition-all ${c.cls} ${color === c.value ? 'scale-125 border-white ring-2 ring-white/20' : 'border-transparent opacity-35 hover:opacity-90'}`} />
+                ))}
+              </div>
+            </div>
+            {anySwap && <p className="text-[10px] text-soccer-green font-bold animate-pulse">⚡ Toca otro jugador para realizar el cambio · Toca el campo para cancelar</p>}
+          </div>
         </div>
       </div>
     </div>
