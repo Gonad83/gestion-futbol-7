@@ -696,48 +696,52 @@ export default function Arena() {
 
         {/* ══ RIGHT: Formation builder ══ */}
         <div className="space-y-4">
-          {loadingPitch ? (
-            <div className="flex justify-center p-16"><RefreshCw className="animate-spin text-soccer-green" size={28} /></div>
-          ) : (
-            <div className="relative w-full overflow-hidden shadow-2xl"
-              style={{ aspectRatio: '3/4', background: 'linear-gradient(180deg,#053d2e 0%,#064e3b 40%,#065f46 100%)', border: '5px solid #0a0e14', borderRadius: '2rem' }}
-              onClick={() => swap && setSwap(null)}>
-              <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 9%,rgba(255,255,255,0.06) 9%,rgba(255,255,255,0.06) 10%)' }} />
-              <div className="absolute inset-4 border-2 border-white/15 rounded-xl pointer-events-none" />
-              <div className="absolute left-4 right-4 top-1/2 h-px bg-white/15 pointer-events-none" />
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/15 rounded-full pointer-events-none" />
-              <div className="absolute left-1/2 -translate-x-1/2 top-4 w-28 h-14 border-2 border-white/15 border-t-0 rounded-b-xl pointer-events-none" />
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-4 w-28 h-14 border-2 border-white/15 border-b-0 rounded-t-xl pointer-events-none" />
-              {teamName && <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] font-black text-white/15 uppercase tracking-widest whitespace-nowrap pointer-events-none">{teamName}</div>}
-              {starters.map((player, i) => (
-                <div key={player.id} className="pitch-player"
-                  style={{ ...pitchPos(i, formation), filter: isStarSel(i) ? 'drop-shadow(0 0 14px #44f3a9)' : anySwap && !isStarSel(i) ? 'brightness(0.55)' : undefined, cursor: 'pointer' }}
-                  onClick={e => { e.stopPropagation(); handlePlayer('starter', i); }}>
-                  <FifaCard player={player} color={i === 0 ? 'gold' : color} index={i} isSelected={isStarSel(i)} />
-                </div>
-              ))}
-              {starters.length === 0 && <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"><Globe size={36} className="text-white/15" /><p className="text-white/20 text-xs font-bold">Sin jugadores activos</p></div>}
-            </div>
-          )}
-
-          {bench.length > 0 && (
-            <div className="rounded-2xl overflow-hidden" style={cardStyle}>
-              <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <p className="text-[9px] font-black uppercase tracking-widest text-white/25">Suplentes · {bench.length}</p>
-                {swap?.type === 'bench' && <span className="ml-auto text-[9px] font-black text-soccer-green animate-pulse">Toca un titular para hacer el cambio</span>}
-              </div>
-              <div className="flex gap-2 p-3 overflow-x-auto custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
-                {bench.map((player, i) => (
-                  <div key={player.id} onClick={() => handlePlayer('bench', i)} className="flex-shrink-0 cursor-pointer"
-                    style={{ width: '63px', height: '90px', position: 'relative', filter: isBenchSel(i) ? 'drop-shadow(0 0 10px #44f3a9)' : anySwap && !isBenchSel(i) ? 'brightness(0.45)' : undefined, transition: 'filter 0.2s' }}>
-                    <div style={{ transform: 'scale(0.74)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}>
-                      <FifaCard player={player} color={color} index={i} isSelected={isBenchSel(i)} />
-                    </div>
+          {/* Campo + Suplentes en fila */}
+          <div className="flex gap-2 items-stretch">
+            {loadingPitch ? (
+              <div className="flex-1 flex justify-center p-16"><RefreshCw className="animate-spin text-soccer-green" size={28} /></div>
+            ) : (
+              <div className="flex-1 relative overflow-hidden shadow-2xl"
+                style={{ aspectRatio: '3/4', background: 'linear-gradient(180deg,#053d2e 0%,#064e3b 40%,#065f46 100%)', border: '5px solid #0a0e14', borderRadius: '2rem' }}
+                onClick={() => swap && setSwap(null)}>
+                <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 9%,rgba(255,255,255,0.06) 9%,rgba(255,255,255,0.06) 10%)' }} />
+                <div className="absolute inset-4 border-2 border-white/15 rounded-xl pointer-events-none" />
+                <div className="absolute left-4 right-4 top-1/2 h-px bg-white/15 pointer-events-none" />
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/15 rounded-full pointer-events-none" />
+                <div className="absolute left-1/2 -translate-x-1/2 top-4 w-28 h-14 border-2 border-white/15 border-t-0 rounded-b-xl pointer-events-none" />
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-4 w-28 h-14 border-2 border-white/15 border-b-0 rounded-t-xl pointer-events-none" />
+                {teamName && <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] font-black text-white/15 uppercase tracking-widest whitespace-nowrap pointer-events-none">{teamName}</div>}
+                {starters.map((player, i) => (
+                  <div key={player.id} className="pitch-player"
+                    style={{ ...pitchPos(i, formation), filter: isStarSel(i) ? 'drop-shadow(0 0 14px #44f3a9)' : anySwap && !isStarSel(i) ? 'brightness(0.55)' : undefined, cursor: 'pointer' }}
+                    onClick={e => { e.stopPropagation(); handlePlayer('starter', i); }}>
+                    <FifaCard player={player} color={i === 0 ? 'gold' : color} index={i} isSelected={isStarSel(i)} />
                   </div>
                 ))}
+                {starters.length === 0 && <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"><Globe size={36} className="text-white/15" /><p className="text-white/20 text-xs font-bold">Sin jugadores activos</p></div>}
               </div>
-            </div>
-          )}
+            )}
+
+            {bench.length > 0 && (
+              <div className="flex flex-col rounded-2xl overflow-hidden" style={{ ...cardStyle, width: '68px' }}>
+                <div className="px-1 py-2 text-center flex-shrink-0" style={{ background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <p className="text-[7px] font-black uppercase tracking-widest text-white/25">SUP</p>
+                  <p className="text-[8px] font-black text-white/40">{bench.length}</p>
+                </div>
+                <div className="flex flex-col gap-1.5 p-1.5 overflow-y-auto flex-1 custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
+                  {bench.map((player, i) => (
+                    <div key={player.id} onClick={() => handlePlayer('bench', i)} className="flex-shrink-0 cursor-pointer"
+                      style={{ width: '52px', height: '74px', position: 'relative', filter: isBenchSel(i) ? 'drop-shadow(0 0 10px #44f3a9)' : anySwap && !isBenchSel(i) ? 'brightness(0.45)' : undefined, transition: 'filter 0.2s' }}>
+                      <div style={{ transform: 'scale(0.61)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}>
+                        <FifaCard player={player} color={color} index={i} isSelected={isBenchSel(i)} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {swap?.type === 'bench' && <p className="text-[7px] font-black text-soccer-green text-center p-1 animate-pulse">↑ titular</p>}
+              </div>
+            )}
+          </div>
 
           <div className="rounded-2xl p-4 space-y-3" style={cardStyle}>
             <div className="flex items-center justify-between">
