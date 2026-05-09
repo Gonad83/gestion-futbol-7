@@ -11,6 +11,69 @@ const REGIONS_CL = [
 const AGE_RANGES = ['Open','Sub-18','Sub-21','25+','35+','40+','Mixto'];
 const FORMATS    = ['5vs5','7vs7','11vs11','Todos'];
 
+const CITIES_CL = [
+  'Arica','Iquique','Alto Hospicio','Antofagasta','Calama','Tocopilla','Copiapó','Vallenar',
+  'La Serena','Coquimbo','Ovalle','Illapel','Valparaíso','Viña del Mar','Quilpué','Villa Alemana',
+  'San Antonio','Los Andes','Quillota','San Felipe','Santiago','Puente Alto','Maipú','La Florida',
+  'Las Condes','Ñuñoa','Providencia','San Bernardo','Quilicura','El Bosque','Pudahuel','Peñalolén',
+  'La Pintana','Rancagua','San Fernando','Curicó','Talca','Linares','Constitución','Chillán',
+  'Los Ángeles','Concepción','Talcahuano','Hualpén','San Pedro de la Paz','Coronel','Lota',
+  'Temuco','Padre Las Casas','Angol','Valdivia','Osorno','Puerto Montt','Puerto Varas','Castro',
+  'Coyhaique','Punta Arenas','Puerto Natales',
+];
+
+const COMMUNES_CL = [
+  ...CITIES_CL,
+  'Cerrillos','Cerro Navia','Conchalí','Estación Central','Huechuraba','Independencia',
+  'La Cisterna','La Granja','La Reina','Lo Barnechea','Lo Espejo','Lo Prado','Macul',
+  'Melipilla','Padre Hurtado','Paine','Pedro Aguirre Cerda','Peñaflor','Pirque',
+  'Quinta Normal','Recoleta','Renca','San Joaquín','San José de Maipo','San Miguel',
+  'San Ramón','Talagante','Vitacura','Buin','Colina','Lampa','Tiltil','Curacaví',
+  'Isla de Maipo','Malleco','Cauquenes','Cañete','Lebu','Arauco','Tomé','Penco',
+  'Chiguayante','Hualqui','Florida','Laja','Nacimiento','San Rosendo','Yumbel',
+  'Cabrero','Mulchén','Quilleco','Santa Bárbara','Tucapel','Antuco','Tirrúa',
+  'Calbuco','Maullín','Los Muermos','Frutillar','Llanquihue','Puerto Octay',
+].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a.localeCompare(b, 'es'));
+
+function AutocompleteInput({ label, value, onChange, suggestions, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void;
+  suggestions: string[]; placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const filtered = value.length >= 2
+    ? suggestions.filter(s => s.toLowerCase().startsWith(value.toLowerCase())).slice(0, 6)
+    : [];
+  return (
+    <div className="relative">
+      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">{label}</label>
+      <input
+        type="text"
+        className="input-field"
+        value={value}
+        placeholder={placeholder}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-2xl" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.1)' }}>
+          {filtered.map(s => (
+            <li
+              key={s}
+              onMouseDown={() => { onChange(s); setOpen(false); }}
+              className="px-4 py-2.5 text-sm cursor-pointer hover:bg-soccer-green/10 hover:text-soccer-green transition-colors"
+              style={{ color: 'rgba(255,255,255,0.75)' }}
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function Settings() {
   const { isAdmin, loading: authLoading, teamId } = useAuth();
   const [teamName, setTeamName] = useState('');
@@ -307,14 +370,8 @@ export default function Settings() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Ciudad</label>
-                <input type="text" className="input-field" value={city} onChange={e => setCity(e.target.value)} placeholder="Ej: Santiago" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Comuna</label>
-                <input type="text" className="input-field" value={commune} onChange={e => setCommune(e.target.value)} placeholder="Ej: Las Condes" />
-              </div>
+              <AutocompleteInput label="Ciudad" value={city} onChange={setCity} suggestions={CITIES_CL} placeholder="Ej: Concepción" />
+              <AutocompleteInput label="Comuna" value={commune} onChange={setCommune} suggestions={COMMUNES_CL} placeholder="Ej: San Pedro de la Paz" />
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Región</label>
                 <select className="input-field bg-slate-900" value={region} onChange={e => setRegion(e.target.value)}>
