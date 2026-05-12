@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Eye, EyeOff, KeyRound, CheckCircle2 } from 'lucide-react';
 
+// Capturar el hash ANTES de que Supabase lo borre al procesar el token
+const initialHash = window.location.hash;
+
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
@@ -14,16 +17,19 @@ export default function ResetPassword() {
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    // Verificar si ya hay sesión activa (token ya procesado antes del mount)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setSessionReady(true);
-    });
-    // También escuchar el evento por si llega después del mount
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
         setSessionReady(true);
       }
     });
+
+    // Fallback: si el token ya fue procesado antes del mount, getSession devuelve la sesión recovery
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && initialHash.includes('type=recovery')) {
+        setSessionReady(true);
+      }
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -39,7 +45,11 @@ export default function ResetPassword() {
       setDone(true);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err: any) {
-      setError(err.message || 'Error al cambiar la contraseña');
+      if (err.code === 'same_password' || err.message?.includes('different from the old')) {
+        setError('La nueva contraseña debe ser diferente a la contraseña actual.');
+      } else {
+        setError(err.message || 'Error al cambiar la contraseña');
+      }
     } finally {
       setLoading(false);
     }
