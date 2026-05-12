@@ -5,6 +5,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { Star, Edit2, Trash2, Bell, BellOff, Eye, EyeOff, CheckCircle2, Circle, DollarSign, BellRing, Send, Loader2, Crown, ShieldCheck } from 'lucide-react';
 import PlayerModal from '../components/PlayerModal';
 import { useAuth } from '../hooks/useAuth';
+import { sendMatchReminder, sendPaymentReminder } from '../lib/sendEmail';
 
 export default function AdminPlayers() {
   const { teamId, isAdmin } = useAuth();
@@ -15,7 +16,7 @@ export default function AdminPlayers() {
   const [nextMatch, setNextMatch] = useState<any>(null);
   const [attendances, setAttendances] = useState<any[]>([]);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [sending, setSending] = useState<'pago' | 'recordatorio' | 'lista' | 'test' | null>(null);
+  const [sending, setSending] = useState<'pago' | 'recordatorio' | 'lista' | null>(null);
 
   const [teamName, setTeamName] = useState('Real Ebolo FC');
   const [filterAccount, setFilterAccount] = useState<'all' | 'unlinked'>('all');
@@ -135,148 +136,97 @@ export default function AdminPlayers() {
   };
 
   const sendManualNotification = async (type: 'pago' | 'recordatorio', player: any) => {
-    const url = type === 'pago' ? import.meta.env.VITE_N8N_PAYMENT_URL : import.meta.env.VITE_N8N_REMINDER_URL;
-    const apiKey = import.meta.env.VITE_N8N_API_KEY;
-    if (!url) { alert('Configura VITE_N8N_PAYMENT_URL o VITE_N8N_REMINDER_URL en el .env'); return; }
+    if (!player.email) { alert(`${player.name} no tiene email registrado.`); return; }
     try {
-      const res = await fetch(url, { 
-        method: 'POST', 
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-N8N-API-KEY': apiKey || ''
-        }, 
-        body: JSON.stringify({ player }) 
-      });
-      if (res.ok) alert(`¡Mensaje de ${type} enviado a ${player.name}!`);
-      else alert('Error al enviar. Verifica si el Webhook en n8n está activo.');
-    } catch (e) { alert('Error técnico al conectar con n8n.'); }
+      if (type === 'recordatorio' && nextMatch) {
+        const date = format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
+        const confirmUrl = `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=Voy`;
+        const declineUrl = `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=No%20voy`;
+        await sendMatchReminder(player.email, player.name, date, nextMatch.location || '', confirmUrl, declineUrl);
+      } else if (type === 'pago') {
+        await sendPaymentReminder(player.email, player.name, ['Cuota pendiente'], '$8.000');
+      }
+      alert(`¡Email de ${type === 'recordatorio' ? 'recordatorio' : 'cobro'} enviado a ${player.name}!`);
+    } catch (e) { alert('Error al enviar el email.'); }
   };
 
-  const sendBulkNotification = async (type: 'pago' | 'recordatorio' | 'lista' | 'test') => {
-    let url = '';
-    switch(type) {
-      case 'pago': url = import.meta.env.VITE_N8N_PAYMENT_URL; break;
-      case 'recordatorio': url = import.meta.env.VITE_N8N_REMINDER_URL; break;
-      case 'lista': url = import.meta.env.VITE_N8N_LISTA_FINAL_URL; break;
-      case 'test': url = import.meta.env.VITE_N8N_TEST_MAIL_URL; break;
-    }
-    
-    if (!url) { 
-      const envVarName = type === 'lista' ? 'VITE_N8N_LISTA_FINAL_URL' : `VITE_N8N_${type.toUpperCase()}_URL`;
-      alert(`Configura la URL correspondiente en el .env (${envVarName})`); 
-      return; 
-    }
+  const sendBulkNotification = async (type: 'pago' | 'recordatorio' | 'lista') => {
+    if (type === 'lista') {
+      const url = import.meta.env.VITE_N8N_LISTA_FINAL_URL;
+      if (!url) { alert('Configura VITE_N8N_LISTA_FINAL_URL en el .env'); return; }
+      if (!confirm('¿Estás seguro de enviar la lista final a todo el equipo?')) return;
 
-    if (type === 'lista' && !confirm('¿Estás seguro de enviar la lista final a todo el equipo?')) return;
-
-    setSending(type);
-    try {
-      // Para la lista enviamos los datos procesados, para recordatorios individuales el loop de antes
-      if (type === 'lista') {
+      setSending('lista');
+      try {
         const confirmedPlayers = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
         const declinedPlayers = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'No voy'));
         const pendingPlayers = players.filter(p => p.status === 'Activo' && !attendances.some(a => a.player_id === p.id));
 
-        const confirmadosNames = confirmedPlayers.map(p => `✅ ${p.name}`).join('\n') || 'Ninguno';
-        const bajasNames = declinedPlayers.map(p => `❌ ${p.name}`).join('\n') || 'Ninguno';
-        const pendientesNames = pendingPlayers.map(p => `⏳ ${p.name}`).join('\n') || 'Ninguno';
-        
-        const response = await fetch(url, { 
-          method: 'POST', 
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
-          }, 
-          body: JSON.stringify({ 
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || '' },
+          body: JSON.stringify({
             type: 'admin_summary',
             match_date: nextMatch ? format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es }) : 'Próximo partido',
             match_location: nextMatch?.location || 'Cancha habitual',
-            lista_confirmados: confirmadosNames,
-            lista_bajas: bajasNames,
-            lista_pendientes: pendientesNames,
+            lista_confirmados: confirmedPlayers.map(p => `✅ ${p.name}`).join('\n') || 'Ninguno',
+            lista_bajas: declinedPlayers.map(p => `❌ ${p.name}`).join('\n') || 'Ninguno',
+            lista_pendientes: pendingPlayers.map(p => `⏳ ${p.name}`).join('\n') || 'Ninguno',
             confirmados_count: confirmedPlayers.length,
             bajas_count: declinedPlayers.length,
             pendientes_count: pendingPlayers.length,
             total_players: confirmedPlayers.length,
-            team_info: teamName
-          }) 
+            team_info: teamName,
+          }),
         });
 
-        if (response.ok) {
-          alert('Lista final enviada correctamente a n8n.');
-        } else {
-          alert(`Error en n8n: ${response.status} ${response.statusText}. Verifica que el flujo esté activo.`);
-        }
-      } else if (type === 'test') {
-        await fetch(url, { 
-          method: 'POST', 
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
-          }, 
-          body: JSON.stringify({ email: 'garaosd@gmail.com' }) 
-        });
-        alert('Mail de prueba enviado a garaosd@gmail.com');
-      } else {
-        // Lógica original para pagos y recordatorios masivos
-        let targets = players.filter(p => p.notify !== false && p.status === 'Activo');
-        
-        // Si es recordatorio, solo a los que NO han confirmado (status != 'Voy')
-        if (type === 'recordatorio') {
-          targets = targets.filter(p => !attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
-        }
+        if (response.ok) alert('Lista final enviada correctamente.');
+        else alert(`Error: ${response.status} ${response.statusText}`);
+      } catch (e) {
+        alert('Error al enviar la lista final.');
+      }
+      setSending(null);
+      return;
+    }
 
-        if (targets.length === 0) {
-          const totalActive = players.filter(p => p.status === 'Activo').length;
-          const totalWithNotify = players.filter(p => p.status === 'Activo' && p.notify !== false).length;
-          const alreadyConfirmed = attendances.filter(a => a.status === 'Voy').length;
-          
-          alert(`Criterios de Recordatorio:\n` +
-                `- Jugadores Activos: ${totalActive}\n` +
-                `- Con Campanita: ${totalWithNotify}\n` +
-                `- Ya confirmados (excluidos): ${alreadyConfirmed}\n\n` +
-                `Resultado: 0 jugadores pendientes de avisar.`);
-          setSending(null);
-          return;
-        }
+    // recordatorio / pago → Resend
+    let targets = players.filter(p => p.notify !== false && p.status === 'Activo' && p.email);
 
-        if (!confirm(`¿Enviar ${type === 'pago' ? 'cobro de cuota' : 'recordatorio de partido'} a ${targets.length} jugadores? (Solo con notificación activa)`)) {
-          setSending(null);
-          return;
-        }
+    if (type === 'recordatorio') {
+      targets = targets.filter(p => !attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
+    }
 
-        for (const player of targets) {
-          await fetch(url, { 
-            method: 'POST', 
-            headers: { 
-              'Content-Type': 'application/json',
-              'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
-            }, 
-            body: JSON.stringify({
-              type: type === 'recordatorio' ? 'attendance_reminder' : 'payment_notice',
-              player: {
-                id: player.id,
-                name: player.name,
-                email: player.email,
-                phone: player.phone
-              },
-              match: nextMatch ? {
-                id: nextMatch.id,
-                date: format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es }),
-                location: nextMatch.location
-              } : null,
-              actions: type === 'recordatorio' ? {
-                confirm_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch?.id}&status=Voy`,
-                decline_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch?.id}&status=No%20voy`
-              } : null,
-              team_name: teamName
-            })
-          });
+    if (targets.length === 0) {
+      const alreadyConfirmed = attendances.filter(a => a.status === 'Voy').length;
+      alert(
+        `No hay jugadores a los que enviar.\n` +
+        `- Activos con campanita: ${players.filter(p => p.status === 'Activo' && p.notify !== false).length}\n` +
+        `- Con email: ${players.filter(p => p.status === 'Activo' && p.email).length}\n` +
+        (type === 'recordatorio' ? `- Ya confirmados (excluidos): ${alreadyConfirmed}` : '')
+      );
+      return;
+    }
+
+    if (!confirm(`¿Enviar ${type === 'pago' ? 'cobro de cuota' : 'recordatorio de partido'} a ${targets.length} jugadores?`)) return;
+
+    setSending(type);
+    try {
+      let sent = 0;
+      for (const player of targets) {
+        if (type === 'recordatorio' && nextMatch) {
+          const date = format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
+          const confirmUrl = `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=Voy`;
+          const declineUrl = `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=No%20voy`;
+          const ok = await sendMatchReminder(player.email, player.name, date, nextMatch.location || '', confirmUrl, declineUrl);
+          if (ok) sent++;
+        } else if (type === 'pago') {
+          const ok = await sendPaymentReminder(player.email, player.name, ['Cuota pendiente'], '$8.000');
+          if (ok) sent++;
         }
       }
-      if (type !== 'test') alert('¡Acción completada con éxito!');
+      alert(`¡Listo! Se enviaron ${sent} de ${targets.length} emails.`);
     } catch (e) {
-      alert('Error al conectar con n8n.');
+      alert('Error al enviar los emails.');
     }
     setSending(null);
   };
