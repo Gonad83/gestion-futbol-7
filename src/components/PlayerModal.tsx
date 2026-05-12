@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import { sendWelcomeEmail } from '../lib/sendEmail';
 import { X, Camera, Upload } from 'lucide-react';
 
 const POSITION_GROUPS = [
@@ -33,7 +34,15 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [joinCode, setJoinCode] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (teamId) {
+      supabase.from('team_settings').select('join_code').eq('id', teamId).single()
+        .then(({ data }) => { if (data?.join_code) setJoinCode(data.join_code); });
+    }
+  }, [teamId]);
 
   useEffect(() => {
     if (player) {
@@ -97,6 +106,9 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
       } else {
         const { error } = await supabase.from('players').insert([{ ...payload, team_id: teamId }]);
         if (error) throw error;
+        if (payload.email) {
+          await sendWelcomeEmail(payload.email, payload.name, joinCode);
+        }
       }
       onSave();
       onClose();
@@ -203,7 +215,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm text-slate-300 mb-1">Correo Electrónico (Alertas n8n)</label>
+              <label className="block text-sm text-slate-300 mb-1">Correo Electrónico</label>
               <input type="email" className="input-field" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="jugador@correo.com" />
             </div>
             <div className="col-span-2 sm:col-span-1">
