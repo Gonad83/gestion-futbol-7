@@ -40,16 +40,21 @@ export default function ResetPassword() {
     setLoading(true);
     setError('');
     try {
-      const { error: err } = await supabase.auth.updateUser({ password });
-      if (err) throw err;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Sesión expirada. Solicita un nuevo link de recuperación.');
+
+      const { data, error: fnError } = await supabase.functions.invoke('update-password', {
+        body: { access_token: session.access_token, new_password: password },
+      });
+
+      if (fnError || !data?.ok) {
+        throw new Error(data?.error || fnError?.message || 'Error al cambiar la contraseña');
+      }
+
       setDone(true);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err: any) {
-      if (err.code === 'same_password' || err.message?.includes('different from the old')) {
-        setError('La nueva contraseña debe ser diferente a la contraseña actual.');
-      } else {
-        setError(err.message || 'Error al cambiar la contraseña');
-      }
+      setError(err.message || 'Error al cambiar la contraseña');
     } finally {
       setLoading(false);
     }
