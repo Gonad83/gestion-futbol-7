@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [confirmedPlayers, setConfirmedPlayers] = useState<any[]>([]);
   const [guestsDash, setGuestsDash] = useState<{ id: string; name: string }[]>([]);
   const [guestInputDash, setGuestInputDash] = useState('');
+  const [addingGuestDash, setAddingGuestDash] = useState(false);
   const [stats, setStats] = useState({
     nextMatch: null as any,
     confirmedCount: 0,
@@ -362,15 +363,25 @@ export default function Dashboard() {
 
   const addGuestDash = async () => {
     const name = guestInputDash.trim();
-    if (!name || !stats.nextMatch || !teamId) return;
-    const { data, error } = await supabase
-      .from('match_guests')
-      .insert({ match_id: stats.nextMatch.id, team_id: teamId, name })
-      .select('id, name')
-      .single();
-    if (!error && data) {
-      setGuestsDash(prev => [...prev, data]);
-      setGuestInputDash('');
+    if (!name || !stats.nextMatch || !teamId || addingGuestDash) return;
+    setAddingGuestDash(true);
+    try {
+      const { data, error } = await supabase
+        .from('match_guests')
+        .insert({ match_id: stats.nextMatch.id, team_id: teamId, name })
+        .select('id, name')
+        .single();
+      if (error) {
+        console.error('Error al agregar invitado:', error);
+        alert('Error al agregar invitado: ' + error.message);
+        return;
+      }
+      if (data) {
+        setGuestsDash(prev => [...prev, data]);
+        setGuestInputDash('');
+      }
+    } finally {
+      setAddingGuestDash(false);
     }
   };
 
@@ -798,12 +809,12 @@ export default function Dashboard() {
                         />
                         <button
                           onClick={addGuestDash}
-                          disabled={!guestInputDash.trim()}
+                          disabled={!guestInputDash.trim() || addingGuestDash}
                           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all disabled:opacity-40"
                           style={{ background: 'rgba(154,203,255,0.12)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}
                         >
                           <UserPlus size={13} />
-                          Invitar
+                          {addingGuestDash ? '...' : 'Invitar'}
                         </button>
                       </div>
                     )}
