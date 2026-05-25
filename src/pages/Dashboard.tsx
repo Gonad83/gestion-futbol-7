@@ -344,10 +344,10 @@ export default function Dashboard() {
 
   const addGuest = async () => {
     const name = guestInput.trim();
-    if (!name || !stats.nextMatch || !teamId) return;
+    if (!name || !stats.nextMatch) return;
     const { data, error } = await supabase
       .from('match_guests')
-      .insert({ match_id: stats.nextMatch.id, team_id: teamId, name })
+      .insert({ match_id: stats.nextMatch.id, name })
       .select('id, name')
       .single();
     if (!error && data) {
@@ -368,7 +368,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('match_guests')
-        .insert({ match_id: stats.nextMatch.id, team_id: teamId, name })
+        .insert({ match_id: stats.nextMatch.id, name })
         .select('id, name')
         .single();
       if (error) {
