@@ -767,20 +767,22 @@ export default function Dashboard() {
                       Confirmados ({confirmedPlayers.length + guestsDash.length})
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {confirmedPlayers.map(p => (
+                      {confirmedPlayers.map((p, i) => (
                         <div key={p.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
                           style={{ background: 'rgba(68,243,169,0.08)', border: '1px solid rgba(68,243,169,0.2)' }}>
+                          <span className="text-[9px] font-black w-4 text-center flex-shrink-0" style={{ color: '#44f3a9' }}>{i + 1}</span>
                           <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: '#31353c' }}>
                             {p.photo_url
                               ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" />
                               : <span className="text-[8px] font-black text-white/50">{p.name.charAt(0)}</span>}
                           </div>
-                          <span className="text-[11px] font-semibold text-white">{p.nickname || p.name.split(' ')[0]}</span>
+                          <span className="text-[11px] font-semibold text-white">{p.name.split(' ')[0]}</span>
                         </div>
                       ))}
-                      {guestsDash.map(g => (
+                      {guestsDash.map((g, i) => (
                         <div key={g.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
                           style={{ background: 'rgba(154,203,255,0.08)', border: '1px solid rgba(154,203,255,0.2)' }}>
+                          <span className="text-[9px] font-black w-4 text-center flex-shrink-0" style={{ color: '#9acbff' }}>{confirmedPlayers.length + i + 1}</span>
                           <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black flex-shrink-0"
                             style={{ background: 'rgba(154,203,255,0.15)', color: '#9acbff' }}>
                             {g.name.charAt(0).toUpperCase()}
