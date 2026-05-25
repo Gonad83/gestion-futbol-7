@@ -1,7 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <circle cx="32" cy="32" r="30" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
-  <polygon points="32,14 42,22 38,34 26,34 22,22" fill="#111"/>
-  <polygon points="10,24 22,22 26,34 18,42 8,36" fill="#111"/>
-  <polygon points="54,24 42,22 38,34 46,42 56,36" fill="#111"/>
-  <polygon points="20,54 26,34 38,34 44,54 32,60" fill="#111"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <clipPath id="ball">
+      <circle cx="50" cy="50" r="47"/>
+    </clipPath>
+  </defs>
+
+  <!-- Ball background -->
+  <circle cx="50" cy="50" r="47" fill="#f5f5f5"/>
+
+  <!-- Black patches (classic Telstar soccer ball) -->
+  <!-- Center pentagon -->
+  <polygon points="50,30 63,39 58,54 42,54 37,39" fill="#1a1a1a" clip-path="url(#ball)"/>
+  <!-- Top -->
+  <polygon points="50,3 62,10 58,22 42,22 38,10" fill="#1a1a1a" clip-path="url(#ball)"/>
+  <!-- Upper-right -->
+  <polygon points="72,9 80,22 72,32 63,27 63,14" fill="#1a1a1a" clip-path="url(#ball)"/>
+  <!-- Right -->
+  <polygon points="91,38 95,52 86,60 77,54 78,42" fill="#1a1a1a" clip-path="url(#ball)"/>
+  <!-- Lower-right -->
+  <polygon points="80,76 68,80 62,70 68,60 80,62" fill="#1a1a1a" clip-path="url(#ball)"/>
+  <!-- Bottom -->
+  <polygon points="50,97 38,90 42,78 58,78 62,90" fill="#1a1a1a" clip-path="url(#ball)"/>
+  <!-- Lower-left -->
+  <polygon points="20,76 32,62 38,70 32,80 20,78" fill="#1a1a1a" clip-path="url(#ball)"/>
+  <!-- Left -->
+  <polygon points="5,52 9,38 22,42 23,54 14,60" fill="#1a1a1a" clip-path="url(#ball)"/>
+  <!-- Upper-left -->
+  <polygon points="28,9 37,14 37,27 28,32 20,22" fill="#1a1a1a" clip-path="url(#ball)"/>
+
+  <!-- Outer border -->
+  <circle cx="50" cy="50" r="47" fill="none" stroke="#1a1a1a" stroke-width="4"/>
 </svg>
