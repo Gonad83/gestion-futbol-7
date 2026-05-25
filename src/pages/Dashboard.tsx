@@ -3,7 +3,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X, CheckCircle2, XCircle, Clock, Copy, CreditCard } from 'lucide-react';
+import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X, CheckCircle2, XCircle, Clock, Copy, CreditCard, UserPlus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 type TopPlayer = { id: string; count: number; name: string; nickname: string; photo_url: string };
@@ -20,6 +20,9 @@ export default function Dashboard() {
   const [guestList, setGuestList] = useState<{ id: string; name: string }[]>([]);
   const [guestInput, setGuestInput] = useState('');
   const [copied, setCopied] = useState(false);
+  const [confirmedPlayers, setConfirmedPlayers] = useState<any[]>([]);
+  const [guestsDash, setGuestsDash] = useState<{ id: string; name: string }[]>([]);
+  const [guestInputDash, setGuestInputDash] = useState('');
   const [stats, setStats] = useState({
     nextMatch: null as any,
     confirmedCount: 0,
@@ -107,9 +110,9 @@ export default function Dashboard() {
       let declinedCount = 0;
 
       if (nextMatch) {
-        const [confRes, decRes] = await Promise.all([
+        const [confRes, decRes, guestsRes] = await Promise.all([
           withTimeout(
-            supabase.from('attendance').select('*', { count: 'exact', head: true })
+            supabase.from('attendance').select('player_id')
               .eq('match_id', nextMatch.id).eq('status', 'Voy') as any,
             15000
           ),
@@ -118,9 +121,17 @@ export default function Dashboard() {
               .eq('match_id', nextMatch.id).eq('status', 'No voy') as any,
             15000
           ),
+          withTimeout(
+            supabase.from('match_guests').select('id, name').eq('match_id', nextMatch.id) as any,
+            8000
+          ),
         ]);
-        confirmedCount = (confRes as any).count || 0;
+        const confData = (confRes as any).data || [];
+        confirmedCount = confData.length;
         declinedCount = (decRes as any).count || 0;
+        const confirmedIds = new Set(confData.map((a: any) => a.player_id));
+        setConfirmedPlayers(allPlayers.filter((p: any) => confirmedIds.has(p.id)));
+        setGuestsDash((guestsRes as any).data || []);
       }
 
       const currentMonth = new Date().getMonth() + 1;
@@ -347,6 +358,25 @@ export default function Dashboard() {
   const removeGuest = async (guestId: string) => {
     await supabase.from('match_guests').delete().eq('id', guestId);
     setGuestList(prev => prev.filter(g => g.id !== guestId));
+  };
+
+  const addGuestDash = async () => {
+    const name = guestInputDash.trim();
+    if (!name || !stats.nextMatch || !teamId) return;
+    const { data, error } = await supabase
+      .from('match_guests')
+      .insert({ match_id: stats.nextMatch.id, team_id: teamId, name })
+      .select('id, name')
+      .single();
+    if (!error && data) {
+      setGuestsDash(prev => [...prev, data]);
+      setGuestInputDash('');
+    }
+  };
+
+  const removeGuestDash = async (guestId: string) => {
+    await supabase.from('match_guests').delete().eq('id', guestId);
+    setGuestsDash(prev => prev.filter(g => g.id !== guestId));
   };
 
   const handleAttendanceChange = async (playerId: string, newStatus: 'Voy' | 'No voy' | 'Pendiente') => {
@@ -719,6 +749,66 @@ export default function Dashboard() {
                     {copied ? '¡Copiado!' : 'WhatsApp'}
                   </button>
                 </div>
+
+                {(confirmedPlayers.length > 0 || guestsDash.length > 0 || isMatchmaker) && (
+                  <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      Confirmados ({confirmedPlayers.length + guestsDash.length})
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {confirmedPlayers.map(p => (
+                        <div key={p.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
+                          style={{ background: 'rgba(68,243,169,0.08)', border: '1px solid rgba(68,243,169,0.2)' }}>
+                          <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: '#31353c' }}>
+                            {p.photo_url
+                              ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" />
+                              : <span className="text-[8px] font-black text-white/50">{p.name.charAt(0)}</span>}
+                          </div>
+                          <span className="text-[11px] font-semibold text-white">{p.nickname || p.name.split(' ')[0]}</span>
+                        </div>
+                      ))}
+                      {guestsDash.map(g => (
+                        <div key={g.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
+                          style={{ background: 'rgba(154,203,255,0.08)', border: '1px solid rgba(154,203,255,0.2)' }}>
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black flex-shrink-0"
+                            style={{ background: 'rgba(154,203,255,0.15)', color: '#9acbff' }}>
+                            {g.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-[11px] font-semibold" style={{ color: '#9acbff' }}>{g.name}</span>
+                          {isMatchmaker && (
+                            <button onClick={() => removeGuestDash(g.id)}
+                              className="ml-0.5 hover:text-red-400 transition-colors"
+                              style={{ color: 'rgba(255,255,255,0.25)' }}>
+                              <X size={10} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {isMatchmaker && (
+                      <div className="flex gap-2 mt-3">
+                        <input
+                          type="text"
+                          placeholder="Agregar invitado..."
+                          value={guestInputDash}
+                          onChange={e => setGuestInputDash(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && addGuestDash()}
+                          className="flex-1 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(154,203,255,0.15)' }}
+                        />
+                        <button
+                          onClick={addGuestDash}
+                          disabled={!guestInputDash.trim()}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all disabled:opacity-40"
+                          style={{ background: 'rgba(154,203,255,0.12)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}
+                        >
+                          <UserPlus size={13} />
+                          Invitar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
