@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Settings as SettingsIcon, Save, CreditCard, Camera, Image, CheckCircle2, Globe } from 'lucide-react';
+import { Settings as SettingsIcon, Save, CreditCard, Camera, Image, CheckCircle2, Globe, Bell, Play, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const REGIONS_CL = [
@@ -103,6 +103,23 @@ export default function Settings() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [testingReminder, setTestingReminder] = useState(false);
+  const [reminderResult, setReminderResult] = useState<{ ok: boolean; matches_processed?: number; emails_sent?: number; message?: string; error?: string } | null>(null);
+
+  const handleTestReminder = async () => {
+    setTestingReminder(true);
+    setReminderResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('auto-reminder');
+      if (error) throw error;
+      setReminderResult(data);
+    } catch (err: any) {
+      setReminderResult({ ok: false, error: err.message });
+    } finally {
+      setTestingReminder(false);
+    }
+  };
 
   useEffect(() => { if (teamId) fetchSettings(); }, [teamId]);
 
@@ -396,6 +413,67 @@ export default function Settings() {
                 <input type="text" className="input-field" value={teamDescription} onChange={e => setTeamDescription(e.target.value)} placeholder="Ej: Equipo amateur, jugamos los martes" />
               </div>
             </div>
+          </div>
+
+          {/* Automatizaciones */}
+          <div className="p-5 rounded-2xl space-y-4" style={{ background: 'rgba(154,203,255,0.03)', border: '1px solid rgba(154,203,255,0.15)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(154,203,255,0.1)', color: '#9acbff' }}>
+                <Bell size={16} />
+              </div>
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-white">Automatizaciones</label>
+                <p className="text-xs text-slate-400 mt-0.5">Recordatorios automáticos por email antes de cada partido.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div>
+                <p className="text-xs font-bold text-white">Recordatorio de partido</p>
+                <p className="text-[11px] text-white/40 mt-0.5">Se envía a jugadores sin confirmar, 24h antes del partido · Diario 9 AM</p>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
+                Activo
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleTestReminder}
+                disabled={testingReminder}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all hover:brightness-110 disabled:opacity-50"
+                style={{ background: 'rgba(154,203,255,0.1)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}
+              >
+                <Play size={13} />
+                {testingReminder ? 'Ejecutando...' : 'Probar ahora'}
+              </button>
+              <p className="text-[11px] text-white/30">Ejecuta el cron manualmente para verificar que funciona.</p>
+            </div>
+
+            {reminderResult && (
+              <div
+                className="flex items-start gap-3 px-4 py-3 rounded-xl text-xs"
+                style={{
+                  background: reminderResult.ok ? 'rgba(68,243,169,0.06)' : 'rgba(248,113,113,0.06)',
+                  border: `1px solid ${reminderResult.ok ? 'rgba(68,243,169,0.2)' : 'rgba(248,113,113,0.2)'}`,
+                  color: reminderResult.ok ? '#44f3a9' : '#f87171',
+                }}
+              >
+                {reminderResult.ok
+                  ? <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" />
+                  : <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                }
+                <span>
+                  {reminderResult.ok
+                    ? reminderResult.message
+                      ? reminderResult.message
+                      : `${reminderResult.matches_processed} partido(s) procesado(s) · ${reminderResult.emails_sent} email(s) enviado(s)`
+                    : reminderResult.error || 'Error desconocido'
+                  }
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 border-t border-glass-border flex justify-end">
