@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -9,9 +9,12 @@ type PageState = 'loading' | 'success' | 'error';
 
 export default function ConfirmarAsistencia() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [state, setState] = useState<PageState>('loading');
   const [result, setResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
   const player_id = searchParams.get('player_id');
   const match_id = searchParams.get('match_id');
@@ -26,14 +29,18 @@ export default function ConfirmarAsistencia() {
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke('confirm-attendance', {
-          body: { player_id, match_id, status },
-        });
+        const [{ data: sessionData }, { data, error }] = await Promise.all([
+          supabase.auth.getSession(),
+          supabase.functions.invoke('confirm-attendance', {
+            body: { player_id, match_id, status },
+          }),
+        ]);
 
         if (error || !data?.ok) {
           throw new Error(data?.error || error?.message || 'Error al registrar');
         }
 
+        setIsLoggedIn(!!sessionData.session);
         setResult(data);
         setState('success');
       } catch (err: any) {
@@ -44,6 +51,14 @@ export default function ConfirmarAsistencia() {
 
     confirm();
   }, []);
+
+  // Auto-redirect al dashboard si está logueado
+  useEffect(() => {
+    if (state !== 'success' || !isLoggedIn) return;
+    if (countdown <= 0) { navigate('/dashboard'); return; }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [state, isLoggedIn, countdown]);
 
   const isGoing = status === 'Voy';
 
@@ -114,17 +129,36 @@ export default function ConfirmarAsistencia() {
               </div>
             )}
 
-            <Link
-              to="/login"
-              className="block py-3 px-6 rounded-xl font-bold text-sm transition-all hover:brightness-110"
-              style={{
-                background: isGoing ? '#44f3a9' : 'rgba(248,113,113,0.12)',
-                color: isGoing ? '#003822' : '#f87171',
-                border: isGoing ? 'none' : '1px solid rgba(248,113,113,0.2)',
-              }}
-            >
-              Abrir la app →
-            </Link>
+            {isLoggedIn ? (
+              <div className="space-y-2">
+                <p className="text-white/25 text-xs">
+                  Redirigiendo al dashboard en {countdown}s...
+                </p>
+                <Link
+                  to="/dashboard"
+                  className="block py-3 px-6 rounded-xl font-bold text-sm transition-all hover:brightness-110"
+                  style={{
+                    background: isGoing ? '#44f3a9' : 'rgba(248,113,113,0.12)',
+                    color: isGoing ? '#003822' : '#f87171',
+                    border: isGoing ? 'none' : '1px solid rgba(248,113,113,0.2)',
+                  }}
+                >
+                  Ir al Dashboard →
+                </Link>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="block py-3 px-6 rounded-xl font-bold text-sm transition-all hover:brightness-110"
+                style={{
+                  background: isGoing ? '#44f3a9' : 'rgba(248,113,113,0.12)',
+                  color: isGoing ? '#003822' : '#f87171',
+                  border: isGoing ? 'none' : '1px solid rgba(248,113,113,0.2)',
+                }}
+              >
+                Abrir la app →
+              </Link>
+            )}
           </div>
         )}
 
