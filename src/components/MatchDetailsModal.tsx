@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2 } from 'lucide-react';
+import { sendNewMatchEmail, sendMatchReminder } from '../lib/sendEmail';
 
 interface MatchDetailsModalProps {
   isOpen: boolean;
@@ -142,26 +143,15 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         const { data: newMatch, error: insertError } = await supabase.from('matches').insert([payload]).select();
         if (insertError) throw insertError;
 
-        // Trigger n8n Webhook for new match
+        // Notificar jugadores del nuevo partido via Resend
         if (newMatch && newMatch.length > 0) {
           const { data: activePlayers } = await supabase.from('players').select('id, name, email').eq('team_id', teamId).eq('status', 'Activo').eq('notify', true).not('email', 'is', null);
-
           if (activePlayers && activePlayers.length > 0) {
-            const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
-            if (webhookUrl) {
-              fetch(webhookUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
-                },
-                body: JSON.stringify({
-                  match: newMatch[0],
-                  players: activePlayers
-                })
-              }).catch(err => console.error('Error triggering webhook:', err));
-            } else {
-              console.log('No n8n Webhook configured (VITE_N8N_WEBHOOK_URL). Skip sending auto-emails.');
+            const dateLabel = format(matchDate, "EEEE d 'de' MMMM, HH:mm", { locale: es });
+            for (const player of activePlayers) {
+              const confirmUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${newMatch[0].id}&status=Voy`;
+              const declineUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${newMatch[0].id}&status=No%20voy`;
+              sendNewMatchEmail(player.email, player.name, dateLabel, formData.location, confirmUrl, declineUrl);
             }
           }
         }
@@ -195,36 +185,15 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         return;
       }
 
-      const webhookUrl = import.meta.env.VITE_N8N_REMINDER_URL || import.meta.env.VITE_N8N_WEBHOOK_URL;
-      if (webhookUrl) {
-        const { data: teamSettings } = await supabase.from('team_settings').select('team_name').single();
-        for (const player of pendingPlayers) {
-          await fetch(webhookUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || ''
-            },
-            body: JSON.stringify({
-              type: 'attendance_reminder',
-              player: { id: player.id, name: player.name, email: player.email },
-              match: {
-                id: match.id,
-                date: match.date,
-                location: match.location
-              },
-              actions: {
-                confirm_url: `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=Voy`,
-                decline_url: `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=No%20voy`
-              },
-              team_name: teamSettings?.team_name || 'Real Ébolo FC'
-            })
-          });
-        }
-        alert(`Recordatorio enviado a ${pendingPlayers.length} jugador(es) sin responder.`);
-      } else {
-        alert('No hay URL de webhook configurada (VITE_N8N_REMINDER_URL).');
+      const dateLabel = format(new Date(match.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
+      let sent = 0;
+      for (const player of pendingPlayers) {
+        const confirmUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=Voy`;
+        const declineUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=No%20voy`;
+        const ok = await sendMatchReminder(player.email, player.name, dateLabel, match.location || '', confirmUrl, declineUrl);
+        if (ok) sent++;
       }
+      alert(`Recordatorio enviado a ${sent} de ${pendingPlayers.length} jugador(es) sin responder.`);
     } catch (e) {
       console.error(e);
       alert('Error al enviar recordatorio');

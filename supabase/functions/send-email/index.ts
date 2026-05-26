@@ -88,6 +88,46 @@ function templateMatchReminder(data: { playerName: string; teamName: string; dat
   };
 }
 
+function templateNewMatch(data: { playerName: string; teamName: string; date: string; location: string; confirmUrl: string; declineUrl: string }) {
+  return {
+    subject: `⚽ ¡Nuevo partido programado! — ${data.date}`,
+    html: `
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>body{margin:0;padding:0;background:#10141a;font-family:'Helvetica Neue',Arial,sans-serif;}
+.wrap{max-width:520px;margin:40px auto;background:#1c2026;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);}
+.hero{background:linear-gradient(135deg,#053d2e 0%,#0a2a1f 100%);padding:36px 32px;text-align:center;}
+.hero h1{color:#44f3a9;font-size:22px;font-weight:900;margin:0 0 6px;}
+.hero .date{color:#fff;font-size:30px;font-weight:900;margin:12px 0 4px;}
+.hero .loc{color:rgba(255,255,255,0.45);font-size:13px;}
+.body{padding:28px 32px;}
+.body p{color:rgba(255,255,255,0.7);font-size:15px;line-height:1.6;margin:0 0 20px;}
+.btn-row{display:flex;gap:12px;margin-top:24px;}
+.btn{flex:1;text-align:center;padding:14px;border-radius:12px;font-weight:900;font-size:15px;text-decoration:none;display:block;}
+.btn-yes{background:#44f3a9;color:#003822;}
+.btn-no{background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.3);}
+.footer{padding:16px 32px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;}
+.footer p{color:rgba(255,255,255,0.2);font-size:11px;margin:0;}
+</style></head><body>
+<div class="wrap">
+  <div class="hero">
+    <h1>⚽ Nuevo Partido</h1>
+    <div class="date">${data.date}</div>
+    <div class="loc">📍 ${data.location || 'Por confirmar'}</div>
+  </div>
+  <div class="body">
+    <p>Hola <strong style="color:#fff">${data.playerName}</strong>,</p>
+    <p>Se ha programado un nuevo partido para <strong style="color:#fff">${data.teamName}</strong>. ¿Vas a jugar?</p>
+    <div class="btn-row">
+      <a href="${data.confirmUrl}" class="btn btn-yes">✅ Voy</a>
+      <a href="${data.declineUrl}" class="btn btn-no">❌ No voy</a>
+    </div>
+  </div>
+  <div class="footer"><p>© ${data.teamName} · miclubpro.cl</p></div>
+</div>
+</body></html>`,
+  };
+}
+
 function templatePaymentReminder(data: { playerName: string; teamName: string; months: string[]; totalDebt: string; paymentLink?: string }) {
   const monthList = data.months.map(m => `<li style="margin:4px 0;color:rgba(255,255,255,0.6);">📅 ${m}</li>`).join('');
   return {
@@ -166,6 +206,7 @@ serve(async (req) => {
 
     switch (type) {
       case 'welcome':         template = templateWelcome(data);         break;
+      case 'new_match':       template = templateNewMatch(data);        break;
       case 'match_reminder':  template = templateMatchReminder(data);   break;
       case 'payment_reminder':template = templatePaymentReminder(data); break;
       case 'password_reset':  template = templatePasswordReset(data);   break;

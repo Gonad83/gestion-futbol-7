@@ -13,6 +13,9 @@ async function callSendEmail(type: string, to: string, data: Record<string, any>
 export const sendWelcomeEmail = (to: string, playerName: string, joinCode: string) =>
   callSendEmail('welcome', to, { playerName, joinCode });
 
+export const sendNewMatchEmail = (to: string, playerName: string, date: string, location: string, confirmUrl: string, declineUrl: string) =>
+  callSendEmail('new_match', to, { playerName, date, location, confirmUrl, declineUrl });
+
 export const sendMatchReminder = (to: string, playerName: string, date: string, location: string, confirmUrl: string, declineUrl: string) =>
   callSendEmail('match_reminder', to, { playerName, date, location, confirmUrl, declineUrl });
 
