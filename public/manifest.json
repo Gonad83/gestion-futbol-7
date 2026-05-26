@@ -1,0 +1,33 @@
+{
+  "name": "MiClubPro",
+  "short_name": "MiClubPro",
+  "description": "Gestión profesional para tu equipo de fútbol 7",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#10141a",
+  "theme_color": "#44f3a9",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "categories": ["sports", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
