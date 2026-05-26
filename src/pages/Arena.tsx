@@ -28,6 +28,11 @@ const JERSEY_COLORS = [
 ];
 const FORMATS_ALL = ['Todos', '5vs5', '7vs7', '11vs11'];
 const AGE_RANGES  = ['Open','Sub-18','Sub-21','25+','35+','40+','Mixto'];
+const REGIONS_CL = [
+  'Todas','Región Metropolitana','Arica y Parinacota','Tarapacá','Antofagasta','Atacama',
+  'Coquimbo','Valparaíso',"O'Higgins",'Maule','Ñuble','Biobío','La Araucanía',
+  'Los Ríos','Los Lagos','Aysén','Magallanes',
+];
 const LS_KEY = 'arena_lineup_v2';
 const clp = (n: number) => n === 0 ? 'Gratis' : `$${Math.round(n).toLocaleString('es-CL')}`;
 
@@ -100,7 +105,7 @@ const regBadge: Record<string, { label: string; cls: string }> = {
 
 /* ─── component ─────────────────────────────────────────────── */
 export default function Arena() {
-  const { isAdmin, teamId } = useAuth();
+  const { isAdmin, isMatchmaker, teamId } = useAuth();
   const [arenaTab, setArenaTab] = useState<ArenaTab>('amistosos');
 
   /* ── Formation builder state ── */
@@ -119,6 +124,10 @@ export default function Arena() {
   const [myRequests,   setMyRequests]   = useState<any[]>([]);
   const [openRequests, setOpenRequests] = useState<any[]>([]);
   const [filterFmt,    setFilterFmt]    = useState('Todos');
+  const [filterRegion, setFilterRegion] = useState('Todas');
+  const [filterCity,   setFilterCity]   = useState('');
+  const [filterCommune,setFilterCommune]= useState('');
+  const [filterAge,    setFilterAge]    = useState('Todos');
   const [showReqForm,  setShowReqForm]  = useState(false);
   const [publishing,   setPublishing]   = useState(false);
   const [reqForm,      setReqForm]      = useState({ date: '', time: '20:00', location: '', format: '7vs7', notes: '' });
@@ -127,12 +136,17 @@ export default function Arena() {
   const [myTournaments,  setMyTournaments]  = useState<any[]>([]);
   const [openTournaments,setOpenTournaments]= useState<any[]>([]);
   const [myRegs,         setMyRegs]         = useState<any[]>([]);
+  const [tourFilterFmt,  setTourFilterFmt]  = useState('Todos');
+  const [tourFilterRegion,setTourFilterRegion] = useState('Todas');
+  const [tourFilterCity, setTourFilterCity] = useState('');
+  const [tourFilterCommune,setTourFilterCommune] = useState('');
+  const [tourFilterAge,  setTourFilterAge]  = useState('Todos');
   const [showTourForm,   setShowTourForm]   = useState(false);
   const [creatingTour,   setCreatingTour]   = useState(false);
   const [expandedTour,   setExpandedTour]   = useState<string | null>(null);
   const [tourRegs,       setTourRegs]       = useState<Record<string, any[]>>({});
   const [tourForm,       setTourForm]       = useState({
-    name: '', description: '', date: '', location: '', city: '', commune: '',
+    name: '', description: '', date: '', location: '', city: '', commune: '', region: 'Región Metropolitana',
     format: '7vs7', age_range: 'Open', max_teams: '8', entry_fee: '0', payment_info: '',
   });
 
@@ -169,9 +183,9 @@ export default function Arena() {
   const fetchFriendlies = async () => {
     if (!teamId) return;
     const [mine, open] = await Promise.all([
-      supabase.from('friendly_requests').select('*, challenger:challenger_team_id(team_name,city,commune)')
+      supabase.from('friendly_requests').select('*, challenger:challenger_team_id(team_name,city,commune,region,age_range,preferred_format)')
         .eq('team_id', teamId).neq('status', 'cancelled').order('date'),
-      supabase.from('friendly_requests').select('*, team:team_id(team_name,city,commune,logo_url)')
+      supabase.from('friendly_requests').select('*, team:team_id(team_name,city,commune,region,age_range,preferred_format,logo_url)')
         .eq('status', 'open').order('date'),
     ]);
     setMyRequests(mine.data || []);
@@ -194,13 +208,27 @@ export default function Arena() {
   };
 
   const handleChallenge = async (id: string) => {
-    if (!isAdmin || !confirm('¿Enviar solicitud de amistoso?')) return;
+    if (!isMatchmaker || !confirm('¿Enviar solicitud de amistoso?')) return;
     const { error } = await supabase.from('friendly_requests')
       .update({ status: 'challenged', challenger_team_id: teamId }).eq('id', id).eq('status', 'open');
     if (error) { alert('Error: ' + error.message); return; }
     fetchFriendlies();
   };
-  const handleAcceptReq  = async (id: string) => { await supabase.from('friendly_requests').update({ status: 'matched' }).eq('id', id); fetchFriendlies(); };
+  const handleAcceptReq = async (id: string) => {
+    await supabase.from('friendly_requests').update({ status: 'matched' }).eq('id', id);
+    const req = myRequests.find(r => r.id === id);
+    if (req) {
+      await supabase.from('matches').insert({
+        team_id: teamId,
+        date: `${req.date}T${req.time}:00`,
+        location: req.location,
+        match_type: req.format,
+        event_type: 'Amistoso',
+        status: 'Programado',
+      });
+    }
+    fetchFriendlies();
+  };
   const handleRejectReq  = async (id: string) => { await supabase.from('friendly_requests').update({ status: 'open', challenger_team_id: null }).eq('id', id); fetchFriendlies(); };
   const handleCancelReq  = async (id: string) => { if (!confirm('¿Cancelar solicitud?')) return; await supabase.from('friendly_requests').update({ status: 'cancelled' }).eq('id', id); fetchFriendlies(); };
 
@@ -209,7 +237,7 @@ export default function Arena() {
     if (!teamId) return;
     const [mine, open, regs] = await Promise.all([
       supabase.from('tournaments').select('*').eq('organizer_team_id', teamId).neq('status', 'cancelled').order('date'),
-      supabase.from('tournaments').select('*, organizer:organizer_team_id(team_name,city,commune,logo_url)').eq('status', 'open').order('date'),
+      supabase.from('tournaments').select('*, organizer:organizer_team_id(team_name,city,commune,region,age_range,preferred_format,logo_url)').eq('status', 'open').order('date'),
       supabase.from('tournament_registrations').select('*, tournament:tournament_id(name,date,format,entry_fee,payment_info)').eq('team_id', teamId),
     ]);
     setMyTournaments(mine.data || []);
@@ -219,7 +247,7 @@ export default function Arena() {
 
   const fetchTourRegs = async (tourId: string) => {
     const { data } = await supabase.from('tournament_registrations')
-      .select('*, team:team_id(team_name,city,commune,logo_url)').eq('tournament_id', tourId).order('registered_at');
+      .select('*, team:team_id(team_name,city,commune,region,age_range,preferred_format,logo_url)').eq('tournament_id', tourId).order('registered_at');
     setTourRegs(prev => ({ ...prev, [tourId]: data || [] }));
   };
 
@@ -230,7 +258,7 @@ export default function Arena() {
         organizer_team_id: teamId,
         name: tourForm.name, description: tourForm.description || null,
         date: tourForm.date, location: tourForm.location,
-        city: tourForm.city || null, commune: tourForm.commune || null,
+        city: tourForm.city || null, commune: tourForm.commune || null, region: tourForm.region || null,
         format: tourForm.format, age_range: tourForm.age_range,
         max_teams: parseInt(tourForm.max_teams) || 8,
         entry_fee: parseInt(tourForm.entry_fee) || 0,
@@ -238,7 +266,7 @@ export default function Arena() {
         status: 'open',
       }]);
       if (error) throw error;
-      setTourForm({ name: '', description: '', date: '', location: '', city: '', commune: '', format: '7vs7', age_range: 'Open', max_teams: '8', entry_fee: '0', payment_info: '' });
+      setTourForm({ name: '', description: '', date: '', location: '', city: '', commune: '', region: 'Región Metropolitana', format: '7vs7', age_range: 'Open', max_teams: '8', entry_fee: '0', payment_info: '' });
       setShowTourForm(false); fetchTournaments();
     } catch (err: any) { alert('Error: ' + err.message); }
     finally { setCreatingTour(false); }
@@ -298,7 +326,25 @@ export default function Arena() {
   const anySwap    = swap !== null;
   const isStarSel  = (i: number) => swap?.type === 'starter' && swap.idx === i;
   const isBenchSel = (i: number) => swap?.type === 'bench'   && swap.idx === i;
-  const filteredOpen = filterFmt === 'Todos' ? openRequests : openRequests.filter(r => r.format === filterFmt);
+  const textMatch = (value: string | null | undefined, query: string) =>
+    !query.trim() || (value || '').toLowerCase().includes(query.trim().toLowerCase());
+  const filteredOpen = openRequests.filter(r => {
+    const team = r.team || {};
+    const formatOk = filterFmt === 'Todos' || r.format === filterFmt || team.preferred_format === filterFmt || team.preferred_format === 'Todos';
+    const regionOk = filterRegion === 'Todas' || team.region === filterRegion;
+    const cityOk = textMatch(team.city, filterCity);
+    const communeOk = textMatch(team.commune, filterCommune);
+    const ageOk = filterAge === 'Todos' || team.age_range === filterAge;
+    return formatOk && regionOk && cityOk && communeOk && ageOk;
+  });
+  const filteredTournaments = openTournaments.filter(t => {
+    const formatOk = tourFilterFmt === 'Todos' || t.format === tourFilterFmt;
+    const regionOk = tourFilterRegion === 'Todas' || t.region === tourFilterRegion || t.organizer?.region === tourFilterRegion;
+    const cityOk = textMatch(t.city || t.organizer?.city, tourFilterCity);
+    const communeOk = textMatch(t.commune || t.organizer?.commune, tourFilterCommune);
+    const ageOk = tourFilterAge === 'Todos' || t.age_range === tourFilterAge;
+    return formatOk && regionOk && cityOk && communeOk && ageOk;
+  });
 
   const cardStyle   = { background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' };
   const headerStyle = { background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(255,255,255,0.05)' };
@@ -438,6 +484,19 @@ export default function Arena() {
                       {f}
                     </button>
                   ))}
+                  <select className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
+                    value={filterAge} onChange={e => setFilterAge(e.target.value)}>
+                    <option value="Todos" className="bg-slate-900">Todas las edades</option>
+                    {AGE_RANGES.map(r => <option key={r} value={r} className="bg-slate-900">{r}</option>)}
+                  </select>
+                  <select className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
+                    value={filterRegion} onChange={e => setFilterRegion(e.target.value)}>
+                    {REGIONS_CL.map(r => <option key={r} value={r} className="bg-slate-900">{r}</option>)}
+                  </select>
+                  <input className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
+                    value={filterCity} onChange={e => setFilterCity(e.target.value)} placeholder="Ciudad" />
+                  <input className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
+                    value={filterCommune} onChange={e => setFilterCommune(e.target.value)} placeholder="Comuna" />
                 </div>
                 {filteredOpen.length === 0 ? (
                   <div className="px-5 py-10 text-center"><Globe size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/25 text-xs">No hay solicitudes abiertas.</p></div>
@@ -455,11 +514,13 @@ export default function Arena() {
                             {(req.team?.commune || req.team?.city) && <span className="text-[10px] text-white/30 flex items-center gap-1"><MapPin size={9} />{[req.team?.commune, req.team?.city].filter(Boolean).join(', ')}</span>}
                             <span className="text-[10px] text-white/30 flex items-center gap-1"><Clock size={9} />{fmtDate(req.date)} · {req.time}</span>
                             <span className="text-[10px] font-black" style={{ color: '#9acbff' }}>{req.format}</span>
+                            {req.team?.age_range && <span className="text-[10px] text-white/30">{req.team.age_range}</span>}
+                            {req.team?.preferred_format && <span className="text-[10px] text-white/20">pref. {req.team.preferred_format}</span>}
                           </div>
                           <p className="text-[10px] text-white/25 mt-0.5 flex items-center gap-1 truncate"><MapPin size={9} />{req.location}</p>
                           {req.notes && <p className="text-[10px] text-white/20 mt-0.5 italic truncate">"{req.notes}"</p>}
                         </div>
-                        {isAdmin && (
+                        {isMatchmaker && (
                           <button onClick={() => handleChallenge(req.id)} className="flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
                             style={{ background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>
                             ⚔️ Desafiar
@@ -507,6 +568,14 @@ export default function Arena() {
                       <div className="grid grid-cols-2 gap-3">
                         <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Ciudad</label>
                           <input type="text" className="input-field text-sm" placeholder="Santiago" value={tourForm.city} onChange={e => setTourForm(f => ({ ...f, city: e.target.value }))} /></div>
+                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Comuna</label>
+                          <input type="text" className="input-field text-sm" placeholder="Las Condes" value={tourForm.commune} onChange={e => setTourForm(f => ({ ...f, commune: e.target.value }))} /></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Region</label>
+                          <select className="input-field bg-slate-900 text-sm" value={tourForm.region} onChange={e => setTourForm(f => ({ ...f, region: e.target.value }))}>
+                            {REGIONS_CL.filter(r => r !== 'Todas').map(r => <option key={r}>{r}</option>)}
+                          </select></div>
                         <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Rango Etario</label>
                           <select className="input-field bg-slate-900 text-sm" value={tourForm.age_range} onChange={e => setTourForm(f => ({ ...f, age_range: e.target.value }))}>
                             {AGE_RANGES.map(r => <option key={r}>{r}</option>)}
@@ -606,13 +675,35 @@ export default function Arena() {
               <div className="rounded-2xl overflow-hidden" style={cardStyle}>
                 <div className="px-5 py-4 flex items-center gap-3" style={headerStyle}>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(154,203,255,0.1)', color: '#9acbff' }}><Globe size={16} /></div>
-                  <div><p className="text-sm font-black text-white">Torneos Disponibles</p><p className="text-[10px] text-white/30">{openTournaments.length} abiertos para inscripción</p></div>
+                  <div><p className="text-sm font-black text-white">Torneos Disponibles</p><p className="text-[10px] text-white/30">{filteredTournaments.length} abiertos para inscripcion</p></div>
                 </div>
-                {openTournaments.length === 0 ? (
+                <div className="px-5 py-3 flex gap-2 flex-wrap" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <Filter size={12} className="text-white/20 mt-0.5 flex-shrink-0" />
+                  {FORMATS_ALL.map(f => (
+                    <button key={f} onClick={() => setTourFilterFmt(f)} className="text-[10px] font-black px-2.5 py-1 rounded-lg transition-all"
+                      style={tourFilterFmt === f ? { background: 'rgba(154,203,255,0.15)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.3)' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      {f}
+                    </button>
+                  ))}
+                  <select className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
+                    value={tourFilterAge} onChange={e => setTourFilterAge(e.target.value)}>
+                    <option value="Todos" className="bg-slate-900">Todas las edades</option>
+                    {AGE_RANGES.map(r => <option key={r} value={r} className="bg-slate-900">{r}</option>)}
+                  </select>
+                  <select className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
+                    value={tourFilterRegion} onChange={e => setTourFilterRegion(e.target.value)}>
+                    {REGIONS_CL.map(r => <option key={r} value={r} className="bg-slate-900">{r}</option>)}
+                  </select>
+                  <input className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
+                    value={tourFilterCity} onChange={e => setTourFilterCity(e.target.value)} placeholder="Ciudad" />
+                  <input className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
+                    value={tourFilterCommune} onChange={e => setTourFilterCommune(e.target.value)} placeholder="Comuna" />
+                </div>
+                {filteredTournaments.length === 0 ? (
                   <div className="px-5 py-10 text-center"><Trophy size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/25 text-xs">No hay torneos con inscripción abierta.</p></div>
                 ) : (
                   <div className="divide-y" style={divStyle}>
-                    {openTournaments.map(t => {
+                    {filteredTournaments.map(t => {
                       const myReg = myRegs.find(r => r.tournament_id === t.id);
                       return (
                         <div key={t.id} className="px-5 py-4 hover:bg-white/[0.02] transition-colors space-y-2">
@@ -627,7 +718,7 @@ export default function Arena() {
                                 <p className="text-[10px] text-white/30">por {t.organizer?.team_name}</p>
                               </div>
                             </div>
-                            {isAdmin && !myReg && (
+                            {isMatchmaker && !myReg && (
                               <button onClick={() => handleRegister(t.id, t.entry_fee, t.payment_info)} className="flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg whitespace-nowrap"
                                 style={{ background: 'rgba(154,203,255,0.1)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}>
                                 Inscribirse

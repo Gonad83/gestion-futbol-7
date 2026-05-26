@@ -33,7 +33,7 @@ export default function RegisterCaptain() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showArena, setShowArena] = useState(false);
+  const [showArena, setShowArena] = useState(true);
   const [city, setCity] = useState('');
   const [commune, setCommune] = useState('');
   const [region, setRegion] = useState('');
@@ -48,6 +48,7 @@ export default function RegisterCaptain() {
     if (password !== confirm) { setError('Las contraseñas no coinciden.'); return; }
     if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres.'); return; }
     if (!teamName.trim()) { setError('Ingresa el nombre de tu equipo.'); return; }
+    if (!city.trim() || !commune.trim() || !region) { setError('Completa ciudad, comuna y region del equipo para la Arena.'); return; }
 
     setLoading(true);
     setError('');
@@ -164,7 +165,7 @@ export default function RegisterCaptain() {
                 onChange={e => setConfirm(e.target.value)} className="input-field" placeholder="••••••••" />
             </div>
 
-            {/* Arena profile — optional, collapsible */}
+            {/* Arena profile */}
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(68,243,169,0.2)', background: 'rgba(68,243,169,0.03)' }}>
               <button
                 type="button"
@@ -172,25 +173,25 @@ export default function RegisterCaptain() {
                 className="w-full flex items-center justify-between px-4 py-3 text-left"
               >
                 <span className="flex items-center gap-2 text-xs font-black uppercase tracking-widest" style={{ color: '#44f3a9' }}>
-                  <Globe size={14} /> Perfil Arena (opcional)
+                  <Globe size={14} /> Perfil Arena
                 </span>
                 <ChevronDown size={14} className="text-soccer-green/60 transition-transform" style={{ transform: showArena ? 'rotate(180deg)' : 'rotate(0deg)' }} />
               </button>
               {showArena && (
                 <div className="px-4 pb-4 space-y-3">
-                  <p className="text-[10px] text-white/30">Completa estos datos para que otros equipos te encuentren en la Arena.</p>
+                  <p className="text-[10px] text-white/30">Estos datos ayudan a conectar tu equipo con amistosos y torneos filtrados por zona, edad y formato.</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Ciudad</label>
-                      <input type="text" className="input-field" value={city} onChange={e => setCity(e.target.value)} placeholder="Santiago" />
+                      <input type="text" required className="input-field" value={city} onChange={e => setCity(e.target.value)} placeholder="Santiago" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Comuna</label>
-                      <input type="text" className="input-field" value={commune} onChange={e => setCommune(e.target.value)} placeholder="Las Condes" />
+                      <input type="text" required className="input-field" value={commune} onChange={e => setCommune(e.target.value)} placeholder="Las Condes" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Región</label>
-                      <select className="input-field bg-slate-900" value={region} onChange={e => setRegion(e.target.value)}>
+                      <select required className="input-field bg-slate-900" value={region} onChange={e => setRegion(e.target.value)}>
                         <option value="">-- Seleccionar --</option>
                         {REGIONS_CL.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
