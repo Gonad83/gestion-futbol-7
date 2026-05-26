@@ -214,8 +214,8 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                 location: match.location
               },
               actions: {
-                confirm_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${match.id}&status=Voy`,
-                decline_url: `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${match.id}&status=No%20voy`
+                confirm_url: `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=Voy`,
+                decline_url: `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=No%20voy`
               },
               team_name: teamSettings?.team_name || 'Real Ébolo FC'
             })

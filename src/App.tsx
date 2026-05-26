@@ -19,6 +19,7 @@ import TeamSelection from './pages/TeamSelection';
 import Arena from './pages/Arena';
 import SuperAdmin from './pages/SuperAdmin';
 import ResetPassword from './pages/ResetPassword';
+import ConfirmarAsistencia from './pages/ConfirmarAsistencia';
 import SobreNosotros from './pages/SobreNosotros';
 import CentroDeAyuda from './pages/CentroDeAyuda';
 import Tutoriales from './pages/Tutoriales';
@@ -39,6 +40,7 @@ function App() {
           <Route path="/register-captain" element={<RegisterCaptain />} />
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/confirmar" element={<ConfirmarAsistencia />} />
           <Route path="/sobre-nosotros" element={<SobreNosotros />} />
           <Route path="/centro-de-ayuda" element={<CentroDeAyuda />} />
           <Route path="/tutoriales" element={<Tutoriales />} />

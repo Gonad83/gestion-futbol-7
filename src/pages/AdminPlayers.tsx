@@ -140,8 +140,8 @@ export default function AdminPlayers() {
     try {
       if (type === 'recordatorio' && nextMatch) {
         const date = format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
-        const confirmUrl = `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=Voy`;
-        const declineUrl = `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=No%20voy`;
+        const confirmUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=Voy`;
+        const declineUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=No%20voy`;
         await sendMatchReminder(player.email, player.name, date, nextMatch.location || '', confirmUrl, declineUrl);
       } else if (type === 'pago') {
         await sendPaymentReminder(player.email, player.name, ['Cuota pendiente'], '$8.000');
@@ -215,8 +215,8 @@ export default function AdminPlayers() {
       for (const player of targets) {
         if (type === 'recordatorio' && nextMatch) {
           const date = format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
-          const confirmUrl = `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=Voy`;
-          const declineUrl = `https://n8n.soygad.com/webhook/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=No%20voy`;
+          const confirmUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=Voy`;
+          const declineUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${nextMatch.id}&status=No%20voy`;
           const ok = await sendMatchReminder(player.email, player.name, date, nextMatch.location || '', confirmUrl, declineUrl);
           if (ok) sent++;
         } else if (type === 'pago') {
