@@ -606,99 +606,6 @@ export default function Dashboard() {
 
       </div>
 
-      {/* Payment Banner */}
-      {teamSettings.payment_button_enabled && teamSettings.payment_link && (
-        <a
-          href={teamSettings.payment_link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-4 p-5 rounded-2xl transition-all duration-300 hover:brightness-110 hover:translate-y-[-1px]"
-          style={{
-            background: 'linear-gradient(135deg, rgba(68,243,169,0.12) 0%, rgba(68,243,169,0.06) 100%)',
-            border: '1px solid rgba(68,243,169,0.25)',
-            boxShadow: '0 4px 24px rgba(68,243,169,0.08)',
-          }}
-        >
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(68,243,169,0.15)', color: '#44f3a9' }}>
-            <CreditCard size={20} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-headline font-black text-white text-base leading-tight">Paga tu cuota mensual</p>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(68,243,169,0.6)' }}>Haz clic para pagar de forma segura con Mercado Pago</p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="hidden sm:block text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-xl" style={{ background: '#44f3a9', color: '#003822' }}>
-              Pagar ahora
-            </span>
-            <ArrowRight size={16} className="text-soccer-green group-hover:translate-x-1 transition-transform" />
-          </div>
-        </a>
-      )}
-
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            label: 'Jugadores Activos',
-            value: stats.activePlayers,
-            sub: `${stats.totalPlayers} registrados`,
-            icon: <Users size={18} />,
-            color: '#44f3a9',
-            link: '/players'
-          },
-          {
-            label: 'Próximo Partido',
-            value: stats.nextMatch ? format(new Date(stats.nextMatch.date), 'dd MMM', { locale: es }) : 'Por programar',
-            sub: stats.nextMatch ? getMatchTimeLabel(stats.nextMatch.date) : 'Sin partidos próximos',
-            icon: <CalendarDays size={18} />,
-            color: '#9acbff',
-            link: '/calendar'
-          },
-          {
-            label: 'Confirmados',
-            value: stats.confirmedCount,
-            sub: stats.nextMatch ? 'para el próximo partido' : 'Sin partido programado',
-            icon: <Trophy size={18} />,
-            color: '#ffd08b',
-            link: '/matchmaking'
-          },
-          {
-            label: 'Saldo de Caja',
-            value: `$${Math.round(stats.balance).toLocaleString('es-CL')}`,
-            sub: stats.balance >= 0 ? 'Balance positivo' : 'Balance negativo',
-            icon: <DollarSign size={18} />,
-            color: stats.balance >= 0 ? '#44f3a9' : '#f87171',
-            link: '/finance'
-          },
-        ].map((kpi) => (
-          <Link key={kpi.label} to={kpi.link} className="group block">
-            <div
-              className="rounded-2xl p-5 h-full transition-all duration-300 group-hover:translate-y-[-2px]"
-              style={{
-                background: '#1c2026',
-                border: '1px solid rgba(255,255,255,0.05)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-              }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: `${kpi.color}18`, color: kpi.color }}
-                >
-                  {kpi.icon}
-                </div>
-                <ArrowRight size={14} className="text-white/20 group-hover:text-white/50 transition-colors" />
-              </div>
-              <p className="font-headline text-3xl font-black text-white tracking-tight mb-1" style={{ letterSpacing: '-0.02em' }}>
-                {kpi.value}
-              </p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/30 mb-0.5">{kpi.label}</p>
-              <p className="text-xs text-white/40">{kpi.sub}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-
       {/* Mi Panel personal */}
       {myPlayer && (() => {
         const myParticipationCount = stats.topParticipations.find(p => p.id === myPlayer.id)?.count ?? 0;
@@ -797,6 +704,99 @@ export default function Dashboard() {
           </div>
         );
       })()}
+
+      {/* Payment Banner */}
+      {teamSettings.payment_button_enabled && teamSettings.payment_link && (
+        <a
+          href={teamSettings.payment_link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-4 p-5 rounded-2xl transition-all duration-300 hover:brightness-110 hover:translate-y-[-1px]"
+          style={{
+            background: 'linear-gradient(135deg, rgba(68,243,169,0.12) 0%, rgba(68,243,169,0.06) 100%)',
+            border: '1px solid rgba(68,243,169,0.25)',
+            boxShadow: '0 4px 24px rgba(68,243,169,0.08)',
+          }}
+        >
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(68,243,169,0.15)', color: '#44f3a9' }}>
+            <CreditCard size={20} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-headline font-black text-white text-base leading-tight">Paga tu cuota mensual</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(68,243,169,0.6)' }}>Haz clic para pagar de forma segura con Mercado Pago</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="hidden sm:block text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-xl" style={{ background: '#44f3a9', color: '#003822' }}>
+              Pagar ahora
+            </span>
+            <ArrowRight size={16} className="text-soccer-green group-hover:translate-x-1 transition-transform" />
+          </div>
+        </a>
+      )}
+
+      {/* KPI Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          {
+            label: 'Jugadores Activos',
+            value: stats.activePlayers,
+            sub: `${stats.totalPlayers} registrados`,
+            icon: <Users size={18} />,
+            color: '#44f3a9',
+            link: '/players'
+          },
+          {
+            label: 'Próximo Partido',
+            value: stats.nextMatch ? format(new Date(stats.nextMatch.date), 'dd MMM', { locale: es }) : 'Por programar',
+            sub: stats.nextMatch ? getMatchTimeLabel(stats.nextMatch.date) : 'Sin partidos próximos',
+            icon: <CalendarDays size={18} />,
+            color: '#9acbff',
+            link: '/calendar'
+          },
+          {
+            label: 'Confirmados',
+            value: stats.confirmedCount,
+            sub: stats.nextMatch ? 'para el próximo partido' : 'Sin partido programado',
+            icon: <Trophy size={18} />,
+            color: '#ffd08b',
+            link: '/matchmaking'
+          },
+          {
+            label: 'Saldo de Caja',
+            value: `$${Math.round(stats.balance).toLocaleString('es-CL')}`,
+            sub: stats.balance >= 0 ? 'Balance positivo' : 'Balance negativo',
+            icon: <DollarSign size={18} />,
+            color: stats.balance >= 0 ? '#44f3a9' : '#f87171',
+            link: '/finance'
+          },
+        ].map((kpi) => (
+          <Link key={kpi.label} to={kpi.link} className="group block">
+            <div
+              className="rounded-2xl p-5 h-full transition-all duration-300 group-hover:translate-y-[-2px]"
+              style={{
+                background: '#1c2026',
+                border: '1px solid rgba(255,255,255,0.05)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: `${kpi.color}18`, color: kpi.color }}
+                >
+                  {kpi.icon}
+                </div>
+                <ArrowRight size={14} className="text-white/20 group-hover:text-white/50 transition-colors" />
+              </div>
+              <p className="font-headline text-3xl font-black text-white tracking-tight mb-1" style={{ letterSpacing: '-0.02em' }}>
+                {kpi.value}
+              </p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/30 mb-0.5">{kpi.label}</p>
+              <p className="text-xs text-white/40">{kpi.sub}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
