@@ -37,6 +37,7 @@ export default function Dashboard() {
     declinedCount: 0,
     pendingCount: 0,
     topParticipations: [] as TopPlayer[],
+    totalMatchesPlayed: 0,
     topMvp: [] as TopPlayer[],
     allPlayers: [] as any[],
     votingIsOpen: false,
@@ -108,7 +109,7 @@ export default function Dashboard() {
         noPlayers
           ? Promise.resolve({ data: [] })
           : withTimeout(
-              supabase.from('attendance').select('player_id').eq('status', 'Voy').in('player_id', playerIds) as any,
+              supabase.from('attendance').select('player_id, match_id').eq('status', 'Voy').in('player_id', playerIds) as any,
               8000
             ),
       ]);
@@ -181,9 +182,12 @@ export default function Dashboard() {
       const allAttendance = (attendanceRes as any).data || [];
 
       const participationCounts: Record<string, number> = {};
+      const uniqueMatchIds = new Set<string>();
       allAttendance.forEach((a: any) => {
         if (a.player_id) participationCounts[a.player_id] = (participationCounts[a.player_id] || 0) + 1;
+        if (a.match_id) uniqueMatchIds.add(a.match_id);
       });
+      const totalMatchesPlayed = uniqueMatchIds.size;
       // Include ALL active players (count = 0 if no attendance)
       const topParticipations: TopPlayer[] = allPlayers
         .map((p: any) => ({
@@ -311,6 +315,7 @@ export default function Dashboard() {
         activePlayers: activePlayersList.length,
         totalPlayers: allPlayers.length,
         topParticipations,
+        totalMatchesPlayed,
         topMvp,
         allPlayers,
         votingIsOpen,
@@ -610,6 +615,7 @@ export default function Dashboard() {
       {myPlayer && (() => {
         const myParticipationCount = stats.topParticipations.find(p => p.id === myPlayer.id)?.count ?? 0;
         const myPendingPayments = stats.morosos.find(p => p.id === myPlayer.id)?.pendingPayments ?? [];
+        const attendancePct = stats.totalMatchesPlayed > 0 ? Math.round((myParticipationCount / stats.totalMatchesPlayed) * 100) : 0;
         return (
           <div className="glass-card">
             <div className="flex items-center gap-2.5 mb-4">
@@ -641,10 +647,13 @@ export default function Dashboard() {
 
               <div className="hidden sm:block w-px h-10 self-center" style={{ background: 'rgba(255,255,255,0.06)' }} />
 
-              {/* Partidos jugados */}
+              {/* Participaciones */}
               <div className="text-center">
-                <p className="font-headline font-black text-2xl text-white" style={{ letterSpacing: '-0.02em' }}>{myParticipationCount}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">Partidos</p>
+                <p className="font-headline font-black text-2xl text-white" style={{ letterSpacing: '-0.02em' }}>{attendancePct}%</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">Asistencia</p>
+                <p className="text-[10px] font-bold mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  {myParticipationCount}/{stats.totalMatchesPlayed}
+                </p>
               </div>
 
               <div className="hidden sm:block w-px h-10 self-center" style={{ background: 'rgba(255,255,255,0.06)' }} />
