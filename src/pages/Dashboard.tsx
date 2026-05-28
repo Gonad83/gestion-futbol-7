@@ -949,7 +949,7 @@ export default function Dashboard() {
                     className={`flex items-center gap-2 py-2 px-4 text-sm rounded-xl font-semibold border transition-all ${copied ? 'bg-soccer-green/20 text-soccer-green border-soccer-green/40' : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'}`}
                   >
                     <Copy size={14} />
-                    {copied ? '¡Copiado!' : 'WhatsApp'}
+                    {copied ? '¡Lista copiada!' : 'Copiar Lista'}
                   </button>
                 </div>
 
