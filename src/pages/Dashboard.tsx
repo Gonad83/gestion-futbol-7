@@ -661,7 +661,9 @@ export default function Dashboard() {
               {/* Próximo partido — confirmación rápida */}
               {stats.nextMatch && (
                 <div className="flex flex-col gap-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">Próximo partido</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">
+                    {stats.nextMatch.event_type === 'Recreacional' ? 'Próximo evento' : 'Próximo partido'}
+                  </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleMyConfirm('Voy')}
@@ -755,7 +757,7 @@ export default function Dashboard() {
             link: '/players'
           },
           {
-            label: 'Próximo Partido',
+            label: stats.nextMatch?.event_type === 'Recreacional' ? 'Próximo Evento' : 'Próximo Partido',
             value: stats.nextMatch ? format(new Date(stats.nextMatch.date), 'dd MMM', { locale: es }) : 'Por programar',
             sub: stats.nextMatch ? getMatchTimeLabel(stats.nextMatch.date) : 'Sin partidos próximos',
             icon: <CalendarDays size={18} />,
@@ -765,10 +767,12 @@ export default function Dashboard() {
           {
             label: 'Confirmados',
             value: stats.confirmedCount,
-            sub: stats.nextMatch ? 'para el próximo partido' : 'Sin partido programado',
+            sub: stats.nextMatch 
+              ? (stats.nextMatch.event_type === 'Recreacional' ? 'para el próximo evento' : 'para el próximo partido')
+              : (stats.nextMatch?.event_type === 'Recreacional' ? 'Sin evento programado' : 'Sin partido programado'),
             icon: <Trophy size={18} />,
             color: '#ffd08b',
-            link: '/matchmaking'
+            link: stats.nextMatch?.event_type === 'Recreacional' ? '/calendar' : '/matchmaking'
           },
           {
             label: 'Saldo de Caja',
@@ -818,7 +822,9 @@ export default function Dashboard() {
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
                 <CalendarDays size={16} />
               </div>
-              <h2 className="font-headline font-bold text-white">Próximo Partido</h2>
+              <h2 className="font-headline font-bold text-white">
+                {stats.nextMatch?.event_type === 'Recreacional' ? 'Próximo Evento' : 'Próximo Partido'}
+              </h2>
               {stats.nextMatch && (isToday(new Date(stats.nextMatch.date)) || isTomorrow(new Date(stats.nextMatch.date))) && (
                 <span className="status-pulse ml-1">
                   <span className="status-pulse-dot bg-soccer-green"></span>
@@ -845,10 +851,13 @@ export default function Dashboard() {
               <div className="flex-1 flex flex-col justify-center space-y-4 w-full text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-3">
                   <span
-                    className="text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest"
-                    style={{ background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}
+                    className="text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest text-center"
+                    style={stats.nextMatch.event_type === 'Recreacional'
+                      ? { background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.2)' }
+                      : { background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }
+                    }
                   >
-                    {stats.nextMatch.match_type || '7vs7'}
+                    {stats.nextMatch.event_type === 'Recreacional' ? 'Recreacional' : (stats.nextMatch.match_type || '7vs7')}
                   </span>
                   <span className="text-white font-bold text-lg">{stats.nextMatch.location}</span>
                 </div>
@@ -900,9 +909,11 @@ export default function Dashboard() {
                     <CheckCircle2 size={15} />
                     Confirmar Asistencia
                   </button>
-                  <Link to="/matchmaking" className="btn-secondary text-center py-2 text-sm">
-                    Armar Equipos
-                  </Link>
+                  {stats.nextMatch.event_type !== 'Recreacional' && (
+                    <Link to="/matchmaking" className="btn-secondary text-center py-2 text-sm">
+                      Armar Equipos
+                    </Link>
+                  )}
                   <button
                     onClick={copyForWhatsApp}
                     className={`flex items-center gap-2 py-2 px-4 text-sm rounded-xl font-semibold border transition-all ${copied ? 'bg-soccer-green/20 text-soccer-green border-soccer-green/40' : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'}`}
@@ -979,9 +990,9 @@ export default function Dashboard() {
             <div className="text-center py-12 rounded-2xl relative overflow-hidden" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #44f3a9 0%, transparent 70%)' }} />
               <CalendarDays size={48} className="mx-auto text-white/10 mb-4" />
-              <h3 className="font-headline text-xl font-bold text-white mb-2">Sin partidos próximos</h3>
-              <p className="text-white/40 mb-6 text-sm max-w-xs mx-auto">No hay eventos programados en el calendario por ahora.</p>
-              <Link to="/calendar" className="btn-primary inline-flex text-sm px-8">Programar Partido</Link>
+              <h3 className="font-headline text-xl font-bold text-white mb-2">Sin eventos próximos</h3>
+              <p className="text-white/40 mb-6 text-sm max-w-xs mx-auto">No hay partidos o eventos recreacionales programados por ahora.</p>
+              <Link to="/calendar" className="btn-primary inline-flex text-sm px-8">Programar Evento</Link>
             </div>
           )}
         </div>
