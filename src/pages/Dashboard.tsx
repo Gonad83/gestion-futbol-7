@@ -3,7 +3,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X, CheckCircle2, XCircle, Clock, Copy, CreditCard, UserPlus, User } from 'lucide-react';
+import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X, CheckCircle2, XCircle, Clock, Copy, CreditCard, UserPlus, User, Share2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 type TopPlayer = { id: string; count: number; name: string; nickname: string; photo_url: string };
@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [guestList, setGuestList] = useState<{ id: string; name: string }[]>([]);
   const [guestInput, setGuestInput] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copiedVote, setCopiedVote] = useState(false);
   const [confirmedPlayers, setConfirmedPlayers] = useState<any[]>([]);
   const [guestsDash, setGuestsDash] = useState<{ id: string; name: string }[]>([]);
   const [guestInputDash, setGuestInputDash] = useState('');
@@ -473,6 +474,35 @@ export default function Dashboard() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     });
+  };
+
+  const shareVoteWhatsApp = async () => {
+    if (!stats.openVoteMatchId) return;
+    const voteUrl = `${window.location.origin}/vote?match_id=${stats.openVoteMatchId}`;
+    const text = `🏆 *Votación MVP Abierta* 🏆\n¡Entra aquí y vota por la figura del partido! 👇\n${voteUrl}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Votación MVP',
+          text: text,
+        });
+        return;
+      } catch (e) {
+        console.log('Share API failed, falling back to WhatsApp URL');
+      }
+    }
+    
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedVote(true);
+      setTimeout(() => setCopiedVote(false), 2500);
+    } catch (e) {
+      console.error(e);
+    }
+    
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
   };
 
   const closeVoting = async () => {
@@ -1067,14 +1097,23 @@ export default function Dashboard() {
                   <p className="text-white/30 text-sm">Sé el primero en votar</p>
                 </div>
               )}
-              <Link
-                to={`/vote${stats.openVoteMatchId ? `?match_id=${stats.openVoteMatchId}` : ''}`}
-                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-sm transition-all hover:brightness-110"
-                style={{ background: 'linear-gradient(135deg, #ffd700, #ffb800)', color: '#000', boxShadow: '0 4px 20px rgba(255,215,0,0.25)' }}
-              >
-                <Star size={16} />
-                ¡Votar ahora!
-              </Link>
+              <div className="flex gap-2">
+                <Link
+                  to={`/vote${stats.openVoteMatchId ? `?match_id=${stats.openVoteMatchId}` : ''}`}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-sm transition-all hover:brightness-110"
+                  style={{ background: 'linear-gradient(135deg, #ffd700, #ffb800)', color: '#000', boxShadow: '0 4px 20px rgba(255,215,0,0.25)' }}
+                >
+                  <Star size={16} />
+                  ¡Votar ahora!
+                </Link>
+                <button
+                  onClick={shareVoteWhatsApp}
+                  className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm border transition-all ${copiedVote ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'}`}
+                >
+                  <Share2 size={16} />
+                  {copiedVote ? '¡Copiado!' : 'WhatsApp'}
+                </button>
+              </div>
               {isAdmin && (
                 <div className="flex gap-2">
                   <button
