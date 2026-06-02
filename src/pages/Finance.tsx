@@ -32,6 +32,7 @@ export default function Finance() {
   const [settingsId, setSettingsId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'pagado' | 'pendiente'>('todos');
+  const [quotaFilter, setQuotaFilter] = useState<'mes' | 'total'>('mes');
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
@@ -577,14 +578,40 @@ export default function Finance() {
         <div className="glass-card p-8 border-l-4 border-l-emerald-500 group hover:scale-[1.02]">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
           <div className="flex items-center justify-between mb-4 relative z-10">
-            <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">Cuotas — {MONTHS[selectedMonth - 1]}</h3>
+            <div className="flex flex-col gap-1.5">
+              <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">
+                {quotaFilter === 'total' ? 'Total Cuotas Pagadas' : `Cuotas — ${MONTHS[selectedMonth - 1]}`}
+              </h3>
+              <div className="flex rounded-lg overflow-hidden border border-white/10 text-[9px] font-bold p-0.5 bg-black/20 w-fit">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setQuotaFilter('mes'); }}
+                  className={`px-2.5 py-0.5 rounded transition-all duration-200 ${quotaFilter === 'mes' ? 'bg-emerald-500 text-[#003822] shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Mes
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setQuotaFilter('total'); }}
+                  className={`px-2.5 py-0.5 rounded transition-all duration-200 ${quotaFilter === 'total' ? 'bg-emerald-500 text-[#003822] shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Total
+                </button>
+              </div>
+            </div>
             <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
               <TrendingUp className="text-emerald-500" size={24} />
             </div>
           </div>
-          <p className="text-4xl font-black tracking-tighter text-white relative z-10">{clp(monthlyIncome)}</p>
+          <p className="text-4xl font-black tracking-tighter text-white relative z-10">
+            {quotaFilter === 'total' ? clp(allPaidAmount) : clp(monthlyIncome)}
+          </p>
           <p className="text-[10px] text-slate-500 mt-2 relative z-10">
-            {selectedMonth <= 2 ? 'Mes sin cobros asignados' : `${payments.filter(p => p.status === 'Pagado').length}/${payments.filter(p => !p.isExempt).length} jugadores al día`}
+            {quotaFilter === 'total'
+              ? 'Monto total recaudado en el historial de cuotas'
+              : selectedMonth <= 2
+                ? 'Mes sin cobros asignados'
+                : `${payments.filter(p => p.status === 'Pagado').length}/${payments.filter(p => !p.isExempt).length} jugadores al día`}
           </p>
           <div className="mt-3 h-1 w-12 bg-emerald-500/30 rounded-full"></div>
         </div>
