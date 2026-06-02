@@ -136,7 +136,8 @@
           "id": "supabase-cred-id",
           "name": "Supabase account"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
