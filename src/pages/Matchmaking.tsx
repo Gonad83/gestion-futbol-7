@@ -352,7 +352,6 @@ export default function Matchmaking() {
     try {
       const match = matches.find(m => m.id === selectedMatch);
       const webhookUrl = import.meta.env.VITE_N8N_LISTA_FINAL_URL || import.meta.env.VITE_N8N_WEBHOOK_URL;
-      const apiKey = import.meta.env.VITE_N8N_API_KEY;
 
       if (!webhookUrl) {
         alert('No hay URL de webhook configurada (VITE_N8N_LISTA_FINAL_URL).');
@@ -379,10 +378,9 @@ export default function Matchmaking() {
 
       await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-N8N-API-KEY': apiKey || ''
-        },
+        // Sin la llave de administrador de n8n: el webhook no la pide y
+        // mandarla la dejaba a la vista de cualquiera en la web.
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 

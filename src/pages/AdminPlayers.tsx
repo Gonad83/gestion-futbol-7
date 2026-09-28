@@ -163,7 +163,9 @@ export default function AdminPlayers() {
         const pending   = players.filter(p => p.status === 'Activo' && !attendances.some(a => a.player_id === p.id));
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-N8N-API-KEY': import.meta.env.VITE_N8N_API_KEY || '' },
+          // El webhook no necesita credenciales. Antes se mandaba aquí la llave de
+          // administrador de n8n, y por eso viajaba dentro de la web pública.
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'admin_summary',
             match_date: nextMatch ? format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es }) : 'Próximo partido',

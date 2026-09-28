@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!;
-const FROM = 'Real Ébolo FC <noreply@miclubpro.cl>';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -165,33 +165,49 @@ function templatePaymentReminder(data: { playerName: string; teamName: string; m
   };
 }
 
-function templatePasswordReset(data: { resetLink: string; teamName: string }) {
-  return {
-    subject: `Restablecer contraseña — ${data.teamName}`,
-    html: `
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<style>body{margin:0;padding:0;background:#10141a;font-family:'Helvetica Neue',Arial,sans-serif;}
-.wrap{max-width:520px;margin:40px auto;background:#1c2026;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);}
-.hero{background:linear-gradient(135deg,#053d2e 0%,#0a2a1f 100%);padding:36px 32px;text-align:center;}
-.hero h1{color:#44f3a9;font-size:22px;font-weight:900;margin:0;}
-.body{padding:28px 32px;}
-.body p{color:rgba(255,255,255,0.7);font-size:15px;line-height:1.6;margin:0 0 16px;}
-.btn{display:block;text-align:center;padding:14px;border-radius:12px;font-weight:900;font-size:15px;text-decoration:none;background:#44f3a9;color:#003822;margin-top:8px;}
-.footer{padding:16px 32px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;}
-.footer p{color:rgba(255,255,255,0.2);font-size:11px;margin:0;}
-</style></head><body>
-<div class="wrap">
-  <div class="hero"><h1>🔐 Restablecer Contraseña</h1></div>
-  <div class="body">
-    <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong style="color:#44f3a9">${data.teamName}</strong>.</p>
-    <p>Haz clic en el botón para crear una nueva contraseña:</p>
-    <a href="${data.resetLink}" class="btn">Restablecer contraseña</a>
-    <p style="font-size:13px;color:rgba(255,255,255,0.35);margin-top:20px;">Este enlace expira en 1 hora. Si no solicitaste este cambio, ignora este email.</p>
-  </div>
-  <div class="footer"><p>© ${data.teamName} · miclubpro.cl</p></div>
-</div>
-</body></html>`,
-  };
+/* ── Quién puede mandar qué ─────────────────────────────── */
+
+// Antes cualquiera podía llamar esta función con cualquier destinatario y
+// cualquier contenido: servía para mandar correos falsos ("restablece tu
+// contraseña" con un link trampa) desde el dominio del club. Ahora solo el
+// admin de un equipo escribe, solo a jugadores de ese equipo, y los links
+// siempre apuntan a miclubpro.cl.
+
+const SITIO = 'https://miclubpro.cl';
+const HOSTS_DE_PAGO = ['mercadopago.cl', 'mercadopago.com', 'mpago.la', 'mpago.li', 'flow.cl'];
+
+const escapar = (valor: unknown) =>
+  String(valor ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+/** Conserva la ruta y la consulta del link, pero siempre en miclubpro.cl. */
+function aLaApp(link: unknown) {
+  try {
+    const url = new URL(String(link ?? ''), SITIO);
+    return escapar(`${SITIO}${url.pathname}${url.search}`);
+  } catch {
+    return escapar(SITIO);
+  }
+}
+
+/** Un link de pago solo si es https y de Mercado Pago o Flow. */
+function linkDePago(link: unknown) {
+  try {
+    const url = new URL(String(link ?? ''));
+    const permitido = url.protocol === 'https:'
+      && HOSTS_DE_PAGO.some(host => url.hostname === host || url.hostname.endsWith(`.${host}`));
+    return permitido ? escapar(url.toString()) : '';
+  } catch {
+    return '';
+  }
+}
+
+function json(cuerpo: unknown, status = 200) {
+  return new Response(JSON.stringify(cuerpo), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
 /* ── Handler ────────────────────────────────────────────── */
@@ -200,31 +216,71 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { type, to, data } = await req.json();
+    const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+    const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+    const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+    if (!user) return json({ error: 'Inicia sesión para enviar correos' }, 401);
+
+    const { type, to, data = {} } = await req.json();
+    const destinatario = String(to ?? '').trim().toLowerCase();
+    if (!destinatario) return json({ error: 'Falta el destinatario' }, 400);
+
+    // El correo es único por jugador (sin distinguir mayúsculas).
+    const { data: jugadorPorCorreo } = await supabaseAdmin.from('players').select('team_id')
+      .ilike('email', destinatario.replace(/[\\%_]/g, c => `\\${c}`)).maybeSingle();
+    if (!jugadorPorCorreo?.team_id) return json({ error: 'Ese correo no es de un jugador del equipo' }, 403);
+
+    const { data: equipo } = await supabaseAdmin
+      .from('team_settings').select('team_name, owner_id').eq('id', jugadorPorCorreo.team_id).single();
+    let esAdmin = equipo?.owner_id === user.id;
+    if (!esAdmin) {
+      const { data: adminJugador } = await supabaseAdmin.from('players').select('id')
+        .eq('team_id', jugadorPorCorreo.team_id).eq('user_id', user.id).eq('is_admin', true).maybeSingle();
+      esAdmin = Boolean(adminJugador);
+    }
+    if (!esAdmin) return json({ error: 'Solo el admin del equipo puede enviar correos' }, 403);
+
+    const nombreEquipo = String(equipo?.team_name || 'MiClubPro');
+    const limpio = {
+      teamName: escapar(nombreEquipo),
+      playerName: escapar(data.playerName),
+      joinCode: escapar(data.joinCode),
+      date: escapar(data.date),
+      location: escapar(data.location),
+      totalDebt: escapar(data.totalDebt),
+      months: Array.isArray(data.months) ? data.months.map(escapar) : [],
+      confirmUrl: aLaApp(data.confirmUrl),
+      declineUrl: aLaApp(data.declineUrl),
+      paymentLink: linkDePago(data.paymentLink),
+    };
 
     let template: { subject: string; html: string };
-
     switch (type) {
-      case 'welcome':         template = templateWelcome(data);         break;
-      case 'new_match':       template = templateNewMatch(data);        break;
-      case 'match_reminder':  template = templateMatchReminder(data);   break;
-      case 'payment_reminder':template = templatePaymentReminder(data); break;
-      case 'password_reset':  template = templatePasswordReset(data);   break;
-      default: return new Response(JSON.stringify({ error: 'Tipo de email desconocido' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      case 'welcome':          template = templateWelcome(limpio);         break;
+      case 'new_match':        template = templateNewMatch(limpio);        break;
+      case 'match_reminder':   template = templateMatchReminder(limpio);   break;
+      case 'payment_reminder': template = templatePaymentReminder(limpio); break;
+      default: return json({ error: 'Tipo de email desconocido' }, 400);
     }
+
+    // El asunto va en texto plano: sin escapar HTML, pero sin saltos de línea.
+    const asunto = template.subject
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[\r\n]+/g, ' ');
+    const remitente = `${nombreEquipo.replace(/[<>"\r\n]/g, '').slice(0, 60)} <noreply@miclubpro.cl>`;
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to, subject: template.subject, html: template.html }),
+      body: JSON.stringify({ from: remitente, to: destinatario, subject: asunto, html: template.html }),
     });
 
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Error Resend');
 
-    return new Response(JSON.stringify({ ok: true, id: result.id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
+    return json({ ok: true, id: result.id });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json({ error: err.message }, 500);
   }
 });

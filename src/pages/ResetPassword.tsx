@@ -5,6 +5,10 @@ import { Eye, EyeOff, KeyRound, CheckCircle2 } from 'lucide-react';
 
 // Capturar el hash ANTES de que Supabase lo borre al procesar el token
 const initialHash = window.location.hash;
+// El link nuevo (el que manda nuestro servidor) trae el token en la consulta:
+// /reset-password?token_hash=...&type=recovery. No depende de la lista de
+// direcciones permitidas de Supabase ni de a qué hora se monta la pantalla.
+const initialParams = new URLSearchParams(window.location.search);
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -15,8 +19,23 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [linkInvalido, setLinkInvalido] = useState(false);
 
   useEffect(() => {
+    const tokenHash = initialParams.get('token_hash');
+    if (tokenHash) {
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' }).then(({ data, error: err }) => {
+        if (err || !data.session) {
+          setLinkInvalido(true);
+          return;
+        }
+        // Sacar el token de la barra de direcciones: ya se usó y no sirve dos veces.
+        window.history.replaceState(null, '', '/reset-password');
+        setSessionReady(true);
+      });
+      return;
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setSessionReady(true);
@@ -52,7 +71,8 @@ export default function ResetPassword() {
       }
 
       setDone(true);
-      setTimeout(() => navigate('/login'), 3000);
+      // La sesión de recuperación ya deja al jugador dentro: va directo a la app.
+      setTimeout(() => navigate('/dashboard', { replace: true }), 2000);
     } catch (err: any) {
       setError(err.message || 'Error al cambiar la contraseña');
     } finally {
@@ -74,7 +94,7 @@ export default function ResetPassword() {
             {done ? '¡Listo!' : 'Nueva contraseña'}
           </h1>
           <p className="text-white/40 text-sm mt-1">
-            {done ? 'Redirigiendo al login...' : 'Elige una contraseña segura'}
+            {done ? 'Entrando a la app...' : 'Elige una contraseña segura'}
           </p>
         </div>
 
@@ -89,7 +109,15 @@ export default function ResetPassword() {
               </div>
             )}
 
-            {!sessionReady && (
+            {linkInvalido ? (
+              <div className="px-4 py-3 rounded-xl text-sm space-y-2"
+                style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: '#f87171' }}>
+                <p>Este link ya se usó o venció (duran 1 hora).</p>
+                <button type="button" onClick={() => navigate('/login')} className="font-bold underline">
+                  Pedir uno nuevo
+                </button>
+              </div>
+            ) : !sessionReady && (
               <div className="px-4 py-3 rounded-xl text-sm"
                 style={{ background: 'rgba(255,208,139,0.08)', border: '1px solid rgba(255,208,139,0.2)', color: '#ffd08b' }}>
                 Cargando sesión de recuperación...

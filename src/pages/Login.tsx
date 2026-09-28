@@ -7,6 +7,22 @@ import { Eye, EyeOff, ArrowLeft, ArrowRight } from 'lucide-react';
 type Tab = 'captain' | 'player';
 type PlayerMode = 'choose' | 'new' | 'returning';
 
+/**
+ * "Olvidé mi contraseña" ya no usa el correo de Supabase: ese servicio solo
+ * alcanza a unos pocos destinatarios y la mayoría de los jugadores nunca
+ * recibía el link. Ahora lo arma y lo envía nuestro servidor, con el mismo
+ * correo que ya reciben las citaciones. Responde igual exista o no la cuenta,
+ * para no revelar quién está registrado.
+ */
+async function pedirRestablecimiento(email: string) {
+  const { data, error } = await supabase.functions.invoke('request-password-reset', {
+    body: { email: email.trim().toLowerCase() },
+  });
+  if (error || !data?.ok) {
+    throw new Error(data?.error || 'No pudimos enviar el correo. Intenta de nuevo en unos minutos.');
+  }
+}
+
 export default function Login() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -77,11 +93,8 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(returningEmail.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (err) throw err;
-      setSuccess(`Te enviamos un link a ${returningEmail}. Revisa tu correo (y el spam).`);
+      await pedirRestablecimiento(returningEmail);
+      setSuccess(`Si ${returningEmail} tiene una cuenta, te llegará un link en unos minutos. Revisa también el spam.`);
       setPlayerForgotMode(false);
     } catch (err: any) {
       setError(err.message || 'Error al enviar el correo');
@@ -96,11 +109,8 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (err) throw err;
-      setSuccess(`Enviamos un link a ${resetEmail}. Revisa tu correo.`);
+      await pedirRestablecimiento(resetEmail);
+      setSuccess(`Si ${resetEmail} tiene una cuenta, te llegará un link en unos minutos. Revisa también el spam.`);
       setForgotMode(false);
       setResetEmail('');
     } catch (err: any) {
@@ -160,13 +170,12 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const { data, error: err } = await supabase
-        .from('team_settings')
-        .select('id, team_name, join_code')
-        .ilike('join_code', joinCode.trim())
-        .maybeSingle();
+      // Sin sesión no se pueden leer los equipos: el código se valida en la
+      // base, que solo devuelve el nombre del equipo si el código existe.
+      const { data: equipos, error: err } = await supabase.rpc('buscar_equipo_por_codigo', { p_codigo: joinCode.trim() });
 
       if (err) throw err;
+      const data = (equipos as { id: number; team_name: string }[] | null)?.[0];
       if (!data) { setError('Código inválido. Pídele el código a tu capitán.'); return; }
 
       setJoinTeam({ name: data.team_name, id: data.id });
@@ -187,13 +196,6 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      // Verificar si ya existe en players (puede haber sido agregado por el admin)
-      const { data: existingPlayer } = await supabase
-        .from('players')
-        .select('id')
-        .ilike('email', playerEmail.trim())
-        .maybeSingle();
-
       // Crear cuenta Auth — si ya existe en Auth, Supabase lo indica con identities vacío
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
         email: playerEmail.trim(),
@@ -205,29 +207,18 @@ export default function Login() {
         throw new Error('Ya tienes una cuenta de acceso. Usa "Ya tengo cuenta" para entrar.');
       }
 
-      // Si no existía en players, crearlo ahora
-      if (!existingPlayer) {
-        const { error: playerErr } = await supabase.from('players').insert({
-          team_id: joinTeam!.id,
-          name: playerName.trim(),
-          email: playerEmail.trim().toLowerCase(),
-          position: playerPosition,
-          status: 'Activo',
-        });
-        if (playerErr) {
-          const { error: rpcErr } = await supabase.rpc('register_new_player', {
-            p_team_id: joinTeam!.id,
-            p_name: playerName.trim(),
-            p_email: playerEmail.trim().toLowerCase(),
-            p_position: playerPosition,
-          });
-          if (rpcErr) throw new Error('No se pudo crear tu perfil en el equipo. Contacta a tu capitán.');
-        }
-      }
-      // Si existingPlayer → el admin ya lo tenía en la plantilla, Auth se vincula automáticamente por email
+      // Crea la ficha en el equipo del código. Si el admin ya lo tenía en la
+      // plantilla con ese correo, no se duplica: la cuenta se vincula sola.
+      const { error: rpcErr } = await supabase.rpc('unirse_con_codigo', {
+        p_codigo: joinCode.trim(),
+        p_name: playerName.trim(),
+        p_email: playerEmail.trim().toLowerCase(),
+        p_position: playerPosition,
+      });
+      if (rpcErr) throw new Error('No se pudo crear tu perfil en el equipo. Contacta a tu capitán.');
 
       if (signUpData.user && !signUpData.session) {
-        setSuccess(`¡Cuenta creada! Revisa tu correo "${playerEmail}" para confirmarla y luego entra con "Ya tengo cuenta".`);
+        setSuccess(`¡Cuenta creada! Revisa tu correo "${playerEmail}" para confirmarla y luego entra con "Ya tengo cuenta". Si el correo no llega, usa "¿Olvidaste tu contraseña?": ese link también activa la cuenta.`);
       } else {
         navigate('/dashboard');
       }

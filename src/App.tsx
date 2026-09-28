@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './hooks/useAuth';
+import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -30,12 +30,39 @@ import PoliticaDePrivacidad from './pages/PoliticaDePrivacidad';
 import Seguridad from './pages/Seguridad';
 import Checkout from './pages/Checkout';
 
+/**
+ * Quien ya inició sesión no necesita la portada: entra directo a su panel.
+ * Si en este navegador no hay ninguna sesión guardada se muestra la portada
+ * al instante, sin esperar a Supabase; si la hay, se espera a confirmarla un
+ * momento y se entra (o, si venció, se muestra la portada).
+ */
+function haySesionGuardada() {
+  try {
+    return Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+  } catch {
+    return false;
+  }
+}
+
+function Inicio() {
+  const { user, loading } = useAuth();
+  if (user) return <Navigate to="/dashboard" replace />;
+  if (loading && haySesionGuardada()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dark-bg">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-soccer-green" />
+      </div>
+    );
+  }
+  return <Landing />;
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<Inicio />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/register-captain" element={<RegisterCaptain />} />
           <Route path="/login" element={<Login />} />
