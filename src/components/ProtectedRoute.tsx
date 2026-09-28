@@ -28,8 +28,10 @@ export function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolea
     );
   }
 
+  // Sin sesión (o con una vencida) se va a iniciar sesión, no a la portada:
+  // quien abre la app instalada quiere entrar, no leer la publicidad.
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (requireAdmin && !isAdmin) {

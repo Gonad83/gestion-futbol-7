@@ -36,9 +36,11 @@ import Landing from './pages/Landing';
 
 /**
  * Quien ya inició sesión no necesita la portada: entra directo a su panel.
- * Si en este navegador no hay ninguna sesión guardada se muestra la portada
- * al instante, sin esperar a Supabase; si la hay, se espera a confirmarla un
- * momento y se entra (o, si venció, se muestra la portada).
+ *
+ * Antes se esperaba a que Supabase confirmara la sesión, y si tardaba (por
+ * ejemplo al renovar el token con mala señal) se mostraba la portada. Ahora
+ * basta con que haya una sesión guardada en el teléfono para ir al panel; si
+ * resulta vencida, el panel manda a iniciar sesión, nunca a la portada.
  */
 function Cargando() {
   return (
@@ -57,9 +59,8 @@ function haySesionGuardada() {
 }
 
 function Inicio() {
-  const { user, loading } = useAuth();
-  if (user) return <Navigate to="/dashboard" replace />;
-  if (loading && haySesionGuardada()) return <Cargando />;
+  const { user } = useAuth();
+  if (user || haySesionGuardada()) return <Navigate to="/dashboard" replace />;
   return <Landing />;
 }
 

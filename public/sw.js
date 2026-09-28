@@ -1,4 +1,6 @@
-const CACHE = 'miclubpro-v1';
+// v2: la app instalada ahora abre en /dashboard. Cambiar el nombre descarta la
+// copia vieja de la portada que guardaba la v1.
+const CACHE = 'miclubpro-v2';
 const PRECACHE = ['/', '/index.html'];
 
 self.addEventListener('install', e => {

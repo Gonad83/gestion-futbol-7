@@ -2,7 +2,7 @@
   "name": "MiClubPro",
   "short_name": "MiClubPro",
   "description": "Gestión profesional para tu equipo de fútbol 7",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "background_color": "#10141a",
