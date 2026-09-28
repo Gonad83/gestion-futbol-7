@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle, Globe, Crown, Zap } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 
@@ -245,7 +245,11 @@ export default function Layout() {
           />
         )}
         <div className="max-w-7xl mx-auto">
-          <Outlet />
+          {/* Al cambiar de pantalla se queda el menú: solo el contenido espera
+              a que baje la pantalla nueva. */}
+          <Suspense fallback={<div className="flex justify-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-soccer-green" /></div>}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
 
