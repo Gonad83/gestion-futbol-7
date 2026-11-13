@@ -63,7 +63,7 @@ export default function InterGeneraciones() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [media, setMedia] = useState<Media[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'resumen' | 'jugadores' | 'galeria'>('resumen');
+  const [tab, setTab] = useState<'resumen' | 'jugadores' | 'galeria'>('jugadores');
   const [error, setError] = useState<string | null>(null);
 
   // ── Carga ────────────────────────────────────────────────────────────────
@@ -228,8 +228,8 @@ export default function InterGeneraciones() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex gap-1 p-1 rounded-2xl w-full md:w-fit overflow-x-auto" style={{ background: '#0a0e14' }}>
             {([
-              ['resumen', 'Resumen y bases', <FileText size={15} key="r" />],
               ['jugadores', `Jugadores (${roster.length})`, <Users size={15} key="j" />],
+              ['resumen', 'Resumen y bases', <FileText size={15} key="r" />],
               ['galeria', `Fotos y videos (${media.length})`, <ImageIcon size={15} key="g" />],
             ] as const).map(([key, label, icon]) => (
               <button key={key} onClick={() => setTab(key)}
