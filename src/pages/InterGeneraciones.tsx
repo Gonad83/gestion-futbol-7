@@ -143,25 +143,19 @@ export default function InterGeneraciones() {
 
   const resumenTexto = useMemo(() => {
     if (!edition) return '';
+    // Solo los que ya pagaron (están listos) y el total pagado. Sin emojis:
+    // WhatsApp Web los mostraba como "�" al llegar por el enlace.
+    const listos = roster.filter(r => r.paid);
     const lineas = [
-      `🏆 *Inter Generaciones SSCC ${edition.year}*`,
+      `*Inter Generaciones SSCC ${edition.year}*`,
       '',
-      `📅 Fecha: ${rangoFechas(edition)}`,
-      `📍 Lugar: ${edition.location || 'Por confirmar'}`,
-      edition.category ? `🎯 Categoría: ${edition.category}` : null,
-      `💰 Cuota: ${clp(fee)} por jugador`,
+      `*Jugadores listos (cuota pagada): ${listos.length}*`,
+      ...listos.map((r, i) => `${i + 1}. ${r.player!.name}`),
       '',
-      `👥 Jugadores inscritos: ${roster.length}`,
-      `✅ Cuotas pagadas: ${pagados} de ${roster.length} (${clp(recaudado)})`,
-      pendiente > 0 ? `⏳ Por recaudar: ${clp(pendiente)}` : roster.length ? '🎉 ¡Todas las cuotas pagadas!' : null,
-      edition.payment_info ? `\n🏦 Datos de pago:\n${edition.payment_info}` : null,
-      edition.details ? `\n📝 ${edition.details}` : null,
-      edition.bases_url ? `\n📄 Bases: ${edition.bases_url}` : null,
-      roster.length ? '\n*Lista de jugadores:*' : null,
-      ...roster.map((r, i) => `${i + 1}. ${r.player!.name}${r.paid ? ' ✅' : ''}`),
+      `*Total pagado: ${clp(listos.length * fee)}*`,
     ];
-    return lineas.filter(l => l !== null).join('\n');
-  }, [edition, fee, roster, pagados, recaudado, pendiente]);
+    return lineas.join('\n');
+  }, [edition, fee, roster]);
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -274,7 +268,7 @@ function BotonWhatsApp({ texto }: { texto: string }) {
 
   const enviar = async () => {
     try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2500); } catch { /* sin portapapeles: igual abre WhatsApp */ }
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener,noreferrer');
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
