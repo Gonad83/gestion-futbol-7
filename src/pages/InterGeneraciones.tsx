@@ -143,16 +143,16 @@ export default function InterGeneraciones() {
 
   const resumenTexto = useMemo(() => {
     if (!edition) return '';
-    // Solo los que ya pagaron (están listos) y el total pagado. Sin emojis:
-    // WhatsApp Web los mostraba como "�" al llegar por el enlace.
+    // Solo los que ya pagaron (están listos) y el total pagado. Los emojis
+    // llegan bien porque el botón abre api.whatsapp.com (wa.me los rompía).
     const listos = roster.filter(r => r.paid);
     const lineas = [
-      `*Inter Generaciones SSCC ${edition.year}*`,
+      `🏆 *INTER GENERACIONES SSCC ${edition.year}* 🏆`,
       '',
-      `*Jugadores listos (cuota pagada): ${listos.length}*`,
-      ...listos.map((r, i) => `${i + 1}. ${r.player!.name}`),
+      `⚽ *Jugadores listos: ${listos.length}*`,
+      ...listos.map((r, i) => `✅ ${i + 1}. ${r.player!.name}`),
       '',
-      `*Total pagado: ${clp(listos.length * fee)}*`,
+      `💰 *Total pagado: ${clp(listos.length * fee)}*`,
     ];
     return lineas.join('\n');
   }, [edition, fee, roster]);
