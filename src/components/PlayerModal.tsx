@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { sendWelcomeEmail } from '../lib/sendEmail';
-import { X, Camera, Upload } from 'lucide-react';
+import { X, Camera, Upload, Star } from 'lucide-react';
+import { SUB_STATS, MAX_STARS, subStat, ratingFromSubStats, type SubStatKey } from '../lib/playerStats';
 
 const POSITION_GROUPS = [
   { group: 'Portero', roles: ['Portero'] },
@@ -20,13 +21,16 @@ interface PlayerModalProps {
 }
 
 export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }: PlayerModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     name: '',
     nickname: '',
     email: '',
     position: 'Delantero Centro (9)',
     secondary_position: '',
     rating: 4,
+    forma: 4,
+    tecnica: 4,
+    vision: 4,
     status: 'Activo',
     photo_url: '',
     birth_date: ''
@@ -46,11 +50,16 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
 
   useEffect(() => {
     if (player) {
-      setFormData(player);
+      setFormData({
+        ...player,
+        forma: subStat(player, 'forma'),
+        tecnica: subStat(player, 'tecnica'),
+        vision: subStat(player, 'vision'),
+      });
       setPhotoPreview(player.photo_url || '');
     } else {
       setFormData({
-        name: '', nickname: '', email: '', position: 'Delantero Centro (9)', secondary_position: '', rating: 4, status: 'Activo', photo_url: '', birth_date: ''
+        name: '', nickname: '', email: '', position: 'Delantero Centro (9)', secondary_position: '', rating: 4, forma: 4, tecnica: 4, vision: 4, status: 'Activo', photo_url: '', birth_date: ''
       });
       setPhotoPreview('');
     }
@@ -58,6 +67,12 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
   }, [player, isOpen]);
 
   if (!isOpen) return null;
+
+  const setSubStat = (key: SubStatKey, value: number) => {
+    const next = { ...formData, [key]: value };
+    next.rating = ratingFromSubStats({ forma: next.forma, tecnica: next.tecnica, vision: next.vision });
+    setFormData(next);
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -178,9 +193,34 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
                 ))}
               </select>
             </div>
-            <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm text-slate-300 mb-1">Rating (1-7)</label>
-              <input type="number" min="1" max="7" required className="input-field" value={formData.rating} onChange={e => setFormData({...formData, rating: parseInt(e.target.value)})} />
+            <div className="col-span-2 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm text-slate-300">Estrellas</label>
+                <span className="text-xs font-bold" style={{ color: '#ffd08b' }}>
+                  Total {formData.rating}/{MAX_STARS}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {SUB_STATS.map(s => {
+                  const value = subStat(formData, s.key);
+                  return (
+                    <div key={s.key} className="flex items-center gap-3">
+                      <span className="w-16 text-xs font-semibold text-slate-400">{s.label}</span>
+                      <div className="flex gap-1">
+                        {Array.from({ length: MAX_STARS }, (_, i) => (
+                          <button key={i} type="button" aria-label={`${s.label} ${i + 1}`}
+                            onClick={() => setSubStat(s.key, i + 1)}
+                            className="p-0.5 transition-transform hover:scale-110">
+                            <Star size={18} className={i < value ? 'fill-current' : ''}
+                              style={{ color: i < value ? '#ffd08b' : 'rgba(255,255,255,0.15)' }} />
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-xs text-white/40 w-6 text-right">{value}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="col-span-2 sm:col-span-1">

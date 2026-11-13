@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Camera, Upload, Save, Star, UserCircle, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Camera, Upload, Save, UserCircle, CheckCircle2, TrendingUp } from 'lucide-react';
+import SubStatStars from '../components/SubStatStars';
 
 const POSITION_GROUPS = [
   { group: 'Portero', roles: ['Portero'] },
@@ -169,18 +170,11 @@ export default function MyProfile() {
               {playerProfile.status}
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="flex gap-0.5">
-              {Array.from({ length: 7 }, (_, i) => (
-                <Star
-                  key={i}
-                  size={11}
-                  className={i < playerProfile.rating ? 'fill-current' : ''}
-                  style={{ color: i < playerProfile.rating ? '#ffd08b' : 'rgba(255,255,255,0.1)' }}
-                />
-              ))}
-            </div>
+          <div className="mt-2">
             <span className="text-[10px] text-white/30 font-semibold">Rating {playerProfile.rating}/7</span>
+            <div className="mt-1">
+              <SubStatStars player={playerProfile} size={11} />
+            </div>
           </div>
         </div>
       </div>

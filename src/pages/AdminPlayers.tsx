@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase, withTimeout } from '../lib/supabase';
-import { Star, Edit2, Trash2, Bell, BellOff, CheckCircle2, Circle, DollarSign, BellRing, Send, Loader2, Crown, ShieldCheck, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { Edit2, Trash2, Bell, BellOff, CheckCircle2, Circle, DollarSign, BellRing, Send, Loader2, Crown, ShieldCheck, MoreHorizontal, ChevronDown } from 'lucide-react';
+import SubStatStars from '../components/SubStatStars';
 import PlayerModal from '../components/PlayerModal';
 import { useAuth } from '../hooks/useAuth';
 import { sendMatchReminder, sendPaymentReminder } from '../lib/sendEmail';
@@ -354,10 +355,8 @@ export default function AdminPlayers() {
 
                         {/* Rating */}
                         <td className="px-4 py-3 hidden sm:table-cell">
-                          <div className="flex gap-0.5 justify-center">
-                            {Array.from({ length: 7 }, (_, i) => (
-                              <Star key={i} size={10} className={i < player.rating ? 'fill-current' : ''} style={{ color: i < player.rating ? '#ffd08b' : 'rgba(255,255,255,0.1)' }} />
-                            ))}
+                          <div className="flex justify-center">
+                            <SubStatStars player={player} size={8} compact />
                           </div>
                         </td>
 
