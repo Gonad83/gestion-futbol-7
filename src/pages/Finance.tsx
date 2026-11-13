@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { planRebalance, planHasChanges, applyRebalancePlan, type PaymentRow, type RebalancePlan } from '../lib/paymentLedger';
 import { Calculator, TrendingUp, TrendingDown, DollarSign, Plus, ChevronLeft, ChevronRight, ArrowUpCircle, Pencil, Check, X, Search, Trash2, Download, FileText } from 'lucide-react';
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
@@ -34,11 +35,12 @@ export default function Finance() {
   const [statusFilter, setStatusFilter] = useState<'todos' | 'pagado' | 'pendiente'>('todos');
   const [quotaFilter, setQuotaFilter] = useState<'mes' | 'total'>('mes');
 
+  const rebalancingRef = useRef(false);
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
-  useEffect(() => { if (teamId) fetchData(); }, [selectedMonth, selectedYear, teamId]);
+  useEffect(() => { if (teamId) fetchData(); }, [selectedMonth, selectedYear, teamId, isAdmin]);
 
   const fetchData = async () => {
     try {
@@ -60,14 +62,7 @@ export default function Finance() {
       const noAnyPlayers = allPlayerIds.length === 0;
 
       // Phase 2: everything else filtered by team
-      const [payDataRes, allPaidRes, expDataRes, incomeDataRes, settingsDataRes, allHistoryRes] = await Promise.all([
-        noPlayers
-          ? Promise.resolve({ data: [] })
-          : withTimeout(
-              supabase.from('payments').select('*, player:players(name, nickname)')
-                .eq('month', selectedMonth).eq('year', selectedYear).in('player_id', playerIds).order('created_at', { ascending: false }) as any,
-              10000
-            ),
+      const [allPaidRes, expDataRes, incomeDataRes, settingsDataRes, allHistoryRes] = await Promise.all([
         noAnyPlayers
           ? Promise.resolve({ data: [] })
           : withTimeout(
@@ -80,20 +75,46 @@ export default function Finance() {
         noPlayers
           ? Promise.resolve({ data: [] })
           : withTimeout(
-              supabase.from('payments').select('player_id, month, year, amount, status').in('player_id', playerIds) as any,
+              supabase.from('payments').select('*').in('player_id', playerIds) as any,
               10000
             ),
       ]);
-      const payData = (payDataRes as any).data || [];
-      const allPaid = (allPaidRes as any).data || [];
+      let allPaid = (allPaidRes as any).data || [];
       const expData = (expDataRes as any).data || [];
       const incomeData = (incomeDataRes as any).data || [];
       const settingsData = (settingsDataRes as any).data;
-      const allHistory = (allHistoryRes as any).data || [];
+      let allHistory: PaymentRow[] = (allHistoryRes as any).data || [];
 
     const quota = Number(settingsData?.quota_amount ?? 8000);
     setQuotaAmount(quota);
     setSettingsId(settingsData?.id ?? null);
+
+    // Reacomodo: los pagos siempre cubren el mes pendiente más antiguo y el saldo
+    // se corre a los meses siguientes. Si es admin, se guarda en la base.
+    const plans: RebalancePlan[] = (players || []).map((p: any) =>
+      planRebalance(allHistory.filter(h => h.player_id === p.id), p.id, p.created_at, quota)
+    );
+    const changedPlans = plans.filter(planHasChanges);
+    if (isAdmin && changedPlans.length > 0 && !rebalancingRef.current) {
+      rebalancingRef.current = true;
+      try {
+        for (const plan of changedPlans) await applyRebalancePlan(supabase, plan);
+        const [histRes, paidRes] = await Promise.all([
+          supabase.from('payments').select('*').in('player_id', playerIds),
+          supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', allPlayerIds),
+        ]);
+        if (!histRes.error) allHistory = histRes.data || [];
+        if (!paidRes.error) allPaid = paidRes.data || [];
+      } catch (err) {
+        console.error('Error reacomodando pagos:', err);
+        allHistory = plans.flatMap(p => p.rows);
+      } finally {
+        rebalancingRef.current = false;
+      }
+    } else if (changedPlans.length > 0) {
+      allHistory = plans.flatMap(p => p.rows);
+    }
+    const payData = allHistory.filter(h => h.month === selectedMonth && h.year === selectedYear);
 
     let mergedPayments: any[] = [];
     if (players) {
@@ -119,13 +140,14 @@ export default function Finance() {
 
         // N8N Compatibility: n8n inserts Pendiente with amount=quotaAmount to represent the debt.
         // We want 'amount' to always represent the 'paid amount'.
-        let actualPaidAmount = payment?.amount ?? 0;
+        let actualPaidAmount = Number(payment?.amount ?? 0);
         if ((payment?.status === 'Pendiente' || payment?.status === 'Atrasado') && actualPaidAmount >= quota) {
             actualPaidAmount = 0;
         }
 
         return {
           player_id: p.id,
+          joined_at: p.created_at ?? null,
           name: p.name,
           nickname: p.nickname,
           payment_id: payment?.id ?? null,
@@ -263,79 +285,23 @@ export default function Finance() {
 
     if (amount <= 0) return;
 
-    const confirmMessage = `¿Abonar o pagar ${clp(amount)} a nombre de ${player.name} a partir de ${MONTHS[selectedMonth-1]} ${selectedYear}?`;
+    const oldest = morosos.find(m => m.id === player.player_id)?.pendingMonths?.[0];
+    const oldestIsEarlier = !!oldest && (oldest.year < selectedYear || (oldest.year === selectedYear && oldest.month < selectedMonth));
+    const confirmMessage = oldestIsEarlier
+      ? `${player.name} debe meses anteriores. El pago de ${clp(amount)} se aplicará primero a ${MONTHS[oldest.month - 1]} ${oldest.year} y el saldo pasa a los meses siguientes. ¿Continuar?`
+      : `¿Abonar o pagar ${clp(amount)} a nombre de ${player.name}? Se aplica primero al mes pendiente más antiguo y el saldo pasa a los meses siguientes.`;
 
-    if (amount !== remainingDebtForCurrentMonth && !confirm(confirmMessage)) return;
+    if ((oldestIsEarlier || amount !== remainingDebtForCurrentMonth) && !confirm(confirmMessage)) return;
 
     try {
-      let remaining = amount;
-      let offset = 0;
-      
-      while (remaining > 0) {
-        const tYear = selectedYear + Math.floor((selectedMonth - 1 + offset) / 12);
-        const tMonth = ((selectedMonth - 1 + offset) % 12) + 1;
+      const { data: rows, error: rowsError } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('player_id', player.player_id);
+      if (rowsError) throw rowsError;
 
-        const { data: existingList } = await supabase
-          .from('payments')
-          .select('id, amount, status')
-          .eq('player_id', player.player_id)
-          .eq('month', tMonth)
-          .eq('year', tYear);
-
-        let existing: any = null;
-        if (existingList && existingList.length > 0) {
-          // Prioritize Pagado
-          existing = existingList.find(r => r.status === 'Pagado');
-          if (!existing) {
-             existing = existingList[0];
-          }
-          // Clean up duplicates immediately
-          if (existingList.length > 1) {
-             const idsToDelete = existingList.filter(r => r.id !== existing.id).map(r => r.id);
-             await supabase.from('payments').delete().in('id', idsToDelete);
-          }
-        }
-
-        if (existing?.status === 'Pagado') {
-          offset++;
-          continue;
-        }
-
-        let currentlyPaid = existing ? Number(existing.amount) : 0;
-        // Normalization for n8n compatibility inside the loop
-        if ((existing?.status === 'Pendiente' || existing?.status === 'Atrasado') && currentlyPaid >= quotaAmount) {
-          currentlyPaid = 0;
-        }
-
-        const owesForThisMonth = quotaAmount - currentlyPaid;
-        
-        const paymentForThisMonth = Math.min(remaining, owesForThisMonth);
-        const newTotalPaid = currentlyPaid + paymentForThisMonth;
-        const newStatus = newTotalPaid >= quotaAmount ? 'Pagado' : 'Pendiente';
-
-        if (existing?.id) {
-          const { error } = await supabase.from('payments')
-            .update({ status: newStatus, amount: newTotalPaid, payment_method: method })
-            .eq('id', existing.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from('payments')
-            .insert([{
-              player_id: player.player_id,
-              amount: newTotalPaid,
-              month: tMonth,
-              year: tYear,
-              status: newStatus,
-              payment_method: method,
-            }]);
-          if (error) throw error;
-        }
-
-        remaining -= paymentForThisMonth;
-        offset++;
-        
-        if (offset > 24) break; 
-      }
+      const plan = planRebalance(rows || [], player.player_id, player.joined_at, quotaAmount, amount, method);
+      await applyRebalancePlan(supabase, plan);
       
       setCustomAmounts(prev => { const next = { ...prev }; delete next[player.player_id]; return next; });
       setPaymentMethods(prev => { const next = { ...prev }; delete next[player.player_id]; return next; });
