@@ -32,6 +32,7 @@ const TerminosDeServicio = lazy(() => import('./pages/TerminosDeServicio'));
 const PoliticaDePrivacidad = lazy(() => import('./pages/PoliticaDePrivacidad'));
 const Seguridad = lazy(() => import('./pages/Seguridad'));
 const Checkout = lazy(() => import('./pages/Checkout'));
+const InterGeneraciones = lazy(() => import('./pages/InterGeneraciones'));
 import Landing from './pages/Landing';
 
 /**
@@ -94,7 +95,7 @@ function App() {
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/matchmaking" element={<Matchmaking />} />
               <Route path="/finance" element={<Finance />} />
-              {/* Future routes will go here */}
+              <Route path="/inter-generaciones" element={<InterGeneraciones />} />
               <Route path="/profile" element={<MyProfile />} />
               <Route path="/vote" element={<Vote />} />
               <Route path="/arena" element={<Arena />} />

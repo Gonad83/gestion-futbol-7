@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle, Globe, Crown, Zap } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle, Globe, Crown, Zap, Trophy } from 'lucide-react';
 import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -46,6 +46,7 @@ export default function Layout() {
     { name: 'Plantilla', path: '/players', icon: <Users size={18} /> },
     { name: 'Calendario', path: '/calendar', icon: <CalendarDays size={18} /> },
     { name: 'Matchmaking', path: '/matchmaking', icon: <ShieldAlert size={18} /> },
+    { name: 'Inter Generaciones', path: '/inter-generaciones', icon: <Trophy size={18} /> },
     ...(isSuperAdmin ? [{ name: 'Arena', path: '/arena', icon: <Globe size={18} /> }] : []),
     { name: 'Mi Perfil', path: '/profile', icon: <UserCircle size={18} /> },
     ...(isAdmin ? [
