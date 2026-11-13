@@ -31,6 +31,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
     forma: 4,
     tecnica: 4,
     vision: 4,
+    ataque: 4,
     defensa: 4,
     status: 'Activo',
     photo_url: '',
@@ -56,12 +57,13 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
         forma: subStat(player, 'forma'),
         tecnica: subStat(player, 'tecnica'),
         vision: subStat(player, 'vision'),
+        ataque: subStat(player, 'ataque'),
         defensa: subStat(player, 'defensa'),
       });
       setPhotoPreview(player.photo_url || '');
     } else {
       setFormData({
-        name: '', nickname: '', email: '', position: 'Delantero Centro (9)', secondary_position: '', rating: 4, forma: 4, tecnica: 4, vision: 4, defensa: 4, status: 'Activo', photo_url: '', birth_date: ''
+        name: '', nickname: '', email: '', position: 'Delantero Centro (9)', secondary_position: '', rating: 4, forma: 4, tecnica: 4, vision: 4, ataque: 4, defensa: 4, status: 'Activo', photo_url: '', birth_date: ''
       });
       setPhotoPreview('');
     }
@@ -72,7 +74,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
 
   const setSubStat = (key: SubStatKey, value: number) => {
     const next = { ...formData, [key]: value };
-    next.rating = ratingFromSubStats({ forma: next.forma, tecnica: next.tecnica, vision: next.vision, defensa: next.defensa });
+    next.rating = ratingFromSubStats({ forma: next.forma, tecnica: next.tecnica, vision: next.vision, ataque: next.ataque, defensa: next.defensa });
     setFormData(next);
   };
 
