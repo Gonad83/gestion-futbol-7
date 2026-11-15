@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MiClubPro">
+  <rect width="512" height="512" rx="112" fill="#10141a"/>
+  <!-- Escudo de club -->
+  <path d="M256 92 L388 136 V258 C388 340 332 392 256 422 C180 392 124 340 124 258 V136 Z" fill="#44f3a9" stroke="#44f3a9" stroke-width="18" stroke-linejoin="round"/>
+  <!-- La cancha vista desde arriba: línea de mitad de cancha y círculo central -->
+  <path d="M256 78 V440" stroke="#10141a" stroke-width="18"/>
+  <circle cx="256" cy="252" r="56" fill="none" stroke="#10141a" stroke-width="18"/>
+</svg>
