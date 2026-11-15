@@ -1,1138 +1,124 @@
-import { useState, useEffect, useRef } from 'react';
-import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { planRebalance, planHasChanges, applyRebalancePlan, type PaymentRow, type RebalancePlan } from '../lib/paymentLedger';
-import { Calculator, TrendingUp, TrendingDown, DollarSign, Plus, ChevronLeft, ChevronRight, ArrowUpCircle, Pencil, Check, X, Search, Trash2, Download, FileText } from 'lucide-react';
-import { aviso, confirmar } from '../lib/avisos';
+import { useCaja } from './finance/useCaja';
+import { EncabezadoCaja } from './finance/EncabezadoCaja';
+import { TarjetasResumen } from './finance/TarjetasResumen';
+import { IndicadoresCaja } from './finance/IndicadoresCaja';
+import { PestanaCuotas } from './finance/PestanaCuotas';
+import { PestanaMorosidad } from './finance/PestanaMorosidad';
+import { PestanaIngresos } from './finance/PestanaIngresos';
+import { PestanaGastos } from './finance/PestanaGastos';
 
-const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
+/**
+ * Caja. Aquí solo se arma la pantalla: los datos y acciones vienen de useCaja
+ * y cada bloque se dibuja en su propio archivo en ./finance.
+ */
 export default function Finance() {
   const { isAdmin, teamId } = useAuth();
-  const [payments, setPayments] = useState<any[]>([]);
-  const [allPaidAmount, setAllPaidAmount] = useState(0);
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [cashIncomes, setCashIncomes] = useState<any[]>([]);
-  const [quotaAmount, setQuotaAmount] = useState(8000);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'cuotas' | 'ingresos' | 'gastos' | 'morosidad'>('cuotas');
-  const [morosos, setMorosos] = useState<any[]>([]);
-  const [copiedAll, setCopiedAll] = useState(false);
-  const [copiedPlayer, setCopiedPlayer] = useState<string | null>(null);
-
-  const today = new Date().toISOString().split('T')[0];
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [expenseData, setExpenseData] = useState({ concept: '', amount: '', date: today });
-  const [showIncomeForm, setShowIncomeForm] = useState(false);
-  const [incomeData, setIncomeData] = useState({ concept: '', amount: '', date: today });
-  const [customAmounts, setCustomAmounts] = useState<Record<string, number>>({});
-  const [paymentMethods, setPaymentMethods] = useState<Record<string, string>>({});
-
-  const [editingQuota, setEditingQuota] = useState(false);
-  const [quotaInput, setQuotaInput] = useState('');
-  const [settingsId, setSettingsId] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'pagado' | 'pendiente'>('todos');
-  const [quotaFilter, setQuotaFilter] = useState<'mes' | 'total'>('mes');
-
-  const rebalancingRef = useRef(false);
-  const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-
-  useEffect(() => { if (teamId) fetchData(); }, [selectedMonth, selectedYear, teamId, isAdmin]);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      // Phase 1: get players — active ones for the table, all for balance
-      const [{ data: players }, { data: allPlayersData }] = await Promise.all([
-        withTimeout(
-          supabase.from('players').select('id, name, nickname, status, created_at').in('status', ['Activo', 'Lesionado']).eq('team_id', teamId) as any,
-          10000
-        ) as any,
-        withTimeout(
-          supabase.from('players').select('id').eq('team_id', teamId) as any,
-          10000
-        ) as any,
-      ]);
-      const playerIds: string[] = (players || []).map((p: any) => p.id);
-      const allPlayerIds: string[] = (allPlayersData || []).map((p: any) => p.id);
-      const noPlayers = playerIds.length === 0;
-      const noAnyPlayers = allPlayerIds.length === 0;
-
-      // Phase 2: everything else filtered by team
-      const [allPaidRes, expDataRes, incomeDataRes, settingsDataRes, allHistoryRes] = await Promise.all([
-        noAnyPlayers
-          ? Promise.resolve({ data: [] })
-          : withTimeout(
-              supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', allPlayerIds) as any,
-              10000
-            ),
-        withTimeout(supabase.from('expenses').select('*').eq('team_id', teamId).order('date', { ascending: false }) as any, 10000),
-        withTimeout(supabase.from('cash_incomes').select('*').eq('team_id', teamId).order('date', { ascending: false }) as any, 10000),
-        withTimeout(supabase.from('team_settings').select('id, quota_amount').eq('id', teamId).single() as any, 10000),
-        noPlayers
-          ? Promise.resolve({ data: [] })
-          : withTimeout(
-              supabase.from('payments').select('*').in('player_id', playerIds) as any,
-              10000
-            ),
-      ]);
-      let allPaid = (allPaidRes as any).data || [];
-      const expData = (expDataRes as any).data || [];
-      const incomeData = (incomeDataRes as any).data || [];
-      const settingsData = (settingsDataRes as any).data;
-      let allHistory: PaymentRow[] = (allHistoryRes as any).data || [];
-
-    const quota = Number(settingsData?.quota_amount ?? 8000);
-    setQuotaAmount(quota);
-    setSettingsId(settingsData?.id ?? null);
-
-    // Reacomodo: los pagos siempre cubren el mes pendiente más antiguo y el saldo
-    // se corre a los meses siguientes. Si es admin, se guarda en la base.
-    const plans: RebalancePlan[] = (players || []).map((p: any) =>
-      planRebalance(allHistory.filter(h => h.player_id === p.id), p.id, p.created_at, quota)
-    );
-    const changedPlans = plans.filter(planHasChanges);
-    if (isAdmin && changedPlans.length > 0 && !rebalancingRef.current) {
-      rebalancingRef.current = true;
-      try {
-        for (const plan of changedPlans) await applyRebalancePlan(supabase, plan);
-        const [histRes, paidRes] = await Promise.all([
-          supabase.from('payments').select('*').in('player_id', playerIds),
-          supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', allPlayerIds),
-        ]);
-        if (!histRes.error) allHistory = histRes.data || [];
-        if (!paidRes.error) allPaid = paidRes.data || [];
-      } catch (err) {
-        console.error('Error reacomodando pagos:', err);
-        allHistory = plans.flatMap(p => p.rows);
-      } finally {
-        rebalancingRef.current = false;
-      }
-    } else if (changedPlans.length > 0) {
-      allHistory = plans.flatMap(p => p.rows);
-    }
-    const payData = allHistory.filter(h => h.month === selectedMonth && h.year === selectedYear);
-
-    let mergedPayments: any[] = [];
-    if (players) {
-      const safePayData = payData || [];
-      mergedPayments = players.map((p: any) => {
-        const playerPayments = safePayData.filter((py: any) => py.player_id === p.id);
-        // Prioritize Pagado, else highest amount, else first
-        playerPayments.sort((a: any, b: any) => {
-          if (a.status === 'Pagado' && b.status !== 'Pagado') return -1;
-          if (b.status === 'Pagado' && a.status !== 'Pagado') return 1;
-          return Number(b.amount) - Number(a.amount);
-        });
-        
-        const payment = playerPayments.length > 0 ? playerPayments[0] : undefined;
-
-        // If the selected month/year is before the player joined → exempt
-        const joinDate = p.created_at ? new Date(p.created_at) : null;
-        const joinYear = joinDate?.getFullYear() ?? selectedYear;
-        const joinMonth = joinDate ? joinDate.getMonth() + 1 : selectedMonth;
-        const isAutoExempt = selectedYear < joinYear || (selectedYear === joinYear && selectedMonth < joinMonth);
-        const isManualExempt = !isAutoExempt && payment?.status === 'Exento';
-        const isExempt = isAutoExempt || isManualExempt;
-
-        // N8N Compatibility: n8n inserts Pendiente with amount=quotaAmount to represent the debt.
-        // We want 'amount' to always represent the 'paid amount'.
-        let actualPaidAmount = Number(payment?.amount ?? 0);
-        if ((payment?.status === 'Pendiente' || payment?.status === 'Atrasado') && actualPaidAmount >= quota) {
-            actualPaidAmount = 0;
-        }
-
-        return {
-          player_id: p.id,
-          joined_at: p.created_at ?? null,
-          name: p.name,
-          nickname: p.nickname,
-          payment_id: payment?.id ?? null,
-          amount: actualPaidAmount,
-          status: isExempt ? 'Exento' : (payment?.status ?? 'Pendiente'),
-          isExempt,
-          isAutoExempt,
-          isManualExempt,
-          notified_at: payment?.notified_at ?? null,
-          payment_method: payment?.payment_method ?? null,
-        };
-      });
-    }
-
-    // Compute morosos across all months
-    const curMonth = now.getMonth() + 1;
-    const curYear = now.getFullYear();
-    const morososData: any[] = (players || []).map((p: any) => {
-      const joinDate = p.created_at ? new Date(p.created_at) : null;
-      let jYear = joinDate?.getFullYear() ?? curYear;
-      let jMonth = joinDate ? joinDate.getMonth() + 1 : curMonth;
-      const paidSet = new Set(
-        allHistory.filter((h: any) => h.player_id === p.id && (h.status === 'Pagado' || h.status === 'Exento')).map((h: any) => `${h.year}-${h.month}`)
-      );
-      const pending: { year: number; month: number }[] = [];
-      let y = jYear; let m = jMonth;
-      while (y < curYear || (y === curYear && m <= curMonth)) {
-        if (m > 2 && !paidSet.has(`${y}-${m}`)) pending.push({ year: y, month: m });
-        m++; if (m > 12) { m = 1; y++; }
-      }
-      return { id: p.id, name: p.name, nickname: p.nickname, pendingMonths: pending, totalDebt: pending.length * quota };
-    }).filter((p: any) => p.pendingMonths.length > 0)
-      .sort((a: any, b: any) => b.pendingMonths.length - a.pendingMonths.length);
-    setMorosos(morososData);
-
-    setPayments(mergedPayments);
-    setAllPaidAmount(allPaid.reduce((acc: number, p: any) => acc + Number(p.amount), 0));
-    setExpenses(expData);
-    setCashIncomes(incomeData);
-    } catch (e) {
-      console.error('Error fetching finance data:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const totalCashIncomes = cashIncomes.reduce((acc, i) => acc + Number(i.amount), 0);
-  const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
-  const balance = allPaidAmount + totalCashIncomes - totalExpenses;
-
-  const expByMonth: Record<string, number> = {};
-  expenses.forEach(e => {
-    if (!e.date) return;
-    const key = String(e.date).slice(0, 7);
-    expByMonth[key] = (expByMonth[key] || 0) + Number(e.amount);
-  });
-  const monthlyExpAmounts = Object.values(expByMonth) as number[];
-  const avgMonthlyExp = monthlyExpAmounts.length > 0 ? monthlyExpAmounts.reduce((a, b) => a + b, 0) / monthlyExpAmounts.length : 0;
-  const mesesRespaldo = avgMonthlyExp > 0 ? Math.round((balance / avgMonthlyExp) * 10) / 10 : 0;
-
-  const curMonth = now.getMonth() + 1;
-  const curYear = now.getFullYear();
-  const morososThisMonth = morosos.filter(p => p.pendingMonths.some((m: any) => m.month === curMonth && m.year === curYear)).length;
-  const totalActivePlayers = payments.filter(p => !p.isAutoExempt).length;
-  const tasaMora = totalActivePlayers > 0 ? Math.round((morososThisMonth / totalActivePlayers) * 100) : 0;
-  const monthlyIncome = payments.filter(p => p.status === 'Pagado').reduce((acc, p) => acc + Number(p.amount), 0);
-  const filteredPayments = payments.filter(p => {
-    const matchesSearch = !search.trim() || `${p.name} ${p.nickname ?? ''}`.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'todos'
-      || (statusFilter === 'pagado' && p.status === 'Pagado')
-      || (statusFilter === 'pendiente' && p.status !== 'Pagado' && p.status !== 'Exento');
-    return matchesSearch && matchesStatus;
-  });
-
-  const prevMonth = () => {
-    if (selectedMonth === 1) { setSelectedMonth(12); setSelectedYear(y => y - 1); }
-    else setSelectedMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (selectedMonth === 12) { setSelectedMonth(1); setSelectedYear(y => y + 1); }
-    else setSelectedMonth(m => m + 1);
-  };
-
-  const handleSaveQuota = async () => {
-    const val = parseFloat(quotaInput);
-    if (isNaN(val) || val <= 0) return;
-    const { error } = settingsId
-      ? await supabase.from('team_settings').update({ quota_amount: val, updated_at: new Date().toISOString() }).eq('id', settingsId)
-      : await supabase.from('team_settings').insert([{ quota_amount: val }]);
-    if (error) { aviso.error('Error al guardar: ' + error.message); return; }
-    setQuotaAmount(val);
-    setEditingQuota(false);
-  };
-
-  const handleSetExempt = async (player: any) => {
-    if (!isAdmin) return;
-    try {
-      if (player.payment_id) {
-        await supabase.from('payments').update({ status: 'Exento', amount: 0 }).eq('id', player.payment_id);
-      } else {
-        await supabase.from('payments').insert([{ player_id: player.player_id, month: selectedMonth, year: selectedYear, amount: 0, status: 'Exento' }]);
-      }
-      await fetchData();
-    } catch (e: any) { aviso.error(`Error: ${e?.message}`); }
-  };
-
-  const handleUnsetExempt = async (player: any) => {
-    if (!isAdmin) return;
-    try {
-      if (player.payment_id) {
-        await supabase.from('payments').update({ status: 'Pendiente', amount: 0 }).eq('id', player.payment_id);
-      }
-      await fetchData();
-    } catch (e: any) { aviso.error(`Error: ${e?.message}`); }
-  };
-
-  const handleCancelPayment = async (player: any) => {
-    if (!isAdmin) return;
-    if (!(await confirmar(`¿Anular todos los pagos de ${player.name} para ${MONTHS[selectedMonth-1]} ${selectedYear}?`))) return;
-    try {
-      if (player.payment_id) {
-        const { error } = await supabase.from('payments').update({ status: 'Pendiente', amount: 0 }).eq('id', player.payment_id);
-        if (error) throw error;
-      }
-      await fetchData();
-    } catch (e: any) { aviso.error(`Error: ${e?.message}`); }
-  };
-
-  const handlePaymentToggle = async (player: any) => {
-    if (!isAdmin) return;
-
-    const remainingDebtForCurrentMonth = Math.max(0, quotaAmount - Number(player.amount || 0));
-    const amount = customAmounts[player.player_id] !== undefined ? customAmounts[player.player_id] : remainingDebtForCurrentMonth;
-    const method = paymentMethods[player.player_id] || 'Transferencia';
-
-    if (amount <= 0) return;
-
-    const oldest = morosos.find(m => m.id === player.player_id)?.pendingMonths?.[0];
-    const oldestIsEarlier = !!oldest && (oldest.year < selectedYear || (oldest.year === selectedYear && oldest.month < selectedMonth));
-    const confirmMessage = oldestIsEarlier
-      ? `${player.name} debe meses anteriores. El pago de ${clp(amount)} se aplicará primero a ${MONTHS[oldest.month - 1]} ${oldest.year} y el saldo pasa a los meses siguientes. ¿Continuar?`
-      : `¿Abonar o pagar ${clp(amount)} a nombre de ${player.name}? Se aplica primero al mes pendiente más antiguo y el saldo pasa a los meses siguientes.`;
-
-    if ((oldestIsEarlier || amount !== remainingDebtForCurrentMonth) && !(await confirmar(confirmMessage))) return;
-
-    try {
-      const { data: rows, error: rowsError } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('player_id', player.player_id);
-      if (rowsError) throw rowsError;
-
-      const plan = planRebalance(rows || [], player.player_id, player.joined_at, quotaAmount, amount, method);
-      await applyRebalancePlan(supabase, plan);
-      
-      setCustomAmounts(prev => { const next = { ...prev }; delete next[player.player_id]; return next; });
-      setPaymentMethods(prev => { const next = { ...prev }; delete next[player.player_id]; return next; });
-
-      await fetchData();
-    } catch (e: any) {
-      aviso.error(`Error al registrar pago: ${e?.message || e}`);
-    }
-  };
-
-  const handleAddExpense = async (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    if (!isAdmin) return;
-    const { error } = await supabase.from('expenses').insert([{
-      concept: expenseData.concept,
-      amount: parseFloat(expenseData.amount),
-      date: expenseData.date,
-      team_id: teamId
-    }]);
-    if (error) { aviso.error('Error: ' + error.message); return; }
-    setExpenseData({ concept: '', amount: '', date: today });
-    setShowExpenseForm(false);
-    await fetchData();
-  };
-
-  const handleDeleteIncome = async (id: string) => {
-    if (!isAdmin || !teamId) return;
-    if (!(await confirmar('¿Eliminar este ingreso?'))) return;
-    const { error } = await supabase.from('cash_incomes').delete().eq('id', id).eq('team_id', teamId);
-    if (error) { aviso.error('Error: ' + error.message); return; }
-    await fetchData();
-  };
-
-  const handleDeleteExpense = async (id: string) => {
-    if (!isAdmin || !teamId) return;
-    if (!(await confirmar('¿Eliminar este gasto?'))) return;
-    const { error } = await supabase.from('expenses').delete().eq('id', id).eq('team_id', teamId);
-    if (error) { aviso.error('Error: ' + error.message); return; }
-    await fetchData();
-  };
-
-  const handleAddIncome = async (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    if (!isAdmin) return;
-    const { error } = await supabase.from('cash_incomes').insert([{
-      concept: incomeData.concept,
-      amount: parseFloat(incomeData.amount),
-      date: incomeData.date,
-      team_id: teamId
-    }]);
-    if (error) { aviso.error('Error: ' + error.message); return; }
-    setIncomeData({ concept: '', amount: '', date: today });
-    setShowIncomeForm(false);
-    await fetchData();
-  };
-
-  const downloadCSV = (data: any[][], filename: string) => {
-    const csv = data.map(row =>
-      row.map((cell: any) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')
-    ).join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const exportToPDF = () => {
-    let title = '';
-    let tableHTML = '';
-
-    if (activeTab === 'cuotas') {
-      title = `Control de Cuotas — ${MONTHS[selectedMonth - 1]} ${selectedYear}`;
-      const pagados = payments.filter(p => p.status === 'Pagado').length;
-      const pendientes = payments.filter(p => p.status !== 'Pagado' && p.status !== 'Exento').length;
-      const totalMes = payments.filter(p => p.status === 'Pagado').reduce((acc, p) => acc + Number(p.amount), 0);
-      tableHTML = `
-        <div class="summary">
-          <span>✅ Pagados: <b>${pagados}</b></span>
-          <span>⏳ Pendientes: <b>${pendientes}</b></span>
-          <span>💰 Total recaudado: <b>${clp(totalMes)}</b></span>
-        </div>
-        <table>
-          <thead><tr><th>#</th><th>Jugador</th><th>Estado</th><th>Monto</th></tr></thead>
-          <tbody>
-            ${payments.map((p, i) => `
-              <tr class="${p.status === 'Pagado' ? 'paid' : 'pending'}">
-                <td>${i + 1}</td>
-                <td>${p.name}${p.nickname ? ` <span class="nick">"${p.nickname}"</span>` : ''}</td>
-                <td><span class="badge ${p.status === 'Pagado' ? 'badge-paid' : 'badge-pending'}">${p.status}</span></td>
-                <td>${clp(p.amount)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
-    } else if (activeTab === 'ingresos') {
-      title = 'Ingresos de Caja';
-      tableHTML = `
-        <div class="summary"><span>💰 Total: <b>${clp(totalCashIncomes)}</b></span></div>
-        <table>
-          <thead><tr><th>#</th><th>Concepto</th><th>Monto</th><th>Fecha</th></tr></thead>
-          <tbody>
-            ${cashIncomes.map((i, idx) => `
-              <tr>
-                <td>${idx + 1}</td><td>${i.concept}</td>
-                <td class="green">+${clp(i.amount)}</td>
-                <td>${new Date(new Date(i.date).getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString('es-CL')}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
-    } else {
-      title = 'Registro de Gastos';
-      tableHTML = `
-        <div class="summary"><span>💸 Total gastos: <b>${clp(totalExpenses)}</b></span></div>
-        <table>
-          <thead><tr><th>#</th><th>Concepto</th><th>Monto</th><th>Fecha</th></tr></thead>
-          <tbody>
-            ${expenses.map((e, i) => `
-              <tr>
-                <td>${i + 1}</td><td>${e.concept}</td>
-                <td class="red">-${clp(e.amount)}</td>
-                <td>${new Date(new Date(e.date).getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString('es-CL')}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
-    }
-
-    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-      <title>${title}</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; padding: 32px; font-size: 13px; }
-        h1 { font-size: 20px; font-weight: 900; color: #003822; margin-bottom: 4px; }
-        .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
-        .summary { display: flex; gap: 24px; background: #f0faf5; border-left: 4px solid #00c97a; padding: 10px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }
-        table { width: 100%; border-collapse: collapse; }
-        thead { background: #003822; color: white; }
-        th { padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
-        td { padding: 9px 12px; border-bottom: 1px solid #e8e8e8; }
-        tr:last-child td { border-bottom: none; }
-        tr.paid { background: #f0fdf4; }
-        tr.pending { background: #fffbeb; }
-        .nick { color: #999; font-size: 11px; }
-        .badge { padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; }
-        .badge-paid { background: #d1fae5; color: #065f46; }
-        .badge-pending { background: #fef3c7; color: #92400e; }
-        .green { color: #059669; font-weight: 700; }
-        .red { color: #dc2626; font-weight: 700; }
-        .footer { margin-top: 24px; font-size: 10px; color: #aaa; text-align: right; }
-        @media print { body { padding: 16px; } }
-      </style>
-    </head><body>
-      <h1>${title}</h1>
-      <p class="meta">Generado el ${new Date().toLocaleDateString('es-CL')} · MiClubPro</p>
-      ${tableHTML}
-      <p class="footer">MiClubPro.cl — Gestión de Fútbol 7</p>
-      <script>window.onload = () => { window.print(); }<\/script>
-    </body></html>`;
-
-    const win = window.open('', '_blank');
-    if (win) { win.document.write(html); win.document.close(); }
-  };
-
-  const exportToCSV = () => {
-    if (activeTab === 'cuotas') {
-      const headers = ['Jugador', 'Estado', 'Monto Pagado', 'Mes', 'Año'];
-      const rows = payments.map(p => [
-        p.name,
-        p.status,
-        p.amount,
-        MONTHS[selectedMonth - 1],
-        selectedYear,
-      ]);
-      downloadCSV([headers, ...rows], `cuotas-${MONTHS[selectedMonth - 1]}-${selectedYear}`);
-    } else if (activeTab === 'ingresos') {
-      const headers = ['Concepto', 'Monto', 'Fecha'];
-      const rows = cashIncomes.map(i => [i.concept, i.amount, i.date]);
-      downloadCSV([headers, ...rows], 'ingresos-caja');
-    } else {
-      const headers = ['Concepto', 'Monto', 'Fecha'];
-      const rows = expenses.map(e => [e.concept, e.amount, e.date]);
-      downloadCSV([headers, ...rows], 'gastos');
-    }
-  };
+  const c = useCaja(teamId, isAdmin);
 
   return (
     <div className="fade-in pb-20 md:pb-0">
-      <div className="flex justify-between items-end mb-6">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Finanzas</p>
-          <h1 className="font-headline text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
-              <Calculator size={18} />
-            </div>
-            Caja
-          </h1>
-        </div>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <button
-              onClick={exportToPDF}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:brightness-110"
-              style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
-              title="Exportar como PDF"
-            >
-              <FileText size={15} />
-              PDF
-            </button>
-            <button
-              onClick={exportToCSV}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:brightness-110"
-              style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}
-              title="Exportar datos actuales a Excel/CSV"
-            >
-              <Download size={15} />
-              CSV / Excel
-            </button>
-          </div>
-        )}
-      </div>
+      <EncabezadoCaja isAdmin={isAdmin} exportToPDF={c.exportToPDF} exportToCSV={c.exportToCSV} />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="glass-card p-8 border-l-4 border-l-soccer-green group hover:scale-[1.02]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-soccer-green/5 rounded-full blur-3xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
-          <div className="flex items-center justify-between mb-4 relative z-10">
-            <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">Caja Actual</h3>
-            <div className="bg-soccer-green/10 p-2 rounded-xl border border-soccer-green/20 group-hover:bg-soccer-green/20 transition-colors">
-              <DollarSign className="text-soccer-green" size={24} />
-            </div>
-          </div>
-          <p className={`text-4xl font-black tracking-tighter relative z-10 transition-colors ${balance >= 0 ? 'text-white' : 'text-red-400'}`}>
-            {clp(balance)}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-2 relative z-10">Cuotas pagadas + ingresos − gastos</p>
-          <div className="mt-3 h-1 w-12 bg-soccer-green/30 rounded-full"></div>
-        </div>
+      <TarjetasResumen
+        payments={c.payments}
+        quotaFilter={c.quotaFilter}
+        setQuotaFilter={c.setQuotaFilter}
+        selectedMonth={c.selectedMonth}
+        totalExpenses={c.totalExpenses}
+        balance={c.balance}
+        monthlyIncome={c.monthlyIncome}
+        allPaidAmount={c.allPaidAmount}
+      />
 
-        <div className="glass-card p-8 border-l-4 border-l-emerald-500 group hover:scale-[1.02]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
-          <div className="flex items-center justify-between mb-4 relative z-10">
-            <div className="flex flex-col gap-1.5">
-              <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">
-                {quotaFilter === 'total' ? 'Total Cuotas Pagadas' : `Cuotas — ${MONTHS[selectedMonth - 1]}`}
-              </h3>
-              <div className="flex rounded-lg overflow-hidden border border-white/10 text-[11px] font-bold p-0.5 bg-black/20 w-fit">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setQuotaFilter('mes'); }}
-                  className={`px-2.5 py-0.5 rounded transition-all duration-200 ${quotaFilter === 'mes' ? 'bg-emerald-500 text-[#003822] shadow-sm' : 'text-slate-400 hover:text-white'}`}
-                >
-                  Mes
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setQuotaFilter('total'); }}
-                  className={`px-2.5 py-0.5 rounded transition-all duration-200 ${quotaFilter === 'total' ? 'bg-emerald-500 text-[#003822] shadow-sm' : 'text-slate-400 hover:text-white'}`}
-                >
-                  Total
-                </button>
-              </div>
-            </div>
-            <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
-              <TrendingUp className="text-emerald-500" size={24} />
-            </div>
-          </div>
-          <p className="text-4xl font-black tracking-tighter text-white relative z-10">
-            {quotaFilter === 'total' ? clp(allPaidAmount) : clp(monthlyIncome)}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-2 relative z-10">
-            {quotaFilter === 'total'
-              ? 'Monto total recaudado en el historial de cuotas'
-              : selectedMonth <= 2
-                ? 'Mes sin cobros asignados'
-                : `${payments.filter(p => p.status === 'Pagado').length}/${payments.filter(p => !p.isExempt).length} jugadores al día`}
-          </p>
-          <div className="mt-3 h-1 w-12 bg-emerald-500/30 rounded-full"></div>
-        </div>
+      <IndicadoresCaja balance={c.balance} mesesRespaldo={c.mesesRespaldo} tasaMora={c.tasaMora} />
 
-        <div className="glass-card p-8 border-l-4 border-l-red-500 group hover:scale-[1.02]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-3xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
-          <div className="flex items-center justify-between mb-4 relative z-10">
-            <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">Gastos (Historial)</h3>
-            <div className="bg-red-500/10 p-2 rounded-xl border border-red-500/20 group-hover:bg-red-500/20 transition-colors">
-              <TrendingDown className="text-red-500" size={24} />
-            </div>
-          </div>
-          <p className="text-4xl font-black tracking-tighter text-white relative z-10">{clp(totalExpenses)}</p>
-          <div className="mt-4 h-1 w-12 bg-red-500/30 rounded-full"></div>
-        </div>
-      </div>
-
-      {/* Financial Intelligence Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        <div className="rounded-2xl p-6" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">Meses de Respaldo</h3>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{
-              background: mesesRespaldo >= 3 ? 'rgba(68,243,169,0.12)' : mesesRespaldo >= 1 ? 'rgba(255,208,139,0.12)' : 'rgba(248,113,113,0.12)',
-              color: mesesRespaldo >= 3 ? '#44f3a9' : mesesRespaldo >= 1 ? '#ffd08b' : '#f87171',
-            }}>
-              {mesesRespaldo >= 3 ? '✓ Saludable' : mesesRespaldo >= 1 ? '⚠ Ajustado' : balance <= 0 ? '✗ Crítico' : 'Sin datos'}
-            </span>
-          </div>
-          <p className="text-4xl font-black tracking-tighter text-white">{mesesRespaldo > 0 ? mesesRespaldo.toFixed(1) : '—'}</p>
-          <p className="text-[11px] text-slate-400 mt-2">meses que cubre el saldo actual</p>
-          <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="h-full rounded-full transition-all duration-700" style={{
-              width: `${Math.min(100, (Math.max(0, mesesRespaldo) / 6) * 100)}%`,
-              background: mesesRespaldo >= 3 ? '#44f3a9' : mesesRespaldo >= 1 ? '#ffd08b' : '#f87171',
-            }} />
-          </div>
-        </div>
-
-        <div className="rounded-2xl p-6" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">Tasa de Morosidad</h3>
-            {tasaMora > 15 && (
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
-                ⚠ Alerta
-              </span>
-            )}
-          </div>
-          <p className="text-4xl font-black tracking-tighter text-white">{tasaMora}%</p>
-          <p className="text-[11px] text-slate-400 mt-2">jugadores con cuota pendiente este mes</p>
-          <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="h-full rounded-full transition-all duration-700" style={{
-              width: `${Math.min(100, tasaMora)}%`,
-              background: tasaMora > 15 ? '#f87171' : tasaMora > 5 ? '#ffd08b' : '#44f3a9',
-            }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
       <div className="glass-card overflow-hidden p-0">
         <div className="flex border-b border-glass-border">
           {(['cuotas', 'morosidad', 'ingresos', 'gastos'] as const).map(tab => (
             <button
               key={tab}
-              className={`flex-1 md:flex-none px-6 py-4 font-semibold text-sm transition-all ${activeTab === tab ? (tab === 'morosidad' ? 'bg-red-500/10 text-red-400 border-b-2 border-red-400' : 'bg-soccer-green/10 text-soccer-green border-b-2 border-soccer-green') : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-              onClick={() => setActiveTab(tab)}
+              className={`flex-1 md:flex-none px-6 py-4 font-semibold text-sm transition-all ${c.activeTab === tab ? (tab === 'morosidad' ? 'bg-red-500/10 text-red-400 border-b-2 border-red-400' : 'bg-soccer-green/10 text-soccer-green border-b-2 border-soccer-green') : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              onClick={() => c.setActiveTab(tab)}
             >
-              {tab === 'cuotas' ? 'Control de Cuotas' : tab === 'morosidad' ? `⚠️ Morosidad (${morosos.length})` : tab === 'ingresos' ? 'Ingresos de Caja' : 'Registro de Gastos'}
+              {tab === 'cuotas' ? 'Control de Cuotas' : tab === 'morosidad' ? `⚠️ Morosidad (${c.morosos.length})` : tab === 'ingresos' ? 'Ingresos de Caja' : 'Registro de Gastos'}
             </button>
           ))}
         </div>
 
         <div className="p-6">
-          {loading ? (
+          {c.loading ? (
             <div className="flex justify-center p-12">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-soccer-green"></div>
             </div>
           ) : (
             <>
-              {/* ── CUOTAS TAB ── */}
-              {activeTab === 'cuotas' && (
-                <div className="fade-in">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    {/* Month Navigator */}
-                    <div className="flex items-center gap-3">
-                      <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-slate-700/40 border border-glass-border text-slate-300 hover:bg-white/10 flex items-center justify-center transition-colors">
-                        <ChevronLeft size={16} />
-                      </button>
-                      <div>
-                        <h3 className="text-lg font-bold text-white capitalize">{MONTHS[selectedMonth - 1]} {selectedYear}</h3>
-                        <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                          <span className="w-2 h-2 bg-soccer-green rounded-full animate-pulse"></span>
-                          Los cobros se generan el día 1 de cada mes.
-                        </p>
-                      </div>
-                      <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-slate-700/40 border border-glass-border text-slate-300 hover:bg-white/10 flex items-center justify-center transition-colors">
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {/* Search */}
-                      <div className="relative">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                        <input
-                          type="text"
-                          placeholder="Buscar jugador..."
-                          className="pl-8 pr-3 py-2 bg-black/40 border border-glass-border rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-soccer-green/50 w-48"
-                          value={search}
-                          onChange={e => setSearch(e.target.value)}
-                        />
-                      </div>
-                      {/* Status filter */}
-                      <div className="flex rounded-xl overflow-hidden border border-glass-border text-xs font-bold">
-                        {(['todos', 'pagado', 'pendiente'] as const).map(f => (
-                          <button
-                            key={f}
-                            onClick={() => setStatusFilter(f)}
-                            className={`px-3 py-2 transition-colors capitalize ${
-                              statusFilter === f
-                                ? f === 'pagado'
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : f === 'pendiente'
-                                    ? 'bg-amber-500/20 text-amber-400'
-                                    : 'bg-soccer-green/20 text-soccer-green'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                            }`}
-                          >
-                            {f === 'todos' ? 'Todos' : f === 'pagado' ? 'Pagado' : 'Pendiente'}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Quota setting */}
-                      {isAdmin && (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-black/40 rounded-xl border border-glass-border">
-                          <span className="text-xs text-slate-400 font-semibold">Cuota:</span>
-                          {editingQuota ? (
-                            <>
-                              <input
-                                type="number"
-                                className="w-24 bg-slate-800 border border-soccer-green/50 rounded px-2 py-0.5 text-white text-sm focus:outline-none"
-                                value={quotaInput}
-                                onChange={e => setQuotaInput(e.target.value)}
-                                autoFocus
-                              />
-                              <button onClick={handleSaveQuota} className="text-soccer-green hover:text-emerald-400 transition-colors"><Check size={14} /></button>
-                              <button onClick={() => setEditingQuota(false)} className="text-slate-400 hover:text-red-400 transition-colors"><X size={14} /></button>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-sm font-bold text-white">{clp(quotaAmount)}</span>
-                              <button
-                                onClick={() => { setQuotaInput(String(quotaAmount)); setEditingQuota(true); }}
-                                className="text-slate-400 hover:text-soccer-green transition-colors"
-                              >
-                                <Pencil size={12} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
-                      <div className="text-sm px-4 py-2 bg-black/40 rounded-full border border-glass-border flex gap-4">
-                        {selectedMonth <= 2 ? (
-                          <span className="text-slate-400 font-bold italic">Temporada libre de cuotas</span>
-                        ) : (
-                          <>
-                            <span><span className="text-emerald-400 font-bold">{payments.filter(p => p.status === 'Pagado').length}</span> al día</span>
-                            <span className="w-px h-5 bg-glass-border"></span>
-                            <span><span className="text-red-400 font-bold">{payments.filter(p => p.status !== 'Pagado' && p.status !== 'Exento').length}</span> pendientes</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto rounded-xl border border-glass-border">
-                    <table className="w-full text-left text-sm text-slate-300">
-                      <thead className="bg-black/40 text-xs uppercase font-semibold text-slate-400 border-b border-glass-border">
-                        <tr>
-                          <th className="px-5 py-4">Jugador</th>
-                          <th className="px-5 py-4 text-center">Estado</th>
-                          <th className="px-5 py-4 text-center">Notificado</th>
-                          <th className="px-5 py-4 text-right">Monto</th>
-                          {isAdmin && <th className="px-5 py-4 text-right">Acción</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-glass-border bg-black/20">
-                        {filteredPayments.map(p => {
-                          return (
-                            <tr key={p.player_id} className="hover:bg-white/5 transition-colors">
-                              <td className="px-5 py-4 font-medium text-white">
-                                {p.name} {p.nickname && <span className="text-slate-500 font-normal">"{p.nickname}"</span>}
-                              </td>
-                              <td className="px-5 py-4 text-center">
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                  p.isExempt
-                                    ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-                                    : selectedMonth <= 2
-                                      ? 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
-                                      : p.status === 'Pagado'
-                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                        : p.amount > 0
-                                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                }`}>
-                                  {p.isExempt ? 'No aplica' : selectedMonth <= 2 ? 'Sin Cuota' : (p.status === 'Pendiente' && p.amount > 0 ? 'Abonado' : p.status)}
-                                </span>
-                              </td>
-                              <td className="px-5 py-4 text-center">
-                                {p.isExempt ? (
-                                  <span className="text-slate-400 text-xs italic">—</span>
-                                ) : p.notified_at ? (
-                                  <div className="flex flex-col items-center gap-0.5">
-                                    <span className="text-emerald-400">✅ Enviado</span>
-                                    <span className="text-[11px] text-slate-400">{new Date(p.notified_at).toLocaleDateString()}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-slate-400 italic text-xs">No enviado</span>
-                                )}
-                              </td>
-                              <td className="px-5 py-4 text-right font-medium">
-                                {p.isExempt ? (
-                                  <span className="text-slate-600">—</span>
-                                ) : isAdmin && p.status !== 'Pagado' ? (
-                                  <div className="flex flex-col items-end gap-1">
-                                    <input
-                                      type="number"
-                                      className="w-28 bg-slate-800 border border-glass-border rounded-lg px-2 py-1 text-right text-white text-sm focus:outline-none focus:border-soccer-green"
-                                      value={customAmounts[p.player_id] !== undefined ? customAmounts[p.player_id] : (quotaAmount - p.amount)}
-                                      onChange={e => setCustomAmounts(prev => ({ ...prev, [p.player_id]: Number(e.target.value) }))}
-                                    />
-                                    {p.amount > 0 && (
-                                      <span className="text-[11px] text-blue-400 font-semibold">
-                                        Abonado: {clp(p.amount)}
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col items-end gap-1">
-                                    <span>{clp(p.amount)}</span>
-                                    {p.status === 'Pagado' && p.payment_method && (
-                                      <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{
-                                        background: p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.1)' : p.payment_method === 'Flow' ? 'rgba(154,203,255,0.1)' : 'rgba(255,208,139,0.1)',
-                                        color: p.payment_method === 'Efectivo' ? '#44f3a9' : p.payment_method === 'Link de Pago' ? '#9acbff' : '#ffd08b',
-                                        border: `1px solid ${p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.25)' : p.payment_method === 'Link de Pago' ? 'rgba(154,203,255,0.25)' : 'rgba(255,208,139,0.25)'}`,
-                                      }}>
-                                        {p.payment_method === 'Efectivo' ? '💵' : p.payment_method === 'Link de Pago' ? '💳' : '🏦'} {p.payment_method}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-                              {isAdmin && (
-                                <td className="px-5 py-4 text-right">
-                                  <div className="flex justify-end items-center gap-2">
-                                    {/* Quitar exención manual */}
-                                    {p.isManualExempt && (
-                                      <button
-                                        onClick={() => handleUnsetExempt(p)}
-                                        className="text-[11px] font-bold px-2 py-1.5 rounded transition-colors border border-slate-500/30 text-slate-400 hover:bg-slate-500/10"
-                                        title="Quitar exención"
-                                      >
-                                        Quitar
-                                      </button>
-                                    )}
-                                    {!p.isExempt && (
-                                      <>
-                                        {p.amount > 0 && (
-                                          <button
-                                            onClick={() => handleCancelPayment(p)}
-                                            className="text-[11px] font-bold px-2 py-1.5 rounded transition-colors border border-red-500/30 text-red-500 hover:bg-red-500/10"
-                                            title="Anular pago"
-                                          >
-                                            Anular
-                                          </button>
-                                        )}
-                                        {p.status !== 'Pagado' && selectedMonth > 2 && (
-                                          <>
-                                            <button
-                                              onClick={() => handleSetExempt(p)}
-                                              className="text-[11px] font-bold px-2 py-1.5 rounded-lg transition-all whitespace-nowrap"
-                                              style={{ background: 'rgba(148,163,184,0.08)', color: 'rgba(148,163,184,0.6)', border: '1px solid rgba(148,163,184,0.15)' }}
-                                              title="Marcar como no aplica este mes"
-                                            >
-                                              No aplica
-                                            </button>
-                                            <div className="flex items-center gap-1.5">
-                                              <select
-                                                value={paymentMethods[p.player_id] || 'Transferencia'}
-                                                onChange={e => setPaymentMethods(prev => ({ ...prev, [p.player_id]: e.target.value }))}
-                                                className="text-[11px] font-bold rounded-lg px-1.5 py-1.5 border focus:outline-none"
-                                                style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
-                                              >
-                                                <option value="Transferencia">🏦 Transferencia</option>
-                                                <option value="Efectivo">💵 Efectivo</option>
-                                                <option value="Link de Pago">💳 Link de Pago</option>
-                                              </select>
-                                              <button
-                                                onClick={() => handlePaymentToggle(p)}
-                                                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-soccer-green/50 text-soccer-green hover:bg-soccer-green/10 bg-soccer-green/5 transition-all whitespace-nowrap"
-                                              >
-                                                Pagar
-                                              </button>
-                                            </div>
-                                          </>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                </td>
-                              )}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+              {c.activeTab === 'cuotas' && (
+                <PestanaCuotas
+                  isAdmin={isAdmin}
+                  payments={c.payments}
+                  filteredPayments={c.filteredPayments}
+                  quotaAmount={c.quotaAmount}
+                  customAmounts={c.customAmounts}
+                  setCustomAmounts={c.setCustomAmounts}
+                  paymentMethods={c.paymentMethods}
+                  setPaymentMethods={c.setPaymentMethods}
+                  editingQuota={c.editingQuota}
+                  setEditingQuota={c.setEditingQuota}
+                  quotaInput={c.quotaInput}
+                  setQuotaInput={c.setQuotaInput}
+                  search={c.search}
+                  setSearch={c.setSearch}
+                  statusFilter={c.statusFilter}
+                  setStatusFilter={c.setStatusFilter}
+                  selectedMonth={c.selectedMonth}
+                  selectedYear={c.selectedYear}
+                  prevMonth={c.prevMonth}
+                  nextMonth={c.nextMonth}
+                  handleSaveQuota={c.handleSaveQuota}
+                  handleSetExempt={c.handleSetExempt}
+                  handleUnsetExempt={c.handleUnsetExempt}
+                  handleCancelPayment={c.handleCancelPayment}
+                  handlePaymentToggle={c.handlePaymentToggle}
+                />
               )}
 
-              {/* ── MOROSIDAD TAB ── */}
-              {activeTab === 'morosidad' && (
-                <div className="fade-in space-y-6">
-                  {/* Summary row */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-2xl p-5" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
-                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Morosos</p>
-                      <p className="text-3xl font-black text-white">{morosos.length}</p>
-                      <p className="text-xs text-slate-400 mt-1">jugadores con cuotas pendientes</p>
-                    </div>
-                    <div className="rounded-2xl p-5" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
-                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Deuda Total</p>
-                      <p className="text-3xl font-black text-white">{clp(morosos.reduce((acc, p) => acc + p.totalDebt, 0))}</p>
-                      <p className="text-xs text-slate-400 mt-1">monto adeudado al equipo</p>
-                    </div>
-                  </div>
-
-                  {morosos.length === 0 ? (
-                    <div className="text-center py-16 rounded-2xl" style={{ background: 'rgba(68,243,169,0.04)', border: '1px dashed rgba(68,243,169,0.2)' }}>
-                      <p className="text-soccer-green font-bold text-lg mb-1">¡Todos al día!</p>
-                      <p className="text-slate-500 text-sm">No hay jugadores con cuotas pendientes.</p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Copy all button */}
-                      <button
-                        onClick={() => {
-                          const lines = morosos.map((p, i) =>
-                            `${i + 1}. ${p.name}${p.nickname ? ` "${p.nickname}"` : ''} — ${p.pendingMonths.length} mes${p.pendingMonths.length > 1 ? 'es' : ''} (${clp(p.totalDebt)})\n   ${p.pendingMonths.map((m: any) => `${MONTHS[m.month - 1]} ${m.year}`).join(', ')}`
-                          ).join('\n\n');
-                          const total = morosos.reduce((acc, p) => acc + p.totalDebt, 0);
-                          const msg = `⚠️ *Cuotas pendientes*\n\n${lines}\n\n💰 *Total adeudado: ${clp(total)}*`;
-                          navigator.clipboard.writeText(msg);
-                          setCopiedAll(true);
-                          setTimeout(() => setCopiedAll(false), 2500);
-                        }}
-                        className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
-                        style={{ background: copiedAll ? 'rgba(68,243,169,0.15)' : 'rgba(255,255,255,0.05)', color: copiedAll ? '#44f3a9' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedAll ? 'rgba(68,243,169,0.3)' : 'rgba(255,255,255,0.1)'}` }}
-                      >
-                        {copiedAll ? '✅ ¡Copiado para WhatsApp!' : '📋 Copiar lista para WhatsApp'}
-                      </button>
-
-                      {/* Player list */}
-                      <div className="space-y-3">
-                        {morosos.map((p, i) => {
-                          const curM = now.getMonth() + 1;
-                          const curY = now.getFullYear();
-                          const oldest = p.pendingMonths[0];
-                          const monthsAgo = oldest ? (curY - oldest.year) * 12 + (curM - oldest.month) : 0;
-                          const agingColor = monthsAgo === 0 ? '#44f3a9' : monthsAgo <= 2 ? '#ffd08b' : '#f87171';
-                          const agingLabel = monthsAgo === 0 ? 'Reciente' : monthsAgo <= 2 ? `${monthsAgo}m atraso` : `${monthsAgo}m atraso`;
-                          return (
-                          <div key={p.id} className="rounded-2xl p-4" style={{ background: i === 0 ? 'rgba(248,113,113,0.07)' : 'rgba(0,0,0,0.15)', border: `1px solid ${i === 0 ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.05)'}` }}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1.5px solid rgba(248,113,113,0.3)' }}>
-                                  {p.name.charAt(0)}
-                                </div>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-bold text-white text-sm">{p.name}{p.nickname && <span className="text-slate-400 font-normal ml-1 text-xs">"{p.nickname}"</span>}</p>
-                                    <span className="text-[11px] font-black px-1.5 py-0.5 rounded-full" style={{ background: `${agingColor}18`, color: agingColor, border: `1px solid ${agingColor}40` }}>{agingLabel}</span>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {p.pendingMonths.map((m: any) => (
-                                      <span key={`${m.year}-${m.month}`} className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
-                                        {MONTHS[m.month - 1].slice(0, 3)} {m.year}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                                <p className="font-black text-white text-sm">{clp(p.totalDebt)}</p>
-                                <button
-                                  onClick={() => {
-                                    const months = p.pendingMonths.map((m: any) => `• ${MONTHS[m.month - 1]} ${m.year}`).join('\n');
-                                    const msg = `Hola ${p.name.split(' ')[0]}! 👋\nTienes ${p.pendingMonths.length} cuota${p.pendingMonths.length > 1 ? 's' : ''} pendiente${p.pendingMonths.length > 1 ? 's' : ''}:\n${months}\n\n💰 Total: ${clp(p.totalDebt)}`;
-                                    navigator.clipboard.writeText(msg);
-                                    setCopiedPlayer(p.id);
-                                    setTimeout(() => setCopiedPlayer(null), 2500);
-                                  }}
-                                  className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all"
-                                  style={{ background: copiedPlayer === p.id ? 'rgba(68,243,169,0.15)' : 'rgba(255,255,255,0.05)', color: copiedPlayer === p.id ? '#44f3a9' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedPlayer === p.id ? 'rgba(68,243,169,0.3)' : 'rgba(255,255,255,0.08)'}` }}
-                                >
-                                  {copiedPlayer === p.id ? '✅ Copiado' : '📋 WhatsApp'}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ); })}
-                      </div>
-                    </>
-                  )}
-                </div>
+              {c.activeTab === 'morosidad' && (
+                <PestanaMorosidad
+                  morosos={c.morosos}
+                  copiedAll={c.copiedAll}
+                  setCopiedAll={c.setCopiedAll}
+                  copiedPlayer={c.copiedPlayer}
+                  setCopiedPlayer={c.setCopiedPlayer}
+                  now={new Date()}
+                />
               )}
 
-              {/* ── INGRESOS TAB ── */}
-              {activeTab === 'ingresos' && (
-                <div className="fade-in">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h3 className="text-lg font-bold text-white">Ingresos de Caja</h3>
-                      <p className="text-xs text-slate-400 mt-1">Saldo inicial, transferencias, ventas, etc.</p>
-                    </div>
-                    {isAdmin && (
-                      <button onClick={() => setShowIncomeForm(!showIncomeForm)} className="btn-primary py-2 px-4 flex items-center gap-2 text-sm">
-                        <Plus size={16} /> Nuevo Ingreso
-                      </button>
-                    )}
-                  </div>
-
-                  {showIncomeForm && isAdmin && (
-                    <form onSubmit={handleAddIncome} className="mb-8 bg-slate-800/40 p-5 rounded-xl border border-glass-border flex flex-col md:flex-row gap-4 items-end fade-in relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-soccer-green"></div>
-                      <div className="flex-1 w-full">
-                        <label className="block text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Concepto</label>
-                        <input type="text" required className="input-field bg-slate-900/80" placeholder="Ej. Saldo año 2025, Venta camisetas..." value={incomeData.concept} onChange={e => setIncomeData({ ...incomeData, concept: e.target.value })} />
-                      </div>
-                      <div className="w-full md:w-36">
-                        <label className="block text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Monto ($)</label>
-                        <input type="number" step="1" required className="input-field bg-slate-900/80" placeholder="0" value={incomeData.amount} onChange={e => setIncomeData({ ...incomeData, amount: e.target.value })} />
-                      </div>
-                      <div className="w-full md:w-40">
-                        <label className="block text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Fecha</label>
-                        <input type="date" required className="input-field [color-scheme:dark] bg-slate-900/80" value={incomeData.date} onChange={e => setIncomeData({ ...incomeData, date: e.target.value })} />
-                      </div>
-                      <button type="submit" className="btn-primary whitespace-nowrap w-full md:w-auto h-[42px]">Registrar</button>
-                    </form>
-                  )}
-
-                  <div className="space-y-3">
-                    {cashIncomes.length === 0 ? (
-                      <div className="text-center p-12 bg-black/20 rounded-xl border border-glass-border border-dashed">
-                        <ArrowUpCircle size={32} className="mx-auto text-slate-600 mb-3" />
-                        <p className="text-slate-400">No hay ingresos registrados.</p>
-                        {isAdmin && <p className="text-slate-500 text-sm mt-1">Agrega el saldo del año anterior u otros ingresos.</p>}
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex justify-between items-center p-3 bg-soccer-green/5 rounded-xl border border-soccer-green/20 mb-4">
-                          <span className="text-sm font-bold text-slate-300">Total ingresos manuales</span>
-                          <span className="text-soccer-green font-black text-lg">{clp(totalCashIncomes)}</span>
-                        </div>
-                        {cashIncomes.map(income => (
-                          <div key={income.id} className="flex justify-between items-center p-4 bg-black/30 rounded-xl border border-glass-border hover:bg-white/5 transition-colors">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-soccer-green/10 border border-soccer-green/20 flex items-center justify-center text-soccer-green">
-                                <ArrowUpCircle size={24} />
-                              </div>
-                              <div>
-                                <p className="font-bold text-white text-lg">{income.concept}</p>
-                                <p className="text-xs text-slate-400">{new Date(new Date(income.date).getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString('es-CL')}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <p className="font-bold text-soccer-green text-xl tracking-tight">+{clp(income.amount)}</p>
-                              {isAdmin && (
-                                <button onClick={() => handleDeleteIncome(income.id)} className="text-slate-600 hover:text-red-400 transition-colors p-1" title="Eliminar">
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                </div>
+              {c.activeTab === 'ingresos' && (
+                <PestanaIngresos
+                  isAdmin={isAdmin}
+                  cashIncomes={c.cashIncomes}
+                  totalCashIncomes={c.totalCashIncomes}
+                  showIncomeForm={c.showIncomeForm}
+                  setShowIncomeForm={c.setShowIncomeForm}
+                  incomeData={c.incomeData}
+                  setIncomeData={c.setIncomeData}
+                  handleAddIncome={c.handleAddIncome}
+                  handleDeleteIncome={c.handleDeleteIncome}
+                />
               )}
 
-              {/* ── GASTOS TAB ── */}
-              {activeTab === 'gastos' && (
-                <div className="fade-in">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-white">Historial de Gastos</h3>
-                    {isAdmin && (
-                      <button onClick={() => setShowExpenseForm(!showExpenseForm)} className="btn-primary py-2 px-4 flex items-center gap-2 text-sm">
-                        <Plus size={16} /> Nuevo Gasto
-                      </button>
-                    )}
-                  </div>
-
-                  {showExpenseForm && isAdmin && (
-                    <form onSubmit={handleAddExpense} className="mb-8 bg-slate-800/40 p-5 rounded-xl border border-glass-border flex flex-col md:flex-row gap-4 items-end fade-in relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-soccer-green"></div>
-                      <div className="flex-1 w-full">
-                        <label className="block text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Concepto</label>
-                        <input type="text" required className="input-field bg-slate-900/80" placeholder="Ej. Alquiler de Cancha" value={expenseData.concept} onChange={e => setExpenseData({ ...expenseData, concept: e.target.value })} />
-                      </div>
-                      <div className="w-full md:w-32">
-                        <label className="block text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Monto ($)</label>
-                        <input type="number" step="0.01" required className="input-field bg-slate-900/80" placeholder="0.00" value={expenseData.amount} onChange={e => setExpenseData({ ...expenseData, amount: e.target.value })} />
-                      </div>
-                      <div className="w-full md:w-40">
-                        <label className="block text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wide">Fecha</label>
-                        <input type="date" required className="input-field [color-scheme:dark] bg-slate-900/80" value={expenseData.date} onChange={e => setExpenseData({ ...expenseData, date: e.target.value })} />
-                      </div>
-                      <button type="submit" className="btn-primary whitespace-nowrap w-full md:w-auto h-[42px]">Registrar</button>
-                    </form>
-                  )}
-
-                  <div className="space-y-3">
-                    {expenses.length === 0 ? (
-                      <div className="text-center p-12 bg-black/20 rounded-xl border border-glass-border border-dashed">
-                        <TrendingDown size={32} className="mx-auto text-slate-600 mb-3" />
-                        <p className="text-slate-400">No hay gastos registrados.</p>
-                      </div>
-                    ) : (
-                      expenses.map(exp => (
-                        <div key={exp.id} className="flex justify-between items-center p-4 bg-black/30 rounded-xl border border-glass-border hover:bg-white/5 transition-colors">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
-                              <TrendingDown size={24} />
-                            </div>
-                            <div>
-                              <p className="font-bold text-white text-lg">{exp.concept}</p>
-                              <p className="text-xs text-slate-400">{new Date(new Date(exp.date).getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString('es-CL')}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <p className="font-bold text-red-400 text-xl tracking-tight">-{clp(exp.amount)}</p>
-                            {isAdmin && (
-                              <button onClick={() => handleDeleteExpense(exp.id)} className="text-slate-600 hover:text-red-400 transition-colors p-1" title="Eliminar">
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+              {c.activeTab === 'gastos' && (
+                <PestanaGastos
+                  isAdmin={isAdmin}
+                  expenses={c.expenses}
+                  showExpenseForm={c.showExpenseForm}
+                  setShowExpenseForm={c.setShowExpenseForm}
+                  expenseData={c.expenseData}
+                  setExpenseData={c.setExpenseData}
+                  handleAddExpense={c.handleAddExpense}
+                  handleDeleteExpense={c.handleDeleteExpense}
+                />
               )}
             </>
           )}
