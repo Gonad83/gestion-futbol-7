@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { SUPER_ADMIN_EMAIL } from '../lib/config';
 import {
   Crown, RefreshCw, Users, TrendingUp, DollarSign,
   Clock, Shield, Building2, Zap, Star
@@ -9,7 +10,6 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const SUPER_ADMIN_EMAIL = 'garaosd@gmail.com';
 
 const PRICE_MONTHLY = 4990;
 const PRICE_ANNUAL_YEAR = 29940;

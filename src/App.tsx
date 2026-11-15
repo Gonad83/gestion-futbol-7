@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Cada pantalla se descarga al abrirla: antes la app entera (1 MB) bajaba de
 // una vez, y en el teléfono la primera carga se hacía larga.
@@ -33,7 +34,6 @@ const PoliticaDePrivacidad = lazy(() => import('./pages/PoliticaDePrivacidad'));
 const Seguridad = lazy(() => import('./pages/Seguridad'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const InterGeneraciones = lazy(() => import('./pages/InterGeneraciones'));
-import Landing from './pages/Landing';
 
 /**
  * Quien ya inició sesión no necesita la portada: entra directo a su panel.
@@ -59,6 +59,12 @@ function haySesionGuardada() {
   }
 }
 
+// La portada (con sus animaciones) pesa bastante y quien ya tiene sesión nunca
+// la ve: se descarga aparte. A quien llega sin sesión se le empieza a bajar de
+// inmediato, en paralelo con el resto, para que no note la diferencia.
+const portadaAnticipada = haySesionGuardada() ? null : import('./pages/Landing');
+const Landing = lazy(() => portadaAnticipada ?? import('./pages/Landing'));
+
 function Inicio() {
   const { user } = useAuth();
   if (user || haySesionGuardada()) return <Navigate to="/dashboard" replace />;
@@ -69,6 +75,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <ErrorBoundary fullScreen>
         <Suspense fallback={<Cargando />}>
         <Routes>
           <Route path="/" element={<Inicio />} />
@@ -110,6 +117,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>
+        </ErrorBoundary>
       </Router>
     </AuthProvider>
   );

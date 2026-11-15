@@ -1,11 +1,38 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings, UserCircle, Globe, Crown, Zap, Trophy } from 'lucide-react';
+import {
+  LayoutDashboard, Users, CalendarDays, Calculator, LogOut, Menu, X, ShieldAlert, Settings,
+  UserCircle, Globe, Crown, Zap, Trophy, Shield, UserCog, type LucideIcon,
+} from 'lucide-react';
 import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
+import { esSuperAdmin } from '../lib/config';
+import { ErrorBoundary } from './ErrorBoundary';
 
-const SUPER_ADMIN_EMAIL = 'garaosd@gmail.com';
+type NavTone = 'default' | 'admin' | 'super';
+
+interface NavItem {
+  name: string;
+  path: string;
+  icon: LucideIcon;
+  tone?: NavTone;
+}
+
+/** Colores del ítem activo según a quién pertenece la sección. */
+const ACTIVE_TONE: Record<NavTone, { item: string; bar: string }> = {
+  default: { item: 'bg-soccer-green/10 ring-1 ring-inset ring-soccer-green/20 text-white', bar: 'bg-soccer-green' },
+  admin: { item: 'bg-violet-500/10 ring-1 ring-inset ring-violet-500/20 text-violet-200', bar: 'bg-violet-400' },
+  super: { item: 'bg-amber-400/10 ring-1 ring-inset ring-amber-400/25 text-amber-200', bar: 'bg-amber-400' },
+};
+
+/** Las cuatro pantallas de uso diario: van en la barra inferior del celular. */
+const TAB_ITEMS: NavItem[] = [
+  { name: 'Inicio', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Caja', path: '/finance', icon: Calculator },
+  { name: 'Plantilla', path: '/players', icon: Users },
+  { name: 'Calendario', path: '/calendar', icon: CalendarDays },
+];
 
 export default function Layout() {
   const { isAdmin, setIsAdmin, user, teamId } = useAuth();
@@ -18,7 +45,11 @@ export default function Layout() {
     if (!teamId) return;
     const fetchTeamSettings = async () => {
       try {
-        const { data } = await supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle();
+        const { data } = await supabase
+          .from('team_settings')
+          .select('team_name, logo_url, join_code, plan')
+          .eq('id', teamId)
+          .maybeSingle();
         if (data) {
           setTeamSettings({
             team_name: data.team_name,
@@ -34,249 +65,317 @@ export default function Layout() {
     fetchTeamSettings();
   }, [teamId]);
 
+  // Con el menú o el logo abiertos, Escape los cierra.
+  useEffect(() => {
+    if (!isMobileMenuOpen && !isLogoZoomed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+        setIsLogoZoomed(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMobileMenuOpen, isLogoZoomed]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
-  const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL;
+  const isSuperAdmin = esSuperAdmin(user?.email);
 
-  const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} /> },
-    { name: 'Caja', path: '/finance', icon: <Calculator size={18} /> },
-    { name: 'Plantilla', path: '/players', icon: <Users size={18} /> },
-    { name: 'Calendario', path: '/calendar', icon: <CalendarDays size={18} /> },
-    { name: 'Matchmaking', path: '/matchmaking', icon: <ShieldAlert size={18} /> },
-    { name: 'Inter Generaciones', path: '/inter-generaciones', icon: <Trophy size={18} /> },
-    ...(isSuperAdmin ? [{ name: 'Arena', path: '/arena', icon: <Globe size={18} /> }] : []),
-    { name: 'Mi Perfil', path: '/profile', icon: <UserCircle size={18} /> },
+  const navItems: NavItem[] = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Caja', path: '/finance', icon: Calculator },
+    { name: 'Plantilla', path: '/players', icon: Users },
+    { name: 'Calendario', path: '/calendar', icon: CalendarDays },
+    { name: 'Matchmaking', path: '/matchmaking', icon: ShieldAlert },
+    { name: 'Inter Generaciones', path: '/inter-generaciones', icon: Trophy },
+    ...(isSuperAdmin ? [{ name: 'Arena', path: '/arena', icon: Globe }] : []),
+    { name: 'Mi Perfil', path: '/profile', icon: UserCircle },
     ...(isAdmin ? [
-      { name: 'Admin', path: '/admin', icon: <Users size={18} />, adminOnly: true },
-      { name: 'Configuración', path: '/settings', icon: <Settings size={18} />, adminOnly: true }
+      { name: 'Admin', path: '/admin', icon: UserCog, tone: 'admin' as const },
+      { name: 'Configuración', path: '/settings', icon: Settings, tone: 'admin' as const },
     ] : []),
-    ...(isSuperAdmin ? [{ name: 'Super Admin', path: '/superadmin', icon: <Crown size={18} />, superOnly: true }] : []),
+    ...(isSuperAdmin ? [{ name: 'Super Admin', path: '/superadmin', icon: Crown, tone: 'super' as const }] : []),
   ];
 
+  const enTabPrincipal = TAB_ITEMS.some((t) => t.path === location.pathname);
+  const logoClickable = Boolean(teamSettings.logo_url);
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row" style={{ background: '#10141a' }}>
-      {/* Mobile Navbar */}
-      <div
-        className="md:hidden flex items-center justify-between px-5 py-4 z-50 sticky top-0"
-        style={{ background: 'rgba(10, 14, 20, 0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+    <div className="min-h-screen flex flex-col md:flex-row bg-dark-bg">
+      <a
+        href="#contenido"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[110] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-soccer-green focus:text-[#003822] focus:font-bold"
       >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden cursor-pointer"
-            style={{ background: 'rgba(68, 243, 169, 0.15)', border: '1.5px solid rgba(68, 243, 169, 0.4)' }}
-            onClick={() => teamSettings.logo_url && setIsLogoZoomed(true)}
+        Saltar al contenido
+      </a>
+
+      {/* Barra superior (celular) */}
+      <header className="md:hidden flex items-center justify-between px-4 h-[57px] z-50 sticky top-0 bg-surface-lowest/95 backdrop-blur-xl border-b border-white/[0.06]">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            disabled={!logoClickable}
+            onClick={() => setIsLogoZoomed(true)}
+            aria-label="Ver escudo del equipo"
+            className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center overflow-hidden bg-soccer-green/15 border-[1.5px] border-soccer-green/40 text-soccer-green"
           >
             {teamSettings.logo_url ? (
-              <img src={teamSettings.logo_url} alt="Logo" className="w-full h-full object-cover" />
-            ) : null}
-          </div>
-          <span className="font-headline font-bold text-lg tracking-tight text-white">{teamSettings.team_name}</span>
+              <img src={teamSettings.logo_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <Shield size={16} />
+            )}
+          </button>
+          <span className="font-headline font-bold text-lg tracking-tight text-white truncate">{teamSettings.team_name}</span>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-white/60 hover:text-white transition-colors">
-          {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      </div>
+        <Link
+          to="/profile"
+          aria-label="Mi perfil"
+          className="w-11 h-11 -mr-2 flex items-center justify-center rounded-full text-white/60 hover:text-white transition-colors"
+        >
+          <UserCircle size={22} />
+        </Link>
+      </header>
 
-      {/* Sidebar */}
-      <aside className={cn(
-        "fixed md:static inset-y-0 left-0 z-40 w-64 flex flex-col transform transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] md:translate-x-0",
-        isMobileMenuOpen ? "translate-x-0 mt-[57px] md:mt-0 h-[calc(100vh-57px)] md:h-auto" : "-translate-x-full h-screen md:h-auto"
-      )}
-        style={{ background: '#0a0e14', borderRight: '1px solid rgba(255,255,255,0.05)' }}
+      {/* Menú lateral: fijo en escritorio, cajón en celular */}
+      <aside
+        id="menu-lateral"
+        aria-label="Menú principal"
+        className={cn(
+          'fixed md:static left-0 z-30 w-64 flex flex-col bg-surface-lowest border-r border-white/5',
+          'top-[57px] bottom-[calc(4rem+env(safe-area-inset-bottom))] md:top-auto md:bottom-auto md:h-screen',
+          'transition-[transform,visibility] duration-300 ease-out md:translate-x-0',
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full invisible md:visible',
+        )}
       >
-        {/* Logo Section */}
+        {/* Escudo y nombre */}
         <div className="hidden md:flex flex-col items-center gap-5 px-6 py-10 relative">
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(68,243,169,0.08) 0%, transparent 70%)' }} />
+          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_0%,rgba(68,243,169,0.08)_0%,transparent_70%)]" />
 
-          <div
-            className="relative w-24 h-24 rounded-full flex items-center justify-center overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105"
-            style={{
-              background: 'rgba(28, 32, 38, 0.8)',
-              border: '2px solid rgba(68, 243, 169, 0.25)',
-              boxShadow: '0 0 40px rgba(68, 243, 169, 0.08), inset 0 1px 0 rgba(255,255,255,0.05)'
-            }}
-            onClick={() => teamSettings.logo_url && setIsLogoZoomed(true)}
+          <button
+            type="button"
+            disabled={!logoClickable}
+            onClick={() => setIsLogoZoomed(true)}
+            aria-label="Ver escudo del equipo"
+            className="relative w-24 h-24 rounded-full flex items-center justify-center bg-surface/80 border-2 border-soccer-green/25 text-soccer-green/60 shadow-[0_0_40px_rgba(68,243,169,0.08)] transition-transform duration-300 enabled:hover:scale-105"
           >
-            {teamSettings.logo_url ? (
-              <img src={teamSettings.logo_url} alt="Logo" className="w-full h-full object-cover scale-110" />
-            ) : null}
-            <div
-              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-black"
-              style={{ background: '#44f3a9', color: '#003822', border: '2.5px solid #0a0e14' }}
-            >
+            <span className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+              {teamSettings.logo_url ? (
+                <img src={teamSettings.logo_url} alt="" className="w-full h-full object-cover scale-110" />
+              ) : (
+                <Shield size={36} strokeWidth={1.5} />
+              )}
+            </span>
+            <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black bg-soccer-green text-[#003822] border-[2.5px] border-surface-lowest">
               FC
-            </div>
-          </div>
+            </span>
+          </button>
 
           <div className="text-center relative z-10">
             <h2 className="font-headline font-black text-xl tracking-tight text-white uppercase">{teamSettings.team_name || ''}</h2>
-            <div className="h-px w-12 mx-auto mt-3 rounded-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(68,243,169,0.5), transparent)' }} />
+            <div className="h-px w-12 mx-auto mt-3 rounded-full bg-gradient-to-r from-transparent via-soccer-green/50 to-transparent" />
             {user?.email && (
-              <p className="text-[10px] text-white/30 mt-2 truncate max-w-[180px] font-medium" title={user.email}>
+              <p className="text-[11px] text-white/45 mt-2 truncate max-w-[180px] font-medium" title={user.email}>
                 {user.email}
               </p>
             )}
           </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 px-3 mb-3">Navegación</p>
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar" aria-label="Secciones">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 px-3 mb-3">Navegación</p>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
-            const isAdminItem = (item as any).adminOnly;
-            const isSuperItem = (item as any).superOnly;
+            const tone = item.tone ?? 'default';
+            const Icon = item.icon;
             return (
               <Link
-                key={item.name}
+                key={item.path}
                 to={item.path}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group/nav relative overflow-hidden",
-                  isActive && isSuperItem
-                    ? "text-amber-300"
-                    : isActive && isAdminItem
-                    ? "text-violet-300"
-                    : isActive
-                    ? "text-white"
-                    : "text-white/40 hover:text-white/80"
+                  'flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 relative overflow-hidden',
+                  isActive ? ACTIVE_TONE[tone].item : 'text-white/55 hover:text-white hover:bg-white/[0.04]',
                 )}
-                style={
-                  isActive && isSuperItem
-                    ? { background: 'rgba(251, 191, 36, 0.1)', boxShadow: 'inset 0 0 0 1px rgba(251, 191, 36, 0.25)' }
-                    : isActive && isAdminItem
-                    ? { background: 'rgba(139, 92, 246, 0.1)', boxShadow: 'inset 0 0 0 1px rgba(139, 92, 246, 0.2)' }
-                    : isActive
-                    ? { background: 'rgba(68, 243, 169, 0.1)', boxShadow: 'inset 0 0 0 1px rgba(68, 243, 169, 0.2)' }
-                    : {}
-                }
               >
-                {isActive && !isAdminItem && !isSuperItem && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full" style={{ background: '#44f3a9' }} />
+                {isActive && (
+                  <span className={cn('absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full', ACTIVE_TONE[tone].bar)} />
                 )}
-                {isActive && isSuperItem && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full" style={{ background: '#fbbf24' }} />
-                )}
-                <div className={cn(
-                  "transition-all duration-200 flex-shrink-0",
-                  isActive && isSuperItem ? "text-amber-400" : isActive ? "opacity-100" : "opacity-60 group-hover/nav:opacity-100"
-                )}>
-                  {item.icon}
-                </div>
-                <span className={cn("font-body font-semibold text-sm tracking-tight", isActive ? "text-white" : "")}>
-                  {item.name}
-                </span>
-                {isActive && !isAdminItem && !isSuperItem && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: '#44f3a9' }} />
-                )}
-                {isSuperItem && !isActive && (
-                  <div className="ml-auto text-amber-500/50 text-[9px] font-bold uppercase tracking-widest">owner</div>
+                <Icon size={18} className="shrink-0" />
+                <span className="font-body font-semibold text-sm tracking-tight">{item.name}</span>
+                {tone === 'super' && !isActive && (
+                  <span className="ml-auto text-amber-500/70 text-[10px] font-bold uppercase tracking-widest">owner</span>
                 )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Upgrade Banner - free plan only, hidden for super admin */}
+        {/* Aviso de plan gratuito (no se muestra al dueño de la plataforma) */}
         {isAdmin && teamSettings.plan === 'free' && !isSuperAdmin && (
-          <div className="mx-3 mb-2 p-3 rounded-xl" style={{
-            background: 'linear-gradient(135deg, rgba(255,208,139,0.1) 0%, rgba(255,208,139,0.05) 100%)',
-            border: '1px solid rgba(255,208,139,0.25)'
-          }}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <Zap size={11} style={{ color: '#ffd08b' }} />
-              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#ffd08b' }}>Plan Gratuito</p>
+          <div className="mx-3 mb-2 p-3 rounded-xl bg-gradient-to-br from-neon-gold/10 to-neon-gold/5 border border-neon-gold/25">
+            <div className="flex items-center gap-1.5 mb-1 text-neon-gold">
+              <Zap size={12} />
+              <p className="text-[10px] font-black uppercase tracking-widest">Plan Gratuito</p>
             </div>
-            <p className="text-[10px] text-white/35 mb-2 leading-snug">Actualiza para desbloquear todas las funciones del club.</p>
+            <p className="text-[11px] text-white/55 mb-2 leading-snug">Actualiza para desbloquear todas las funciones del club.</p>
             <Link
               to="/#pricing"
-              className="flex items-center justify-center gap-1 text-[10px] font-black py-1.5 px-3 rounded-lg uppercase tracking-wider transition-all hover:brightness-110 active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #ffd08b, #ffb830)', color: '#1a0e00' }}
+              className="flex items-center justify-center gap-1 text-[11px] font-black py-2 px-3 rounded-lg uppercase tracking-wider transition hover:brightness-110 active:scale-95 bg-gradient-to-br from-neon-gold to-[#ffb830] text-[#1a0e00]"
             >
-              <Zap size={10} />
+              <Zap size={11} />
               Ver planes
             </Link>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <div
-            onClick={() => user?.email === SUPER_ADMIN_EMAIL && setIsAdmin(!isAdmin)}
-            className={cn(
-              "mb-3 w-full text-left px-4 py-3 rounded-xl transition-all",
-              user?.email === SUPER_ADMIN_EMAIL ? "cursor-pointer hover:bg-white/5" : "cursor-default"
-            )}
-            title={user?.email === SUPER_ADMIN_EMAIL ? "Click para alternar rol" : undefined}
-          >
-            <p className="text-[9px] text-white/25 font-bold uppercase tracking-[0.2em] mb-1.5">Tu Rango</p>
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "w-1.5 h-1.5 rounded-full transition-all duration-500",
-                isAdmin ? "bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]" : "shadow-[0_0_6px_rgba(68,243,169,0.8)]"
-              )} style={isAdmin ? {} : { background: '#44f3a9' }} />
-              <p className={cn("text-xs font-bold uppercase tracking-wider transition-colors duration-500", isAdmin ? "text-violet-400" : "text-soccer-green")}>
-                {isAdmin ? 'Capitán' : 'Jugador'}
-              </p>
+        <div className="p-4 border-t border-white/5">
+          {isSuperAdmin ? (
+            <button
+              type="button"
+              onClick={() => setIsAdmin(!isAdmin)}
+              title="Alternar entre vista de capitán y de jugador"
+              className="mb-3 w-full text-left px-4 py-3 rounded-xl transition-colors hover:bg-white/5"
+            >
+              <RangoActual isAdmin={isAdmin} />
+            </button>
+          ) : (
+            <div className="mb-3 px-4 py-3">
+              <RangoActual isAdmin={isAdmin} />
             </div>
-          </div>
+          )}
 
           <button
+            type="button"
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full text-red-400/60 hover:text-red-400 rounded-xl transition-all duration-200 hover:bg-red-500/8 group/logout"
+            className="flex items-center gap-3 px-4 py-3 w-full text-red-400/80 hover:text-red-400 rounded-xl transition-colors duration-200 hover:bg-red-500/10"
           >
-            <div className="transition-transform group-hover/logout:-translate-x-0.5">
-              <LogOut size={16} />
-            </div>
+            <LogOut size={16} />
             <span className="font-body font-semibold text-sm">Cerrar Sesión</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full h-[calc(100vh-57px)] md:h-screen relative">
-        {isMobileMenuOpen && (
-          <div
-            className="fixed inset-0 z-30 md:hidden"
-            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-        )}
+      {/* Fondo oscuro detrás del cajón (celular) */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-20 md:hidden bg-black/60 backdrop-blur-sm"
+          aria-hidden="true"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      <main
+        id="contenido"
+        className="flex-1 w-full overflow-y-auto relative p-4 md:p-8 h-[calc(100dvh-57px)] md:h-screen pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8"
+      >
         <div className="max-w-7xl mx-auto">
           {/* Al cambiar de pantalla se queda el menú: solo el contenido espera
-              a que baje la pantalla nueva. */}
-          <Suspense fallback={<div className="flex justify-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-soccer-green" /></div>}>
-            <Outlet />
-          </Suspense>
+              a que baje la pantalla nueva. Un error en una pantalla tampoco
+              tumba el menú, y al navegar a otra se limpia. */}
+          <ErrorBoundary key={location.pathname}>
+            <Suspense fallback={<div className="flex justify-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-soccer-green" /></div>}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </main>
 
-      {/* Logo Zoom Modal */}
+      {/* Barra inferior (celular): lo de todos los días a un toque del pulgar.
+          Va en z-40 para que los modales de las pantallas (z-50) la tapen. */}
+      <nav
+        aria-label="Navegación rápida"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-lowest/95 backdrop-blur-xl border-t border-white/[0.06] pb-[env(safe-area-inset-bottom)]"
+      >
+        <ul className="grid grid-cols-5 h-16">
+          {TAB_ITEMS.map((item) => {
+            const isActive = !isMobileMenuOpen && location.pathname === item.path;
+            const Icon = item.icon;
+            return (
+              <li key={item.path}>
+                <Link
+                  to={item.path}
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={cn(
+                    'relative h-full flex flex-col items-center justify-center gap-1 transition-colors duration-200',
+                    isActive ? 'text-soccer-green' : 'text-white/55 active:text-white',
+                  )}
+                >
+                  {isActive && <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-soccer-green" />}
+                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                  <span className="text-[11px] font-semibold leading-none">{item.name}</span>
+                </Link>
+              </li>
+            );
+          })}
+          <li>
+            <button
+              type="button"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="menu-lateral"
+              onClick={() => setIsMobileMenuOpen((v) => !v)}
+              className={cn(
+                'relative w-full h-full flex flex-col items-center justify-center gap-1 transition-colors duration-200',
+                isMobileMenuOpen || !enTabPrincipal ? 'text-soccer-green' : 'text-white/55 active:text-white',
+              )}
+            >
+              {(isMobileMenuOpen || !enTabPrincipal) && <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-soccer-green" />}
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              <span className="text-[11px] font-semibold leading-none">{isMobileMenuOpen ? 'Cerrar' : 'Más'}</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      {/* Escudo ampliado */}
       {isLogoZoomed && teamSettings.logo_url && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in"
-          style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Escudo del equipo"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in bg-black/90 backdrop-blur-xl"
           onClick={() => setIsLogoZoomed(false)}
         >
           <button
-            className="absolute top-6 right-6 text-white/30 hover:text-white transition-colors"
+            type="button"
+            aria-label="Cerrar"
+            className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center rounded-full text-white/60 hover:text-white transition-colors"
             onClick={(e) => { e.stopPropagation(); setIsLogoZoomed(false); }}
           >
-            <X size={36} strokeWidth={1.5} />
+            <X size={32} strokeWidth={1.5} />
           </button>
           <div
-            className="relative max-w-xl w-full aspect-square overflow-hidden scale-in"
-            style={{ borderRadius: '2.5rem', border: '1px solid rgba(68,243,169,0.15)' }}
+            className="relative max-w-xl w-full aspect-square overflow-hidden scale-in rounded-[2.5rem] border border-soccer-green/15"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(68,243,169,0.06) 0%, transparent 60%)' }} />
-            <img src={teamSettings.logo_url} alt="Logo" className="w-full h-full object-contain p-10" />
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-soccer-green/[0.06] to-transparent" />
+            <img src={teamSettings.logo_url} alt={`Escudo de ${teamSettings.team_name}`} className="w-full h-full object-contain p-10" />
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function RangoActual({ isAdmin }: { isAdmin: boolean }) {
+  return (
+    <>
+      <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.2em] mb-1.5">Tu Rango</p>
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'w-1.5 h-1.5 rounded-full',
+            isAdmin ? 'bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]' : 'bg-soccer-green shadow-[0_0_6px_rgba(68,243,169,0.8)]',
+          )}
+        />
+        <p className={cn('text-xs font-bold uppercase tracking-wider', isAdmin ? 'text-violet-400' : 'text-soccer-green')}>
+          {isAdmin ? 'Capitán' : 'Jugador'}
+        </p>
+      </div>
+    </>
   );
 }

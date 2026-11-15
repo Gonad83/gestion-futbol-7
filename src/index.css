@@ -15,6 +15,37 @@
   h1, h2, h3 {
     font-family: 'Lexend', system-ui, sans-serif;
   }
+
+  /* Quien navega con teclado ve siempre dónde está parado. */
+  :focus-visible {
+    outline: 2px solid #44f3a9;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Sin el destello gris al tocar en el teléfono ni el retraso del doble toque. */
+  a, button, [role='button'], summary, label {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Los montos y marcadores no bailan al cambiar de valor. */
+  table, .stat-display {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Respeta a quien pidió menos movimiento en su teléfono o computador.
+   Los indicadores de carga siguen girando para no parecer colgados. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer components {
