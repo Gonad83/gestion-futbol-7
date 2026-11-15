@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Settings as SettingsIcon, Save, CreditCard, Camera, Image, CheckCircle2, Globe, Bell, Play, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { aviso } from '../lib/avisos';
 
 const REGIONS_CL = [
   'Región Metropolitana','Arica y Parinacota','Tarapacá','Antofagasta','Atacama',
@@ -152,7 +153,7 @@ export default function Settings() {
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Solo se permiten imágenes.'); return; }
+    if (!file.type.startsWith('image/')) { aviso.info('Solo se permiten imágenes.'); return; }
     setFile(file);
     setPreview(URL.createObjectURL(file));
   };
@@ -196,7 +197,7 @@ export default function Settings() {
       setSaved(true);
       setTimeout(() => window.location.reload(), 1500);
     } catch (err: any) {
-      alert('Error al guardar: ' + err.message);
+      aviso.error('Error al guardar: ' + err.message);
     } finally {
       setSaving(false);
     }

@@ -8,6 +8,7 @@ import FifaCard from '../components/FifaCard';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { aviso, confirmar } from '../lib/avisos';
 
 /* ─── constants ─────────────────────────────────────────────── */
 const FORMATIONS = [
@@ -203,15 +204,15 @@ export default function Arena() {
       if (error) throw error;
       setReqForm({ date: '', time: '20:00', location: '', format: '7vs7', notes: '' });
       setShowReqForm(false); fetchFriendlies();
-    } catch (err: any) { alert('Error: ' + err.message); }
+    } catch (err: any) { aviso.error('Error: ' + err.message); }
     finally { setPublishing(false); }
   };
 
   const handleChallenge = async (id: string) => {
-    if (!isMatchmaker || !confirm('¿Enviar solicitud de amistoso?')) return;
+    if (!isMatchmaker || !(await confirmar('¿Enviar solicitud de amistoso?'))) return;
     const { error } = await supabase.from('friendly_requests')
       .update({ status: 'challenged', challenger_team_id: teamId }).eq('id', id).eq('status', 'open');
-    if (error) { alert('Error: ' + error.message); return; }
+    if (error) { aviso.error('Error: ' + error.message); return; }
     fetchFriendlies();
   };
   const handleAcceptReq = async (id: string) => {
@@ -230,7 +231,7 @@ export default function Arena() {
     fetchFriendlies();
   };
   const handleRejectReq  = async (id: string) => { await supabase.from('friendly_requests').update({ status: 'open', challenger_team_id: null }).eq('id', id); fetchFriendlies(); };
-  const handleCancelReq  = async (id: string) => { if (!confirm('¿Cancelar solicitud?')) return; await supabase.from('friendly_requests').update({ status: 'cancelled' }).eq('id', id); fetchFriendlies(); };
+  const handleCancelReq  = async (id: string) => { if (!(await confirmar('¿Cancelar solicitud?'))) return; await supabase.from('friendly_requests').update({ status: 'cancelled' }).eq('id', id); fetchFriendlies(); };
 
   /* ── Torneos ── */
   const fetchTournaments = async () => {
@@ -268,7 +269,7 @@ export default function Arena() {
       if (error) throw error;
       setTourForm({ name: '', description: '', date: '', location: '', city: '', commune: '', region: 'Región Metropolitana', format: '7vs7', age_range: 'Open', max_teams: '8', entry_fee: '0', payment_info: '' });
       setShowTourForm(false); fetchTournaments();
-    } catch (err: any) { alert('Error: ' + err.message); }
+    } catch (err: any) { aviso.error('Error: ' + err.message); }
     finally { setCreatingTour(false); }
   };
 
@@ -277,14 +278,14 @@ export default function Arena() {
     const msg = entryFee > 0
       ? `Inscripción: ${clp(entryFee)}\n\nInfo de pago:\n${paymentInfo || 'El organizador te dará los datos.'}\n\n¿Confirmar inscripción?`
       : '¿Confirmar inscripción gratuita?';
-    if (!confirm(msg)) return;
+    if (!(await confirmar(msg))) return;
     const { error } = await supabase.from('tournament_registrations').insert([{ tournament_id: tourId, team_id: teamId, status: 'pending' }]);
-    if (error) { alert(error.code === '23505' ? 'Ya estás inscrito en este torneo.' : 'Error: ' + error.message); return; }
+    if (error) { aviso.error(error.code === '23505' ? 'Ya estás inscrito en este torneo.' : 'Error: ' + error.message); return; }
     fetchTournaments();
   };
 
   const handleWithdraw = async (regId: string) => {
-    if (!confirm('¿Retirar la inscripción?')) return;
+    if (!(await confirmar('¿Retirar la inscripción?'))) return;
     await supabase.from('tournament_registrations').delete().eq('id', regId);
     fetchTournaments();
   };
@@ -298,7 +299,7 @@ export default function Arena() {
   };
 
   const handleCloseTournament = async (id: string, newStatus: string) => {
-    if (!confirm(`¿Cambiar estado a "${newStatus}"?`)) return;
+    if (!(await confirmar(`¿Cambiar estado a "${newStatus}"?`))) return;
     await supabase.from('tournaments').update({ status: newStatus }).eq('id', id);
     fetchTournaments();
   };

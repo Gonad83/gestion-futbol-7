@@ -3,6 +3,7 @@ import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { planRebalance, planHasChanges, applyRebalancePlan, type PaymentRow, type RebalancePlan } from '../lib/paymentLedger';
 import { Calculator, TrendingUp, TrendingDown, DollarSign, Plus, ChevronLeft, ChevronRight, ArrowUpCircle, Pencil, Check, X, Search, Trash2, Download, FileText } from 'lucide-react';
+import { aviso, confirmar } from '../lib/avisos';
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -237,7 +238,7 @@ export default function Finance() {
     const { error } = settingsId
       ? await supabase.from('team_settings').update({ quota_amount: val, updated_at: new Date().toISOString() }).eq('id', settingsId)
       : await supabase.from('team_settings').insert([{ quota_amount: val }]);
-    if (error) { alert('Error al guardar: ' + error.message); return; }
+    if (error) { aviso.error('Error al guardar: ' + error.message); return; }
     setQuotaAmount(val);
     setEditingQuota(false);
   };
@@ -251,7 +252,7 @@ export default function Finance() {
         await supabase.from('payments').insert([{ player_id: player.player_id, month: selectedMonth, year: selectedYear, amount: 0, status: 'Exento' }]);
       }
       await fetchData();
-    } catch (e: any) { alert(`Error: ${e?.message}`); }
+    } catch (e: any) { aviso.error(`Error: ${e?.message}`); }
   };
 
   const handleUnsetExempt = async (player: any) => {
@@ -261,19 +262,19 @@ export default function Finance() {
         await supabase.from('payments').update({ status: 'Pendiente', amount: 0 }).eq('id', player.payment_id);
       }
       await fetchData();
-    } catch (e: any) { alert(`Error: ${e?.message}`); }
+    } catch (e: any) { aviso.error(`Error: ${e?.message}`); }
   };
 
   const handleCancelPayment = async (player: any) => {
     if (!isAdmin) return;
-    if (!confirm(`¿Anular todos los pagos de ${player.name} para ${MONTHS[selectedMonth-1]} ${selectedYear}?`)) return;
+    if (!(await confirmar(`¿Anular todos los pagos de ${player.name} para ${MONTHS[selectedMonth-1]} ${selectedYear}?`))) return;
     try {
       if (player.payment_id) {
         const { error } = await supabase.from('payments').update({ status: 'Pendiente', amount: 0 }).eq('id', player.payment_id);
         if (error) throw error;
       }
       await fetchData();
-    } catch (e: any) { alert(`Error: ${e?.message}`); }
+    } catch (e: any) { aviso.error(`Error: ${e?.message}`); }
   };
 
   const handlePaymentToggle = async (player: any) => {
@@ -291,7 +292,7 @@ export default function Finance() {
       ? `${player.name} debe meses anteriores. El pago de ${clp(amount)} se aplicará primero a ${MONTHS[oldest.month - 1]} ${oldest.year} y el saldo pasa a los meses siguientes. ¿Continuar?`
       : `¿Abonar o pagar ${clp(amount)} a nombre de ${player.name}? Se aplica primero al mes pendiente más antiguo y el saldo pasa a los meses siguientes.`;
 
-    if ((oldestIsEarlier || amount !== remainingDebtForCurrentMonth) && !confirm(confirmMessage)) return;
+    if ((oldestIsEarlier || amount !== remainingDebtForCurrentMonth) && !(await confirmar(confirmMessage))) return;
 
     try {
       const { data: rows, error: rowsError } = await supabase
@@ -308,7 +309,7 @@ export default function Finance() {
 
       await fetchData();
     } catch (e: any) {
-      alert(`Error al registrar pago: ${e?.message || e}`);
+      aviso.error(`Error al registrar pago: ${e?.message || e}`);
     }
   };
 
@@ -321,7 +322,7 @@ export default function Finance() {
       date: expenseData.date,
       team_id: teamId
     }]);
-    if (error) { alert('Error: ' + error.message); return; }
+    if (error) { aviso.error('Error: ' + error.message); return; }
     setExpenseData({ concept: '', amount: '', date: today });
     setShowExpenseForm(false);
     await fetchData();
@@ -329,17 +330,17 @@ export default function Finance() {
 
   const handleDeleteIncome = async (id: string) => {
     if (!isAdmin || !teamId) return;
-    if (!confirm('¿Eliminar este ingreso?')) return;
+    if (!(await confirmar('¿Eliminar este ingreso?'))) return;
     const { error } = await supabase.from('cash_incomes').delete().eq('id', id).eq('team_id', teamId);
-    if (error) { alert('Error: ' + error.message); return; }
+    if (error) { aviso.error('Error: ' + error.message); return; }
     await fetchData();
   };
 
   const handleDeleteExpense = async (id: string) => {
     if (!isAdmin || !teamId) return;
-    if (!confirm('¿Eliminar este gasto?')) return;
+    if (!(await confirmar('¿Eliminar este gasto?'))) return;
     const { error } = await supabase.from('expenses').delete().eq('id', id).eq('team_id', teamId);
-    if (error) { alert('Error: ' + error.message); return; }
+    if (error) { aviso.error('Error: ' + error.message); return; }
     await fetchData();
   };
 
@@ -352,7 +353,7 @@ export default function Finance() {
       date: incomeData.date,
       team_id: teamId
     }]);
-    if (error) { alert('Error: ' + error.message); return; }
+    if (error) { aviso.error('Error: ' + error.message); return; }
     setIncomeData({ concept: '', amount: '', date: today });
     setShowIncomeForm(false);
     await fetchData();

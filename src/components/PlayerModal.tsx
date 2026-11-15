@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { sendWelcomeEmail } from '../lib/sendEmail';
 import { X, Camera, Upload, Star } from 'lucide-react';
 import { SUB_STATS, MAX_STARS, subStat, ratingFromSubStats, type SubStatKey } from '../lib/playerStats';
+import { aviso } from '../lib/avisos';
 
 const POSITION_GROUPS = [
   { group: 'Portero', roles: ['Portero'] },
@@ -82,7 +83,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Solo se permiten archivos de imagen (JPG, PNG, WEBP, etc.)');
+      aviso.info('Solo se permiten archivos de imagen (JPG, PNG, WEBP, etc.)');
       return;
     }
     setPhotoFile(file);
@@ -133,7 +134,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
       onClose();
     } catch (error: any) {
       console.error(error);
-      alert('Error al guardar: ' + error.message);
+      aviso.error('Error al guardar: ' + error.message);
     } finally {
       setLoading(false);
     }

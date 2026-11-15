@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { aviso, confirmar } from '../lib/avisos';
 
 /**
  * Inter Generaciones SSCC: una edición por año. Cada edición tiene su lista de
@@ -289,7 +290,7 @@ function BotonCopiarLista({ texto }: { texto: string }) {
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2500);
     } else {
-      alert('No se pudo copiar la lista');
+      aviso.error('No se pudo copiar la lista');
     }
   };
 
@@ -342,7 +343,7 @@ function ResumenTab({ edition, isAdmin, teamId, resumenTexto, stats, onSaved }: 
       payment_info: form.payment_info?.trim() || null,
     }).eq('id', edition.id).select('*').single();
     setSaving(false);
-    if (error) { alert('No se pudo guardar: ' + error.message); return; }
+    if (error) { aviso.error('No se pudo guardar: ' + error.message); return; }
     onSaved(data as Edition);
     setEditing(false);
   };
@@ -351,19 +352,19 @@ function ResumenTab({ edition, isAdmin, teamId, resumenTexto, stats, onSaved }: 
     setUploadingBases(true);
     const path = `${teamId}/${edition.year}/bases/${Date.now()}_${limpiarNombre(file.name)}`;
     const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type || undefined });
-    if (upErr) { setUploadingBases(false); alert('No se pudo subir: ' + upErr.message); return; }
+    if (upErr) { setUploadingBases(false); aviso.error('No se pudo subir: ' + upErr.message); return; }
     const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
     const { data, error } = await supabase.from('intergen_editions')
       .update({ bases_url: pub.publicUrl, bases_name: file.name, bases_path: path })
       .eq('id', edition.id).select('*').single();
     if (!error && edition.bases_path) await supabase.storage.from(BUCKET).remove([edition.bases_path]);
     setUploadingBases(false);
-    if (error) { alert('No se pudo guardar: ' + error.message); return; }
+    if (error) { aviso.error('No se pudo guardar: ' + error.message); return; }
     onSaved(data as Edition);
   };
 
   const removeBases = async () => {
-    if (!confirm('¿Quitar las bases publicadas?')) return;
+    if (!(await confirmar('¿Quitar las bases publicadas?'))) return;
     if (edition.bases_path) await supabase.storage.from(BUCKET).remove([edition.bases_path]);
     const { data } = await supabase.from('intergen_editions')
       .update({ bases_url: null, bases_name: null, bases_path: null }).eq('id', edition.id).select('*').single();
@@ -372,7 +373,7 @@ function ResumenTab({ edition, isAdmin, teamId, resumenTexto, stats, onSaved }: 
 
   const copy = async () => {
     try { await navigator.clipboard.writeText(resumenTexto); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { alert('No se pudo copiar'); }
+    catch { aviso.error('No se pudo copiar'); }
   };
 
   const set = (k: keyof Edition, v: string) => setForm(f => ({ ...f, [k]: v }));
@@ -559,7 +560,7 @@ function JugadoresTab({ edition, isAdmin, players, roster, participants, onChang
     const rows = [...selected].map(player_id => ({ edition_id: edition.id, player_id }));
     const { data, error } = await supabase.from('intergen_participants').insert(rows).select('id, player_id, paid, paid_at');
     setSaving(false);
-    if (error) { alert('No se pudo agregar: ' + error.message); return; }
+    if (error) { aviso.error('No se pudo agregar: ' + error.message); return; }
     onChange([...participants, ...((data as Participant[]) || [])]);
     setSelected(new Set());
     setPicking(false);
@@ -571,13 +572,13 @@ function JugadoresTab({ edition, isAdmin, players, roster, participants, onChang
     const paid_at = paid ? new Date().toISOString() : null;
     onChange(participants.map(p => (p.id === pt.id ? { ...p, paid, paid_at } : p)));
     const { error } = await supabase.from('intergen_participants').update({ paid, paid_at }).eq('id', pt.id);
-    if (error) { alert('No se pudo actualizar'); onChange(participants); }
+    if (error) { aviso.error('No se pudo actualizar'); onChange(participants); }
   };
 
   const remove = async (pt: Participant & { player?: Player }) => {
-    if (!confirm(`¿Sacar a ${pt.player?.name} de la lista?`)) return;
+    if (!(await confirmar(`¿Sacar a ${pt.player?.name} de la lista?`))) return;
     const { error } = await supabase.from('intergen_participants').delete().eq('id', pt.id);
-    if (error) { alert('No se pudo quitar'); return; }
+    if (error) { aviso.error('No se pudo quitar'); return; }
     onChange(participants.filter(p => p.id !== pt.id));
   };
 
@@ -694,15 +695,15 @@ function GaleriaTab({ edition, isAdmin, teamId, userId, media, onChange }: {
     setUploading({ done: 0, total: list.length });
     for (const file of list) {
       const kind: Media['kind'] = file.type.startsWith('video/') ? 'video' : 'photo';
-      if (file.size > 100 * 1024 * 1024) { alert(`${file.name} pesa más de 100 MB y no se subió.`); continue; }
+      if (file.size > 100 * 1024 * 1024) { aviso.error(`${file.name} pesa más de 100 MB y no se subió.`); continue; }
       const path = `${teamId}/${edition.year}/${kind === 'photo' ? 'fotos' : 'videos'}/${Date.now()}_${limpiarNombre(file.name)}`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
-      if (upErr) { alert(`No se pudo subir ${file.name}: ${upErr.message}`); continue; }
+      if (upErr) { aviso.error(`No se pudo subir ${file.name}: ${upErr.message}`); continue; }
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
       const { data, error } = await supabase.from('intergen_media')
         .insert({ edition_id: edition.id, kind, url: pub.publicUrl, storage_path: path, uploaded_by: userId })
         .select('*').single();
-      if (error) { await supabase.storage.from(BUCKET).remove([path]); alert('No se pudo guardar ' + file.name); continue; }
+      if (error) { await supabase.storage.from(BUCKET).remove([path]); aviso.error('No se pudo guardar ' + file.name); continue; }
       nuevos.push(data as Media);
       setUploading(u => (u ? { ...u, done: u.done + 1 } : u));
     }
@@ -711,9 +712,9 @@ function GaleriaTab({ edition, isAdmin, teamId, userId, media, onChange }: {
   };
 
   const remove = async (m: Media) => {
-    if (!confirm('¿Eliminar este archivo?')) return;
+    if (!(await confirmar('¿Eliminar este archivo?'))) return;
     const { error } = await supabase.from('intergen_media').delete().eq('id', m.id);
-    if (error) { alert('No se pudo eliminar'); return; }
+    if (error) { aviso.error('No se pudo eliminar'); return; }
     if (m.storage_path) await supabase.storage.from(BUCKET).remove([m.storage_path]);
     onChange(media.filter(x => x.id !== m.id));
     setViewer(null);

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Camera, Upload, Save, UserCircle, CheckCircle2, TrendingUp } from 'lucide-react';
 import SubStatStars from '../components/SubStatStars';
+import { aviso } from '../lib/avisos';
 
 const POSITION_GROUPS = [
   { group: 'Portero', roles: ['Portero'] },
@@ -57,7 +58,7 @@ export default function MyProfile() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Solo se permiten imágenes.'); return; }
+    if (!file.type.startsWith('image/')) { aviso.info('Solo se permiten imágenes.'); return; }
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
@@ -102,7 +103,7 @@ export default function MyProfile() {
       setPhotoFile(null);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
-      alert('Error al guardar: ' + err.message);
+      aviso.error('Error al guardar: ' + err.message);
     } finally {
       setSaving(false);
     }

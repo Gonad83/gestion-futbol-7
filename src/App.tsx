@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { Avisos } from './components/Avisos';
 
 // Cada pantalla se descarga al abrirla: antes la app entera (1 MB) bajaba de
 // una vez, y en el teléfono la primera carga se hacía larga.
@@ -74,6 +75,7 @@ function Inicio() {
 function App() {
   return (
     <AuthProvider>
+      <Avisos />
       <Router>
         <ErrorBoundary fullScreen>
         <Suspense fallback={<Cargando />}>

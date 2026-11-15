@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ShieldAlert, RefreshCw, Save, Users, CheckCircle2, UserPlus, X, Star, Edit2, Check, Send, Copy, Zap } from 'lucide-react';
 import FifaCard from '../components/FifaCard';
+import { aviso } from '../lib/avisos';
 
 export default function Matchmaking() {
   const [loading, setLoading] = useState(true);
@@ -242,7 +243,7 @@ export default function Matchmaking() {
     
     if (error) {
       console.error(error);
-      alert('Error al guardar invitado');
+      aviso.error('Error al guardar invitado');
       return;
     }
 
@@ -296,7 +297,7 @@ export default function Matchmaking() {
       const { error } = await supabase.from('match_guests').update({ name: newName }).eq('id', guestId);
       if (error) {
         console.error(error);
-        alert('Error al actualizar nombre del invitado');
+        aviso.error('Error al actualizar nombre del invitado');
         return;
       }
     }
@@ -343,7 +344,7 @@ export default function Matchmaking() {
       if (existing) { await supabase.from('generated_teams').update(payload).eq('id', existing.id); }
       else { await supabase.from('generated_teams').insert([{ match_id: selectedMatch, ...payload }]); }
       setSaved(true);
-    } catch (e) { console.error(e); alert('Error al guardar'); }
+    } catch (e) { console.error(e); aviso.error('Error al guardar'); }
   };
 
   const handleSendFinalList = async () => {
@@ -354,7 +355,7 @@ export default function Matchmaking() {
       const webhookUrl = import.meta.env.VITE_N8N_LISTA_FINAL_URL || import.meta.env.VITE_N8N_WEBHOOK_URL;
 
       if (!webhookUrl) {
-        alert('No hay URL de webhook configurada (VITE_N8N_LISTA_FINAL_URL).');
+        aviso.info('No hay URL de webhook configurada (VITE_N8N_LISTA_FINAL_URL).');
         return;
       }
 
@@ -384,10 +385,10 @@ export default function Matchmaking() {
         body: JSON.stringify(payload),
       });
 
-      alert('¡Lista final enviada con éxito!');
+      aviso.ok('¡Lista final enviada con éxito!');
     } catch (e) {
       console.error(e);
-      alert('Error técnico al enviar la lista final');
+      aviso.error('Error técnico al enviar la lista final');
     } finally {
       setSendingList(false);
     }

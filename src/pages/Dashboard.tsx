@@ -5,6 +5,7 @@ import { format, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Users, DollarSign, CalendarDays, AlertTriangle, ArrowRight, Trophy, Star, X, CheckCircle2, XCircle, Clock, Copy, CreditCard, UserPlus, User, Share2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { aviso, confirmar } from '../lib/avisos';
 
 type TopPlayer = { id: string; count: number; name: string; nickname: string; photo_url: string };
 
@@ -387,7 +388,7 @@ export default function Dashboard() {
         .single();
       if (error) {
         console.error('Error al agregar invitado:', error);
-        alert('Error al agregar invitado: ' + error.message);
+        aviso.error('Error al agregar invitado: ' + error.message);
         return;
       }
       if (data) {
@@ -507,18 +508,18 @@ export default function Dashboard() {
 
   const closeVoting = async () => {
     if (!stats.openVoteMatchId) return;
-    if (!confirm('¿Cerrar votación y guardar al MVP de la semana?')) return;
+    if (!(await confirmar('¿Cerrar votación y guardar al MVP de la semana?'))) return;
     try {
       const { data: votes } = await supabase
         .from('match_mvp_votes')
         .select('voted_player_id')
         .eq('match_id', stats.openVoteMatchId);
-      if (!votes || votes.length === 0) { alert('No hay votos registrados aún.'); return; }
+      if (!votes || votes.length === 0) { aviso.info('No hay votos registrados aún.'); return; }
       const counts: Record<string, number> = {};
       votes.forEach((v: any) => { if (v.voted_player_id) counts[v.voted_player_id] = (counts[v.voted_player_id] || 0) + 1; });
       const [[winnerId, voteCount]] = Object.entries(counts).sort((a, b) => b[1] - a[1]);
       const winner = stats.allPlayers.find((p: any) => p.id === winnerId);
-      if (!winner) { alert('No se encontró el jugador ganador.'); return; }
+      if (!winner) { aviso.info('No se encontró el jugador ganador.'); return; }
       const { error } = await supabase.from('mvp_winners').insert({
         match_id: stats.openVoteMatchId,
         player_id: winnerId,
@@ -528,17 +529,17 @@ export default function Dashboard() {
         week_date: new Date().toISOString().split('T')[0],
       });
       if (error) throw error;
-      alert(`¡MVP registrado! Ganador: ${winner.name} con ${voteCount} votos.`);
+      aviso.ok(`¡MVP registrado! Ganador: ${winner.name} con ${voteCount} votos.`);
       fetchDashboardData();
     } catch (err: any) {
-      alert('Error al cerrar votación: ' + err.message);
+      aviso.error('Error al cerrar votación: ' + err.message);
     }
   };
 
   const notifyVoting = async () => {
     if (!stats.openVoteMatchId) return;
     const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
-    if (!webhookUrl) { alert('No hay webhook configurado para notificaciones.'); return; }
+    if (!webhookUrl) { aviso.info('No hay webhook configurado para notificaciones.'); return; }
     try {
       const voteUrl = `${window.location.origin}/vote?match_id=${stats.openVoteMatchId}`;
       await fetch(webhookUrl, {
@@ -546,9 +547,9 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'mvp_vote_open', vote_url: voteUrl }),
       });
-      alert('¡Notificación enviada!');
+      aviso.ok('¡Notificación enviada!');
     } catch (err: any) {
-      alert('Error al enviar notificación: ' + err.message);
+      aviso.error('Error al enviar notificación: ' + err.message);
     }
   };
 

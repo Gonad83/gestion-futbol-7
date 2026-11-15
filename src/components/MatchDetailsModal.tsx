@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2 } from 'lucide-react';
 import { sendNewMatchEmail, sendMatchReminder } from '../lib/sendEmail';
+import { aviso, confirmar } from '../lib/avisos';
 
 interface MatchDetailsModalProps {
   isOpen: boolean;
@@ -114,7 +115,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
           cur.setDate(cur.getDate() + 7);
         }
 
-        if (payloads.length === 0) { alert('No hay fechas válidas en ese rango.'); setLoading(false); return; }
+        if (payloads.length === 0) { aviso.info('No hay fechas válidas en ese rango.'); setLoading(false); return; }
         const { error: insertError } = await supabase.from('matches').insert(payloads);
         if (insertError) throw insertError;
         onSave();
@@ -160,7 +161,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       onClose();
     } catch (error: any) {
       console.error('Save error:', error);
-      alert('Error al guardar: ' + (error?.message || JSON.stringify(error)));
+      aviso.error('Error al guardar: ' + (error?.message || JSON.stringify(error)));
     } finally {
       setLoading(false);
     }
@@ -181,7 +182,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       const pendingPlayers = activePlayers?.filter((p) => !respondedIds.includes(p.id)) || [];
 
       if (pendingPlayers.length === 0) {
-        alert('Todos los jugadores ya han respondido.');
+        aviso.info('Todos los jugadores ya han respondido.');
         return;
       }
 
@@ -193,10 +194,10 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         const ok = await sendMatchReminder(player.email, player.name, dateLabel, match.location || '', confirmUrl, declineUrl);
         if (ok) sent++;
       }
-      alert(`Recordatorio enviado a ${sent} de ${pendingPlayers.length} jugador(es) sin responder.`);
+      aviso.ok(`Recordatorio enviado a ${sent} de ${pendingPlayers.length} jugador(es) sin responder.`);
     } catch (e) {
       console.error(e);
-      alert('Error al enviar recordatorio');
+      aviso.error('Error al enviar recordatorio');
     } finally {
       setLoading(false);
     }
@@ -204,7 +205,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
   const handleDelete = async () => {
     if (!match?.id || !isAdmin) return;
-    if (!confirm('¿Eliminar este partido? También se borrarán las asistencias registradas.')) return;
+    if (!(await confirmar('¿Eliminar este partido? También se borrarán las asistencias registradas.'))) return;
     setLoading(true);
     try {
       const { error: attError } = await supabase.from('attendance').delete().eq('match_id', match.id);
@@ -220,7 +221,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       onClose();
     } catch (error) {
       console.error(error);
-      alert('Error al eliminar el partido');
+      aviso.error('Error al eliminar el partido');
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Star, CheckCircle2, ArrowLeft, UserCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { aviso } from '../lib/avisos';
 
 export default function Vote() {
   const { playerProfile } = useAuth();
@@ -123,7 +124,7 @@ export default function Vote() {
       setExistingVote(selectedPlayer);
       setSubmitted(true);
     } catch (err: any) {
-      alert('Error al votar: ' + err.message);
+      aviso.error('Error al votar: ' + err.message);
     } finally {
       setSubmitting(false);
     }

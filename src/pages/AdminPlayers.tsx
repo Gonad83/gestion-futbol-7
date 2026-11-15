@@ -7,6 +7,7 @@ import SubStatStars from '../components/SubStatStars';
 import PlayerModal from '../components/PlayerModal';
 import { useAuth } from '../hooks/useAuth';
 import { sendMatchReminder, sendPaymentReminder } from '../lib/sendEmail';
+import { aviso, confirmar } from '../lib/avisos';
 
 export default function AdminPlayers() {
   const { teamId, isAdmin } = useAuth();
@@ -103,7 +104,7 @@ export default function AdminPlayers() {
 
   const handleDelete = async (player: any) => {
     if (!isAdmin) return;
-    if (!confirm(`¿Eliminar a ${player.name}? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar(`¿Eliminar a ${player.name}? Esta acción no se puede deshacer.`))) return;
     setMenuId(null);
     await supabase.from('attendance').delete().eq('player_id', player.id);
     await supabase.from('payments').delete().eq('player_id', player.id);
@@ -119,10 +120,10 @@ export default function AdminPlayers() {
     const subcaptains = players.filter(p => p.match_role === 'subcaptain' && p.id !== player.id);
     let newRole: string | null = null;
     if (!player.match_role) {
-      if (subcaptains.length >= 3) { alert('Ya hay 3 subcapitanes.'); return; }
+      if (subcaptains.length >= 3) { aviso.info('Ya hay 3 subcapitanes.'); return; }
       newRole = 'subcaptain';
     } else if (player.match_role === 'subcaptain') {
-      if (captains.length >= 1) { alert('Ya hay un capitán.'); return; }
+      if (captains.length >= 1) { aviso.info('Ya hay un capitán.'); return; }
       newRole = 'captain';
     }
     await supabase.from('players').update({ match_role: newRole }).eq('id', player.id).eq('team_id', teamId);
@@ -137,7 +138,7 @@ export default function AdminPlayers() {
 
   const sendToPlayer = async (type: 'pago' | 'recordatorio', player: any) => {
     setMenuId(null);
-    if (!player.email) { alert(`${player.name} no tiene email registrado.`); return; }
+    if (!player.email) { aviso.info(`${player.name} no tiene email registrado.`); return; }
     try {
       if (type === 'recordatorio' && nextMatch) {
         const date = format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
@@ -147,16 +148,16 @@ export default function AdminPlayers() {
       } else if (type === 'pago') {
         await sendPaymentReminder(player.email, player.name, ['Cuota pendiente'], '$8.000');
       }
-      alert(`Email enviado a ${player.name}.`);
-    } catch { alert('Error al enviar el email.'); }
+      aviso.ok(`Email enviado a ${player.name}.`);
+    } catch { aviso.error('Error al enviar el email.'); }
   };
 
   const sendBulk = async (type: 'pago' | 'recordatorio' | 'lista') => {
     setSendMenuOpen(false);
     if (type === 'lista') {
       const url = import.meta.env.VITE_N8N_LISTA_FINAL_URL;
-      if (!url) { alert('Configura VITE_N8N_LISTA_FINAL_URL en el .env'); return; }
-      if (!confirm('¿Enviar la lista final a todo el equipo?')) return;
+      if (!url) { aviso.info('Configura VITE_N8N_LISTA_FINAL_URL en el .env'); return; }
+      if (!(await confirmar('¿Enviar la lista final a todo el equipo?'))) return;
       setSending('lista');
       try {
         const confirmed = players.filter(p => attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
@@ -178,16 +179,16 @@ export default function AdminPlayers() {
             pendientes_count: pending.length, team_info: teamName,
           }),
         });
-        if (res.ok) alert('Lista final enviada.'); else alert(`Error: ${res.status}`);
-      } catch { alert('Error al enviar.'); }
+        if (res.ok) aviso.ok('Lista final enviada.'); else aviso.error(`Error: ${res.status}`);
+      } catch { aviso.error('Error al enviar.'); }
       setSending(null);
       return;
     }
 
     let targets = players.filter(p => p.notify !== false && p.status === 'Activo' && p.email);
     if (type === 'recordatorio') targets = targets.filter(p => !attendances.some(a => a.player_id === p.id && a.status === 'Voy'));
-    if (targets.length === 0) { alert('No hay jugadores a los que enviar.'); return; }
-    if (!confirm(`¿Enviar ${type === 'pago' ? 'cobro' : 'recordatorio'} a ${targets.length} jugadores?`)) return;
+    if (targets.length === 0) { aviso.info('No hay jugadores a los que enviar.'); return; }
+    if (!(await confirmar(`¿Enviar ${type === 'pago' ? 'cobro' : 'recordatorio'} a ${targets.length} jugadores?`))) return;
     setSending(type);
     try {
       let sent = 0;
@@ -203,18 +204,18 @@ export default function AdminPlayers() {
           if (ok) sent++;
         }
       }
-      alert(`Enviados ${sent} de ${targets.length} emails.`);
-    } catch { alert('Error al enviar.'); }
+      aviso.ok(`Enviados ${sent} de ${targets.length} emails.`);
+    } catch { aviso.error('Error al enviar.'); }
     setSending(null);
   };
 
   const syncAccounts = async () => {
-    if (!confirm('¿Intentar vincular jugadores con sus cuentas de usuario?')) return;
+    if (!(await confirmar('¿Intentar vincular jugadores con sus cuentas de usuario?'))) return;
     setLoading(true);
     const { data } = await supabase.from('players').select('*').order('name');
     if (data) setPlayers(data);
     setLoading(false);
-    alert('Datos actualizados.');
+    aviso.ok('Datos actualizados.');
   };
 
   const STATUS_STYLE: Record<string, string> = {
