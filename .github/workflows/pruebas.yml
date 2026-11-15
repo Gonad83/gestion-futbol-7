@@ -1,0 +1,39 @@
+# Revisa cada subida a GitHub: corre las pruebas y comprueba que la app compila.
+# Si algo falla, GitHub marca la subida con una X roja y avisa por correo.
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Si se sube otra vez antes de que termine, se cancela la revisión anterior.
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    name: Pruebas y compilación
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Pruebas
+        run: npm test
+
+      # Incluye la revisión de tipos (tsc) antes de empaquetar.
+      - name: Compilar
+        run: npm run build
