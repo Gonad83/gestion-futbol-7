@@ -46,7 +46,7 @@ function AutocompleteInput({ label, value, onChange, suggestions, placeholder }:
     : [];
   return (
     <div className="relative">
-      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">{label}</label>
+      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">{label}</label>
       <input
         type="text"
         className="input-field"
@@ -213,7 +213,7 @@ export default function Settings() {
   return (
     <div className="fade-in pb-20 md:pb-0 max-w-2xl mx-auto">
       <div className="mb-6">
-        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel Admin</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel Admin</p>
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <SettingsIcon className="text-soccer-green" /> Configuración del Equipo
         </h1>
@@ -261,10 +261,10 @@ export default function Settings() {
                 <p className="text-sm font-medium text-white/70">
                   {logoPreview ? 'Cambiar escudo/logo' : 'Subir escudo/logo'}
                 </p>
-                <p className="text-xs text-white/30 mt-0.5">PNG, JPG o WebP · Aparece en la barra lateral</p>
+                <p className="text-xs text-white/50 mt-0.5">PNG, JPG o WebP · Aparece en la barra lateral</p>
               </div>
               {logoFile && (
-                <span className="text-[10px] font-black text-soccer-green uppercase tracking-wider">Seleccionado ✓</span>
+                <span className="text-[11px] font-black text-soccer-green uppercase tracking-wider">Seleccionado ✓</span>
               )}
             </div>
             <input ref={logoRef} type="file" accept="image/*" className="hidden"
@@ -299,10 +299,10 @@ export default function Settings() {
                   <p className="text-sm font-medium text-white/70">
                     {bannerPreview ? 'Cambiar foto de portada' : 'Subir foto de portada'}
                   </p>
-                  <p className="text-xs text-white/30 mt-0.5">Imagen panorámica · Se muestra en el banner del Dashboard</p>
+                  <p className="text-xs text-white/50 mt-0.5">Imagen panorámica · Se muestra en el banner del Dashboard</p>
                 </div>
                 {bannerFile && (
-                  <span className="text-[10px] font-black text-[#9acbff] uppercase tracking-wider">Seleccionado ✓</span>
+                  <span className="text-[11px] font-black text-[#9acbff] uppercase tracking-wider">Seleccionado ✓</span>
                 )}
               </div>
             </div>
@@ -349,7 +349,7 @@ export default function Settings() {
               </button>
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">URL del botón de pago</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">URL del botón de pago</label>
               <input
                 type="url"
                 className="input-field"
@@ -391,26 +391,26 @@ export default function Settings() {
               <AutocompleteInput label="Ciudad" value={city} onChange={setCity} suggestions={CITIES_CL} placeholder="Ej: Concepción" />
               <AutocompleteInput label="Comuna" value={commune} onChange={setCommune} suggestions={COMMUNES_CL} placeholder="Ej: San Pedro de la Paz" />
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Región</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Región</label>
                 <select className="input-field bg-slate-900" value={region} onChange={e => setRegion(e.target.value)}>
                   <option value="">-- Seleccionar --</option>
                   {REGIONS_CL.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Rango Etario</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Rango Etario</label>
                 <select className="input-field bg-slate-900" value={ageRange} onChange={e => setAgeRange(e.target.value)}>
                   {AGE_RANGES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Formato Preferido</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Formato Preferido</label>
                 <select className="input-field bg-slate-900" value={preferredFormat} onChange={e => setPreferredFormat(e.target.value)}>
                   {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Descripción (opcional)</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Descripción (opcional)</label>
                 <input type="text" className="input-field" value={teamDescription} onChange={e => setTeamDescription(e.target.value)} placeholder="Ej: Equipo amateur, jugamos los martes" />
               </div>
             </div>
@@ -431,9 +431,9 @@ export default function Settings() {
             <div className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
               <div>
                 <p className="text-xs font-bold text-white">Recordatorio de partido</p>
-                <p className="text-[11px] text-white/40 mt-0.5">Se envía a jugadores sin confirmar, 24h antes del partido · Diario 9 AM</p>
+                <p className="text-[11px] text-white/50 mt-0.5">Se envía a jugadores sin confirmar, 24h antes del partido · Diario 9 AM</p>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
+              <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
                 Activo
               </span>
             </div>
@@ -449,7 +449,7 @@ export default function Settings() {
                 <Play size={13} />
                 {testingReminder ? 'Ejecutando...' : 'Probar ahora'}
               </button>
-              <p className="text-[11px] text-white/30">Ejecuta el cron manualmente para verificar que funciona.</p>
+              <p className="text-[11px] text-white/50">Ejecuta el cron manualmente para verificar que funciona.</p>
             </div>
 
             {reminderResult && (

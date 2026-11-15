@@ -132,7 +132,7 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4"
             style={{ background: 'rgba(68,243,169,0.08)', border: '1px solid rgba(68,243,169,0.2)' }}>
             <Zap size={12} style={{ color: '#44f3a9' }} />
-            <span className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: '#44f3a9' }}>Planes</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.25em]" style={{ color: '#44f3a9' }}>Planes</span>
           </div>
           <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight mb-3">
             Deja de coordinar por WhatsApp.<br className="hidden sm:block" />
@@ -147,7 +147,7 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <div className="flex -space-x-1.5">
               {['G','M','R','C','A'].map((l, i) => (
-                <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black border"
+                <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black border"
                   style={{ background: i % 2 === 0 ? 'rgba(68,243,169,0.2)' : 'rgba(154,203,255,0.2)', borderColor: '#10141a', color: i % 2 === 0 ? '#44f3a9' : '#9acbff' }}>
                   {l}
                 </div>
@@ -156,7 +156,7 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
             <div className="flex items-center gap-1">
               {[1,2,3,4,5].map(i => <Star key={i} size={10} fill="#ffd08b" style={{ color: '#ffd08b' }} />)}
             </div>
-            <span className="text-white/40 text-xs font-medium">+50 capitanes ya organizan su equipo con Club Pro</span>
+            <span className="text-white/50 text-xs font-medium">+50 capitanes ya organizan su equipo con Club Pro</span>
           </div>
         </motion.div>
 
@@ -228,7 +228,7 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
 
                 {/* Badge */}
                 <div className="absolute top-0 right-0 z-10">
-                  <span className="inline-block text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl rounded-tr-3xl"
+                  <span className="inline-block text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl rounded-tr-3xl"
                     style={plan.highlight
                       ? { background: '#44f3a9', color: '#003822' }
                       : plan.id === 'pro'
@@ -254,7 +254,7 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
 
                 {/* Limit pills */}
                 <div className="flex items-center gap-2 mb-5 flex-wrap relative z-10">
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
                     style={{
                       background: plan.highlight ? 'rgba(68,243,169,0.12)' : plan.id === 'pro' ? 'rgba(154,203,255,0.1)' : 'rgba(255,255,255,0.05)',
                       color: plan.highlight ? '#44f3a9' : plan.id === 'pro' ? '#9acbff' : 'rgba(255,255,255,0.4)',
@@ -300,7 +300,7 @@ export default function AuroraPricing({ onSelectPlan }: AuroraPricingProps) {
                 </AnimatePresence>
 
                 {/* Urgency line */}
-                <p className="text-[10px] font-semibold mb-5 relative z-10" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                <p className="text-[11px] font-semibold mb-5 relative z-10" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   {plan.urgency}
                 </p>
 

@@ -493,7 +493,7 @@ export default function Finance() {
     <div className="fade-in pb-20 md:pb-0">
       <div className="flex justify-between items-end mb-6">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Finanzas</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Finanzas</p>
           <h1 className="font-headline text-3xl font-black text-white tracking-tight flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
               <Calculator size={18} />
@@ -530,7 +530,7 @@ export default function Finance() {
         <div className="glass-card p-8 border-l-4 border-l-soccer-green group hover:scale-[1.02]">
           <div className="absolute top-0 right-0 w-24 h-24 bg-soccer-green/5 rounded-full blur-3xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
           <div className="flex items-center justify-between mb-4 relative z-10">
-            <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">Caja Actual</h3>
+            <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">Caja Actual</h3>
             <div className="bg-soccer-green/10 p-2 rounded-xl border border-soccer-green/20 group-hover:bg-soccer-green/20 transition-colors">
               <DollarSign className="text-soccer-green" size={24} />
             </div>
@@ -538,7 +538,7 @@ export default function Finance() {
           <p className={`text-4xl font-black tracking-tighter relative z-10 transition-colors ${balance >= 0 ? 'text-white' : 'text-red-400'}`}>
             {clp(balance)}
           </p>
-          <p className="text-[10px] text-slate-500 mt-2 relative z-10">Cuotas pagadas + ingresos − gastos</p>
+          <p className="text-[11px] text-slate-400 mt-2 relative z-10">Cuotas pagadas + ingresos − gastos</p>
           <div className="mt-3 h-1 w-12 bg-soccer-green/30 rounded-full"></div>
         </div>
 
@@ -546,10 +546,10 @@ export default function Finance() {
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
           <div className="flex items-center justify-between mb-4 relative z-10">
             <div className="flex flex-col gap-1.5">
-              <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">
+              <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">
                 {quotaFilter === 'total' ? 'Total Cuotas Pagadas' : `Cuotas — ${MONTHS[selectedMonth - 1]}`}
               </h3>
-              <div className="flex rounded-lg overflow-hidden border border-white/10 text-[9px] font-bold p-0.5 bg-black/20 w-fit">
+              <div className="flex rounded-lg overflow-hidden border border-white/10 text-[11px] font-bold p-0.5 bg-black/20 w-fit">
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setQuotaFilter('mes'); }}
@@ -573,7 +573,7 @@ export default function Finance() {
           <p className="text-4xl font-black tracking-tighter text-white relative z-10">
             {quotaFilter === 'total' ? clp(allPaidAmount) : clp(monthlyIncome)}
           </p>
-          <p className="text-[10px] text-slate-500 mt-2 relative z-10">
+          <p className="text-[11px] text-slate-400 mt-2 relative z-10">
             {quotaFilter === 'total'
               ? 'Monto total recaudado en el historial de cuotas'
               : selectedMonth <= 2
@@ -586,7 +586,7 @@ export default function Finance() {
         <div className="glass-card p-8 border-l-4 border-l-red-500 group hover:scale-[1.02]">
           <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-3xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
           <div className="flex items-center justify-between mb-4 relative z-10">
-            <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">Gastos (Historial)</h3>
+            <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">Gastos (Historial)</h3>
             <div className="bg-red-500/10 p-2 rounded-xl border border-red-500/20 group-hover:bg-red-500/20 transition-colors">
               <TrendingDown className="text-red-500" size={24} />
             </div>
@@ -600,8 +600,8 @@ export default function Finance() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         <div className="rounded-2xl p-6" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">Meses de Respaldo</h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{
+            <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">Meses de Respaldo</h3>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{
               background: mesesRespaldo >= 3 ? 'rgba(68,243,169,0.12)' : mesesRespaldo >= 1 ? 'rgba(255,208,139,0.12)' : 'rgba(248,113,113,0.12)',
               color: mesesRespaldo >= 3 ? '#44f3a9' : mesesRespaldo >= 1 ? '#ffd08b' : '#f87171',
             }}>
@@ -609,7 +609,7 @@ export default function Finance() {
             </span>
           </div>
           <p className="text-4xl font-black tracking-tighter text-white">{mesesRespaldo > 0 ? mesesRespaldo.toFixed(1) : '—'}</p>
-          <p className="text-[10px] text-slate-500 mt-2">meses que cubre el saldo actual</p>
+          <p className="text-[11px] text-slate-400 mt-2">meses que cubre el saldo actual</p>
           <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
             <div className="h-full rounded-full transition-all duration-700" style={{
               width: `${Math.min(100, (Math.max(0, mesesRespaldo) / 6) * 100)}%`,
@@ -620,15 +620,15 @@ export default function Finance() {
 
         <div className="rounded-2xl p-6" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-slate-500 font-black tracking-[0.15em] text-[10px] uppercase">Tasa de Morosidad</h3>
+            <h3 className="text-slate-400 font-black tracking-[0.15em] text-[11px] uppercase">Tasa de Morosidad</h3>
             {tasaMora > 15 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
                 ⚠ Alerta
               </span>
             )}
           </div>
           <p className="text-4xl font-black tracking-tighter text-white">{tasaMora}%</p>
-          <p className="text-[10px] text-slate-500 mt-2">jugadores con cuota pendiente este mes</p>
+          <p className="text-[11px] text-slate-400 mt-2">jugadores con cuota pendiente este mes</p>
           <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
             <div className="h-full rounded-full transition-all duration-700" style={{
               width: `${Math.min(100, tasaMora)}%`,
@@ -790,14 +790,14 @@ export default function Finance() {
                               </td>
                               <td className="px-5 py-4 text-center">
                                 {p.isExempt ? (
-                                  <span className="text-slate-600 text-xs italic">—</span>
+                                  <span className="text-slate-400 text-xs italic">—</span>
                                 ) : p.notified_at ? (
                                   <div className="flex flex-col items-center gap-0.5">
                                     <span className="text-emerald-400">✅ Enviado</span>
-                                    <span className="text-[10px] text-slate-500">{new Date(p.notified_at).toLocaleDateString()}</span>
+                                    <span className="text-[11px] text-slate-400">{new Date(p.notified_at).toLocaleDateString()}</span>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-500 italic text-xs">No enviado</span>
+                                  <span className="text-slate-400 italic text-xs">No enviado</span>
                                 )}
                               </td>
                               <td className="px-5 py-4 text-right font-medium">
@@ -812,7 +812,7 @@ export default function Finance() {
                                       onChange={e => setCustomAmounts(prev => ({ ...prev, [p.player_id]: Number(e.target.value) }))}
                                     />
                                     {p.amount > 0 && (
-                                      <span className="text-[10px] text-blue-400 font-semibold">
+                                      <span className="text-[11px] text-blue-400 font-semibold">
                                         Abonado: {clp(p.amount)}
                                       </span>
                                     )}
@@ -821,7 +821,7 @@ export default function Finance() {
                                   <div className="flex flex-col items-end gap-1">
                                     <span>{clp(p.amount)}</span>
                                     {p.status === 'Pagado' && p.payment_method && (
-                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{
+                                      <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{
                                         background: p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.1)' : p.payment_method === 'Flow' ? 'rgba(154,203,255,0.1)' : 'rgba(255,208,139,0.1)',
                                         color: p.payment_method === 'Efectivo' ? '#44f3a9' : p.payment_method === 'Link de Pago' ? '#9acbff' : '#ffd08b',
                                         border: `1px solid ${p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.25)' : p.payment_method === 'Link de Pago' ? 'rgba(154,203,255,0.25)' : 'rgba(255,208,139,0.25)'}`,
@@ -839,7 +839,7 @@ export default function Finance() {
                                     {p.isManualExempt && (
                                       <button
                                         onClick={() => handleUnsetExempt(p)}
-                                        className="text-[10px] font-bold px-2 py-1.5 rounded transition-colors border border-slate-500/30 text-slate-400 hover:bg-slate-500/10"
+                                        className="text-[11px] font-bold px-2 py-1.5 rounded transition-colors border border-slate-500/30 text-slate-400 hover:bg-slate-500/10"
                                         title="Quitar exención"
                                       >
                                         Quitar
@@ -850,7 +850,7 @@ export default function Finance() {
                                         {p.amount > 0 && (
                                           <button
                                             onClick={() => handleCancelPayment(p)}
-                                            className="text-[10px] font-bold px-2 py-1.5 rounded transition-colors border border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                            className="text-[11px] font-bold px-2 py-1.5 rounded transition-colors border border-red-500/30 text-red-500 hover:bg-red-500/10"
                                             title="Anular pago"
                                           >
                                             Anular
@@ -860,7 +860,7 @@ export default function Finance() {
                                           <>
                                             <button
                                               onClick={() => handleSetExempt(p)}
-                                              className="text-[10px] font-bold px-2 py-1.5 rounded-lg transition-all whitespace-nowrap"
+                                              className="text-[11px] font-bold px-2 py-1.5 rounded-lg transition-all whitespace-nowrap"
                                               style={{ background: 'rgba(148,163,184,0.08)', color: 'rgba(148,163,184,0.6)', border: '1px solid rgba(148,163,184,0.15)' }}
                                               title="Marcar como no aplica este mes"
                                             >
@@ -870,7 +870,7 @@ export default function Finance() {
                                               <select
                                                 value={paymentMethods[p.player_id] || 'Transferencia'}
                                                 onChange={e => setPaymentMethods(prev => ({ ...prev, [p.player_id]: e.target.value }))}
-                                                className="text-[10px] font-bold rounded-lg px-1.5 py-1.5 border focus:outline-none"
+                                                className="text-[11px] font-bold rounded-lg px-1.5 py-1.5 border focus:outline-none"
                                                 style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
                                               >
                                                 <option value="Transferencia">🏦 Transferencia</option>
@@ -906,14 +906,14 @@ export default function Finance() {
                   {/* Summary row */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="rounded-2xl p-5" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
-                      <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Morosos</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Morosos</p>
                       <p className="text-3xl font-black text-white">{morosos.length}</p>
-                      <p className="text-xs text-slate-500 mt-1">jugadores con cuotas pendientes</p>
+                      <p className="text-xs text-slate-400 mt-1">jugadores con cuotas pendientes</p>
                     </div>
                     <div className="rounded-2xl p-5" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
-                      <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Deuda Total</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>Deuda Total</p>
                       <p className="text-3xl font-black text-white">{clp(morosos.reduce((acc, p) => acc + p.totalDebt, 0))}</p>
-                      <p className="text-xs text-slate-500 mt-1">monto adeudado al equipo</p>
+                      <p className="text-xs text-slate-400 mt-1">monto adeudado al equipo</p>
                     </div>
                   </div>
 
@@ -960,12 +960,12 @@ export default function Finance() {
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <p className="font-bold text-white text-sm">{p.name}{p.nickname && <span className="text-slate-500 font-normal ml-1 text-xs">"{p.nickname}"</span>}</p>
-                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: `${agingColor}18`, color: agingColor, border: `1px solid ${agingColor}40` }}>{agingLabel}</span>
+                                    <p className="font-bold text-white text-sm">{p.name}{p.nickname && <span className="text-slate-400 font-normal ml-1 text-xs">"{p.nickname}"</span>}</p>
+                                    <span className="text-[11px] font-black px-1.5 py-0.5 rounded-full" style={{ background: `${agingColor}18`, color: agingColor, border: `1px solid ${agingColor}40` }}>{agingLabel}</span>
                                   </div>
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {p.pendingMonths.map((m: any) => (
-                                      <span key={`${m.year}-${m.month}`} className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+                                      <span key={`${m.year}-${m.month}`} className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
                                         {MONTHS[m.month - 1].slice(0, 3)} {m.year}
                                       </span>
                                     ))}
@@ -982,7 +982,7 @@ export default function Finance() {
                                     setCopiedPlayer(p.id);
                                     setTimeout(() => setCopiedPlayer(null), 2500);
                                   }}
-                                  className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all"
+                                  className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all"
                                   style={{ background: copiedPlayer === p.id ? 'rgba(68,243,169,0.15)' : 'rgba(255,255,255,0.05)', color: copiedPlayer === p.id ? '#44f3a9' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedPlayer === p.id ? 'rgba(68,243,169,0.3)' : 'rgba(255,255,255,0.08)'}` }}
                                 >
                                   {copiedPlayer === p.id ? '✅ Copiado' : '📋 WhatsApp'}

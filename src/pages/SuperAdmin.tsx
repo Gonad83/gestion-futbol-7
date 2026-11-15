@@ -62,16 +62,16 @@ function KpiCard({
           <span style={{ color }}>{icon}</span>
         </div>
         {badge && (
-          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+          <span className="text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
             style={{ background: `${color}18`, color }}>
             {badge}
           </span>
         )}
       </div>
       <div>
-        <p className="text-white/35 text-[10px] font-bold uppercase tracking-widest mb-1">{label}</p>
+        <p className="text-white/50 text-[11px] font-bold uppercase tracking-widest mb-1">{label}</p>
         <p className="font-headline font-black text-3xl text-white leading-none">{value}</p>
-        {sub && <p className="text-white/30 text-[11px] mt-1.5">{sub}</p>}
+        {sub && <p className="text-white/50 text-[11px] mt-1.5">{sub}</p>}
       </div>
     </div>
   );
@@ -80,7 +80,7 @@ function KpiCard({
 function PlanBadge({ plan }: { plan: string }) {
   const meta = PLAN_META[plan] || PLAN_META.free;
   return (
-    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
+    <span className="text-[11px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
       style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}30` }}>
       {meta.label}
     </span>
@@ -177,14 +177,14 @@ export default function SuperAdmin() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Crown size={14} className="text-amber-400" />
-            <span className="text-amber-400 text-[10px] font-black uppercase tracking-widest">Propietario · Club Pro</span>
+            <span className="text-amber-400 text-[11px] font-black uppercase tracking-widest">Propietario · Club Pro</span>
           </div>
           <h1 className="font-headline font-black text-3xl text-white">Estadísticas de Plataforma</h1>
           <p className="text-white/25 text-sm mt-0.5">Equipos suscritos · Ingresos · Capitanes</p>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="text-white/20 text-xs">
+            <span className="text-white/50 text-xs">
               {format(lastUpdated, "d MMM · HH:mm", { locale: es })}
             </span>
           )}
@@ -255,7 +255,7 @@ export default function SuperAdmin() {
                   </div>
                   <div>
                     <p className="text-white/60 text-sm font-semibold">Prueba gratis</p>
-                    <p className="text-white/25 text-[10px]">$0 · Sin cobro</p>
+                    <p className="text-white/50 text-[11px]">$0 · Sin cobro</p>
                   </div>
                 </div>
                 <span className="font-headline font-black text-2xl text-white/40">{stats.freeTeams}</span>
@@ -270,7 +270,7 @@ export default function SuperAdmin() {
                   </div>
                   <div>
                     <p className="text-white/80 text-sm font-semibold">Plan Mensual</p>
-                    <p className="text-[10px]" style={{ color: '#9acbff80' }}>
+                    <p className="text-[11px]" style={{ color: '#9acbff80' }}>
                       ${PRICE_MONTHLY.toLocaleString('es-CL')}/mes
                       {stats.monthlyTeams > 0 && ` · $${(stats.monthlyTeams * PRICE_MONTHLY).toLocaleString('es-CL')} MRR`}
                     </p>
@@ -288,7 +288,7 @@ export default function SuperAdmin() {
                   </div>
                   <div>
                     <p className="text-white/80 text-sm font-semibold">Plan Anual</p>
-                    <p className="text-[10px]" style={{ color: '#44f3a980' }}>
+                    <p className="text-[11px]" style={{ color: '#44f3a980' }}>
                       ${PRICE_ANNUAL_MONTH.toLocaleString('es-CL')}/mes · 50% OFF
                       {stats.annualTeams > 0 && ` · $${(stats.annualTeams * PRICE_ANNUAL_YEAR).toLocaleString('es-CL')}/año`}
                     </p>
@@ -315,7 +315,7 @@ export default function SuperAdmin() {
               style={{ background: 'rgba(28,32,38,0.85)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-headline font-bold text-white text-lg">Equipos registrados</h3>
-                <span className="text-white/25 text-xs">{stats.teams.length} equipos</span>
+                <span className="text-white/50 text-xs">{stats.teams.length} equipos</span>
               </div>
 
               {stats.teams.length === 0 ? (
@@ -342,9 +342,9 @@ export default function SuperAdmin() {
                       <div className="flex-1 min-w-0">
                         <p className="text-white font-semibold text-sm truncate">{team.team_name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-white/25 text-[10px] font-mono">{team.join_code}</span>
+                          <span className="text-white/50 text-[11px] font-mono">{team.join_code}</span>
                           {team.player_count !== undefined && (
-                            <span className="text-white/20 text-[10px]">· {team.player_count} jugadores</span>
+                            <span className="text-white/50 text-[11px]">· {team.player_count} jugadores</span>
                           )}
                         </div>
                       </div>
@@ -354,7 +354,7 @@ export default function SuperAdmin() {
 
                       {/* Date */}
                       <div className="text-right flex-shrink-0 hidden sm:block">
-                        <p className="text-white/25 text-[10px]">
+                        <p className="text-white/50 text-[11px]">
                           {team.created_at
                             ? format(new Date(team.created_at), "d MMM yy", { locale: es })
                             : '—'}
@@ -376,7 +376,7 @@ export default function SuperAdmin() {
               </div>
               <div>
                 <h3 className="font-headline font-bold text-white text-lg leading-none">Capitanes</h3>
-                <p className="text-white/25 text-[10px] mt-0.5">Administradores de cada equipo</p>
+                <p className="text-white/50 text-[11px] mt-0.5">Administradores de cada equipo</p>
               </div>
               <span className="ml-auto text-purple-400 font-black text-lg">{stats.captains.length}</span>
             </div>
@@ -394,7 +394,7 @@ export default function SuperAdmin() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white/80 text-sm font-semibold truncate">{c.name}</p>
-                      <p className="text-white/25 text-[10px] truncate">{c.email}</p>
+                      <p className="text-white/50 text-[11px] truncate">{c.email}</p>
                     </div>
                     <PlanBadge plan={c.plan} />
                   </div>
@@ -409,7 +409,7 @@ export default function SuperAdmin() {
             <Crown size={16} className="text-amber-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-amber-300 font-bold text-sm">Gonzalo Araos · Propietario de Club Pro</p>
-              <p className="text-white/20 text-[10px]">{SUPER_ADMIN_EMAIL} · Acceso total a estadísticas de plataforma</p>
+              <p className="text-white/50 text-[11px]">{SUPER_ADMIN_EMAIL} · Acceso total a estadísticas de plataforma</p>
             </div>
             <div className="flex items-center gap-5 flex-shrink-0">
               {[
@@ -419,7 +419,7 @@ export default function SuperAdmin() {
               ].map(({ label, value, color }) => (
                 <div key={label} className="text-center">
                   <p className="font-headline font-black text-base" style={{ color }}>{value}</p>
-                  <p className="text-white/20 text-[9px] uppercase tracking-wide">{label}</p>
+                  <p className="text-white/50 text-[11px] uppercase tracking-wide">{label}</p>
                 </div>
               ))}
             </div>

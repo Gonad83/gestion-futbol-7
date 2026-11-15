@@ -172,10 +172,10 @@ export default function Vote() {
     <div className="fade-in pb-20 md:pb-0 space-y-6 max-w-lg mx-auto">
       {/* Header */}
       <div>
-        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs font-semibold mb-4 transition-colors">
+        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-white/50 hover:text-white/60 text-xs font-semibold mb-4 transition-colors">
           <ArrowLeft size={13} /> Volver al dashboard
         </Link>
-        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Votación</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Votación</p>
         <h1 className="font-headline text-3xl font-black text-white tracking-tight">Mejor Jugador</h1>
       </div>
 
@@ -189,11 +189,11 @@ export default function Vote() {
           style={{ background: '#0a0e14', border: '1px solid rgba(68,243,169,0.15)', minWidth: 72 }}
         >
           <p className="font-headline text-xl font-black text-white">{format(new Date(match.date), 'HH:mm')}</p>
-          <p className="text-[9px] text-white/40 uppercase tracking-wider font-bold">{format(new Date(match.date), 'dd MMM', { locale: es })}</p>
+          <p className="text-[11px] text-white/50 uppercase tracking-wider font-bold">{format(new Date(match.date), 'dd MMM', { locale: es })}</p>
         </div>
         <div>
           <p className="text-white font-bold">{match.location}</p>
-          <p className="text-[10px] text-white/30 mt-0.5">{match.match_type || '7vs7'} · {players.length + 1} confirmados</p>
+          <p className="text-[11px] text-white/50 mt-0.5">{match.match_type || '7vs7'} · {players.length + 1} confirmados</p>
         </div>
       </div>
 
@@ -222,7 +222,7 @@ export default function Vote() {
           <h3 className="font-headline text-base font-bold text-white">
             ¿Quién fue el mejor jugador del partido?
           </h3>
-          <p className="text-white/30 text-xs">Selecciona un compañero. Solo puedes votar una vez.</p>
+          <p className="text-white/50 text-xs">Selecciona un compañero. Solo puedes votar una vez.</p>
 
           {players.length === 0 ? (
             <div className="text-center py-6 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
@@ -254,7 +254,7 @@ export default function Vote() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-white text-sm truncate">{player.name}</p>
-                      {player.nickname && <p className="text-[10px] text-white/30">"{player.nickname}"</p>}
+                      {player.nickname && <p className="text-[11px] text-white/50">"{player.nickname}"</p>}
                     </div>
                     <div
                       className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center transition-all"

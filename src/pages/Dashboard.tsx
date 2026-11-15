@@ -623,13 +623,13 @@ export default function Dashboard() {
         )}
         {/* title + join code */}
         <div className="absolute inset-0 flex flex-col justify-center pl-7">
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/80 mb-1">Panel de Control</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/80 mb-1">Panel de Control</p>
           <h1 className="text-3xl md:text-4xl font-headline font-black text-white italic tracking-tight uppercase drop-shadow-lg">
             {teamSettings.team_name.split(' ')[0]} <span className="text-soccer-green">{teamSettings.team_name.split(' ').slice(1).join(' ')}</span>
           </h1>
           {isAdmin && teamSettings.join_code && (
             <div className="mt-3 flex items-center gap-2 animate-in fade-in duration-700">
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40">Código de Invitación</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Código de Invitación</span>
               <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
                 <span className="font-headline font-black text-sm tracking-[0.2em] text-soccer-green uppercase select-all">
                   {teamSettings.join_code}
@@ -667,9 +667,9 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-bold text-white leading-tight">{myPlayer.name}</p>
-                  <p className="text-xs text-white/40">{myPlayer.position || 'Jugador'}</p>
+                  <p className="text-xs text-white/50">{myPlayer.position || 'Jugador'}</p>
                   {myPlayer.match_role && (
-                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md mt-0.5 inline-block" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
+                    <span className="text-[11px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md mt-0.5 inline-block" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
                       {myPlayer.match_role}
                     </span>
                   )}
@@ -681,8 +681,8 @@ export default function Dashboard() {
               {/* Participaciones */}
               <div className="text-center">
                 <p className="font-headline font-black text-2xl text-white" style={{ letterSpacing: '-0.02em' }}>{attendancePct}%</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">Asistencia</p>
-                <p className="text-[10px] font-bold mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-white/50">Asistencia</p>
+                <p className="text-[11px] font-bold mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   {myParticipationCount}/{stats.totalMatchesPlayed}
                 </p>
               </div>
@@ -692,7 +692,7 @@ export default function Dashboard() {
               {/* Próximo partido — confirmación rápida */}
               {stats.nextMatch && (
                 <div className="flex flex-col gap-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/50">
                     {stats.nextMatch.event_type === 'Recreacional' ? 'Próximo evento' : 'Próximo partido'}
                   </p>
                   <div className="flex gap-2">
@@ -727,15 +727,15 @@ export default function Dashboard() {
                 {myPendingPayments.length === 0 ? (
                   <>
                     <p className="font-headline font-black text-lg" style={{ color: '#44f3a9' }}>Al día ✓</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">Cuotas</p>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-white/50">Cuotas</p>
                   </>
                 ) : (
                   <>
                     <p className="font-headline font-black text-lg" style={{ color: '#f87171' }}>
                       {myPendingPayments.length} mes{myPendingPayments.length > 1 ? 'es' : ''}
                     </p>
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#f87171' }}>Pendiente</p>
-                    <p className="text-[10px] text-white/30 mt-0.5 capitalize">
+                    <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#f87171' }}>Pendiente</p>
+                    <p className="text-[11px] text-white/50 mt-0.5 capitalize">
                       {myPendingPayments.slice(0, 3).map((p: any) => format(new Date(p.year, p.month - 1), 'MMM', { locale: es })).join(', ')}
                       {myPendingPayments.length > 3 ? '…' : ''}
                     </p>
@@ -835,8 +835,8 @@ export default function Dashboard() {
               <p className="font-headline text-3xl font-black text-white tracking-tight mb-1" style={{ letterSpacing: '-0.02em' }}>
                 {kpi.value}
               </p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/30 mb-0.5">{kpi.label}</p>
-              <p className="text-xs text-white/40">{kpi.sub}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/50 mb-0.5">{kpi.label}</p>
+              <p className="text-xs text-white/50">{kpi.sub}</p>
             </div>
           </Link>
         ))}
@@ -874,15 +874,15 @@ export default function Dashboard() {
                 className="flex flex-col items-center justify-center min-w-[130px] p-5 rounded-2xl"
                 style={{ background: '#0a0e14', border: '1px solid rgba(68,243,169,0.15)' }}
               >
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: '#44f3a9' }}>{getMatchTimeLabel(stats.nextMatch.date)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: '#44f3a9' }}>{getMatchTimeLabel(stats.nextMatch.date)}</p>
                 <p className="font-headline text-4xl font-black text-white tracking-tight" style={{ letterSpacing: '-0.02em' }}>{format(new Date(stats.nextMatch.date), 'HH:mm')}</p>
-                <p className="text-[10px] text-white/30 font-bold uppercase tracking-wider mt-1">{format(new Date(stats.nextMatch.date), 'dd MMM yyyy', { locale: es })}</p>
+                <p className="text-[11px] text-white/50 font-bold uppercase tracking-wider mt-1">{format(new Date(stats.nextMatch.date), 'dd MMM yyyy', { locale: es })}</p>
               </div>
 
               <div className="flex-1 flex flex-col justify-center space-y-4 w-full text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-3">
                   <span
-                    className="text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest text-center"
+                    className="text-[11px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest text-center"
                     style={stats.nextMatch.event_type === 'Recreacional'
                       ? { background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.2)' }
                       : { background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }
@@ -895,11 +895,11 @@ export default function Dashboard() {
 
                 <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.04)' }}>
                   <div className="flex justify-between items-center mb-2.5">
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Asistencia</span>
+                    <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Asistencia</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-black" style={{ color: '#44f3a9' }}>{stats.confirmedCount} Voy</span>
-                      <span className="text-[10px] font-black" style={{ color: '#f87171' }}>{stats.declinedCount} No Voy</span>
-                      <span className="text-[10px] font-black" style={{ color: '#fbbf24' }}>{stats.pendingCount} Pendiente</span>
+                      <span className="text-[11px] font-black" style={{ color: '#44f3a9' }}>{stats.confirmedCount} Voy</span>
+                      <span className="text-[11px] font-black" style={{ color: '#f87171' }}>{stats.declinedCount} No Voy</span>
+                      <span className="text-[11px] font-black" style={{ color: '#fbbf24' }}>{stats.pendingCount} Pendiente</span>
                     </div>
                   </div>
                   <div className="h-2 rounded-full bg-slate-800 overflow-hidden flex">
@@ -919,15 +919,15 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3 mt-2">
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full bg-soccer-green" />
-                      <span className="text-[9px] text-white/30">Confirmados</span>
+                      <span className="text-[11px] text-white/50">Confirmados</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full bg-red-400/50" />
-                      <span className="text-[9px] text-white/30">Bajas</span>
+                      <span className="text-[11px] text-white/50">Bajas</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full bg-amber-400/30" />
-                      <span className="text-[9px] text-white/30">Sin respuesta</span>
+                      <span className="text-[11px] text-white/50">Sin respuesta</span>
                     </div>
                   </div>
                 </div>
@@ -956,18 +956,18 @@ export default function Dashboard() {
 
                 {(confirmedPlayers.length > 0 || guestsDash.length > 0 || isMatchmaker) && (
                   <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    <p className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
                       Confirmados ({confirmedPlayers.length + guestsDash.length})
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {confirmedPlayers.map((p, i) => (
                         <div key={p.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
                           style={{ background: 'rgba(68,243,169,0.08)', border: '1px solid rgba(68,243,169,0.2)' }}>
-                          <span className="text-[9px] font-black w-4 text-center flex-shrink-0" style={{ color: '#44f3a9' }}>{i + 1}</span>
+                          <span className="text-[11px] font-black w-4 text-center flex-shrink-0" style={{ color: '#44f3a9' }}>{i + 1}</span>
                           <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: '#31353c' }}>
                             {p.photo_url
                               ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" />
-                              : <span className="text-[8px] font-black text-white/50">{p.name.charAt(0)}</span>}
+                              : <span className="text-[10px] font-black text-white/50">{p.name.charAt(0)}</span>}
                           </div>
                           <span className="text-[11px] font-semibold text-white">{p.name.split(' ')[0]}</span>
                         </div>
@@ -975,8 +975,8 @@ export default function Dashboard() {
                       {guestsDash.map((g, i) => (
                         <div key={g.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
                           style={{ background: 'rgba(154,203,255,0.08)', border: '1px solid rgba(154,203,255,0.2)' }}>
-                          <span className="text-[9px] font-black w-4 text-center flex-shrink-0" style={{ color: '#9acbff' }}>{confirmedPlayers.length + i + 1}</span>
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black flex-shrink-0"
+                          <span className="text-[11px] font-black w-4 text-center flex-shrink-0" style={{ color: '#9acbff' }}>{confirmedPlayers.length + i + 1}</span>
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
                             style={{ background: 'rgba(154,203,255,0.15)', color: '#9acbff' }}>
                             {g.name.charAt(0).toUpperCase()}
                           </div>
@@ -1040,7 +1040,7 @@ export default function Dashboard() {
               <h2 className="font-headline font-bold text-white">Mejor Jugador</h2>
             </div>
             {stats.votingIsOpen && (
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse" style={{ background: 'rgba(68,243,169,0.15)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.3)' }}>
+              <span className="text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse" style={{ background: 'rgba(68,243,169,0.15)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.3)' }}>
                 ● Votación Abierta
               </span>
             )}
@@ -1050,7 +1050,7 @@ export default function Dashboard() {
             <div className="flex-1 flex flex-col gap-3">
               {/* Match date identifier */}
               {stats.openVoteMatchDate && (
-                <p className="text-[9px] text-white/25 text-center uppercase tracking-widest">
+                <p className="text-[11px] text-white/50 text-center uppercase tracking-widest">
                   Partido · {format(new Date(stats.openVoteMatchDate), "d 'de' MMMM yyyy", { locale: es })}
                 </p>
               )}
@@ -1065,13 +1065,13 @@ export default function Dashboard() {
                       }
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#ffd700' }}>🏆 Líder actual</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: '#ffd700' }}>🏆 Líder actual</p>
                       <p className="font-headline font-black text-white text-lg leading-tight truncate">{stats.topMvp[0].name}</p>
-                      {stats.topMvp[0].nickname && <p className="text-[10px] text-white/30">"{stats.topMvp[0].nickname}"</p>}
+                      {stats.topMvp[0].nickname && <p className="text-[11px] text-white/50">"{stats.topMvp[0].nickname}"</p>}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="font-headline font-black text-2xl leading-none" style={{ color: '#ffd700' }}>{stats.topMvp[0].count}</p>
-                      <p className="text-[9px] text-white/30 uppercase">votos</p>
+                      <p className="text-[11px] text-white/50 uppercase">votos</p>
                     </div>
                   </div>
                   {/* 2nd and 3rd — smaller cards */}
@@ -1083,7 +1083,7 @@ export default function Dashboard() {
                             {p.photo_url ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" /> : p.name.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[8px] font-black uppercase tracking-wider leading-none mb-0.5" style={{ color: i === 0 ? '#c0c0c0' : '#cd7f32' }}>{i === 0 ? '2°' : '3°'}</p>
+                            <p className="text-[10px] font-black uppercase tracking-wider leading-none mb-0.5" style={{ color: i === 0 ? '#c0c0c0' : '#cd7f32' }}>{i === 0 ? '2°' : '3°'}</p>
                             <p className="text-xs font-bold text-white truncate">{p.name}</p>
                           </div>
                           <p className="font-headline font-black text-sm flex-shrink-0" style={{ color: i === 0 ? '#c0c0c0' : '#cd7f32' }}>{p.count}</p>
@@ -1151,13 +1151,13 @@ export default function Dashboard() {
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-sm" style={{ background: '#ffd700' }}>🏆</div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: '#ffd700' }}>Jugador de la semana</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest mb-0.5" style={{ color: '#ffd700' }}>Jugador de la semana</p>
                         <p className="font-headline font-black text-white text-xl leading-tight truncate">{stats.lastMvpWinner.player_name}</p>
                         <div className="flex items-center gap-1.5 mt-1">
                           <Star size={10} fill="#ffd700" style={{ color: '#ffd700' }} />
-                          <span className="text-[10px] font-bold" style={{ color: '#ffd700' }}>{stats.lastMvpWinner.vote_count} votos</span>
+                          <span className="text-[11px] font-bold" style={{ color: '#ffd700' }}>{stats.lastMvpWinner.vote_count} votos</span>
                           {stats.lastMvpWinner.week_date && (
-                            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
                               · {format(new Date(stats.lastMvpWinner.week_date), "d MMM", { locale: es })}
                             </span>
                           )}
@@ -1169,16 +1169,16 @@ export default function Dashboard() {
                   {/* Historial por partido */}
                   {stats.mvpHistory.length > 0 && (
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Historial por partido</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>Historial por partido</p>
                       <div className="space-y-1.5 overflow-y-auto max-h-[200px] custom-scrollbar pr-1">
                         {stats.mvpHistory.map((w: any, i: number) => (
                           <div key={w.created_at || i} className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: i === 0 ? 'rgba(255,215,0,0.06)' : 'rgba(0,0,0,0.15)', border: i === 0 ? '1px solid rgba(255,215,0,0.12)' : '1px solid rgba(255,255,255,0.04)' }}>
-                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.3)', border: i === 0 ? '1.5px solid rgba(255,215,0,0.4)' : 'none' }}>
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.5)', border: i === 0 ? '1.5px solid rgba(255,215,0,0.4)' : 'none' }}>
                               {w.player_photo_url ? <img src={w.player_photo_url} alt={w.player_name} className="w-full h-full object-cover" /> : w.player_name?.charAt(0)}
                             </div>
                             <p className="flex-1 text-sm text-white font-semibold truncate">{w.player_name}</p>
                             {w.week_date && (
-                              <span className="text-[9px] flex-shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                              <span className="text-[11px] flex-shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>
                                 {format(new Date(w.week_date + 'T12:00:00'), "d MMM yy", { locale: es })}
                               </span>
                             )}
@@ -1195,14 +1195,14 @@ export default function Dashboard() {
                   {/* Ranking total de MVPs */}
                   {stats.mvpWinHistory.length > 1 && (
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Más veces MVP</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>Más veces MVP</p>
                       <div className="space-y-1.5">
                         {stats.mvpWinHistory.map((p, i) => (
                           <div key={p.id} className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: i === 0 ? 'rgba(255,215,0,0.06)' : 'rgba(0,0,0,0.15)', border: i === 0 ? '1px solid rgba(255,215,0,0.12)' : '1px solid transparent' }}>
                             <span className="text-sm font-black w-5 text-center" style={{ color: RANK_COLORS[i] ?? 'rgba(255,255,255,0.2)' }}>
                               {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
                             </span>
-                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.3)', border: i === 0 ? '1.5px solid rgba(255,215,0,0.4)' : 'none' }}>
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ background: '#31353c', color: 'rgba(255,255,255,0.5)', border: i === 0 ? '1.5px solid rgba(255,215,0,0.4)' : 'none' }}>
                               {p.photo_url ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" /> : p.name.charAt(0)}
                             </div>
                             <p className="flex-1 text-sm text-white font-semibold truncate">{p.name}</p>
@@ -1220,7 +1220,7 @@ export default function Dashboard() {
                 <div className="flex-1 flex flex-col items-center justify-center py-8 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
                   <Trophy size={32} className="mb-3" style={{ color: 'rgba(255,215,0,0.2)' }} />
                   <p className="text-white/30 text-sm text-center">Sin MVPs registrados aún.</p>
-                  <p className="text-white/20 text-xs text-center mt-1">La votación cierra cada domingo a las 23:59.</p>
+                  <p className="text-white/50 text-xs text-center mt-1">La votación cierra cada domingo a las 23:59.</p>
                 </div>
               )}
             </div>
@@ -1240,7 +1240,7 @@ export default function Dashboard() {
               <h2 className="font-headline font-bold text-white">Cuotas Atrasadas</h2>
             </div>
             <span
-              className="text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider"
+              className="text-[11px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider"
               style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
             >
               {stats.morosos.length} jugadores
@@ -1268,7 +1268,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="font-semibold text-white text-sm leading-tight">{player.name}</p>
-                      <p className="text-[10px] text-red-400/80 capitalize mt-0.5">
+                      <p className="text-[11px] text-red-400/80 capitalize mt-0.5">
                         {player.pendingPayments.map((p: any) => format(new Date(p.year, p.month - 1), 'MMM yyyy', { locale: es })).join(', ')}
                       </p>
                     </div>
@@ -1276,7 +1276,7 @@ export default function Dashboard() {
                   {isAdmin && (
                     <Link
                       to="/finance"
-                      className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors"
                       style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
                     >
                       Cobrar
@@ -1305,15 +1305,15 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div className="rounded-2xl p-6 text-center" style={{ background: '#0a0e14', border: '1px solid rgba(255,255,255,0.04)' }}>
               <p className="font-headline text-5xl font-black text-white mb-2" style={{ letterSpacing: '-0.02em' }}>{stats.activePlayers}</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: '#44f3a9' }}>Activos</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: '#44f3a9' }}>Activos</p>
             </div>
             <div className="rounded-2xl p-6 text-center" style={{ background: '#0a0e14', border: '1px solid rgba(255,255,255,0.04)' }}>
               <p className="font-headline text-5xl font-black text-white mb-2" style={{ letterSpacing: '-0.02em' }}>{stats.totalPlayers}</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">Registrados</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/50">Registrados</p>
             </div>
           </div>
 
-          <p className="text-xs text-white/30 text-center pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <p className="text-xs text-white/50 text-center pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             Inactivos y lesionados no aparecen en cobros ni matchmaking.
           </p>
         </div>
@@ -1327,7 +1327,7 @@ export default function Dashboard() {
               <Trophy size={16} />
             </div>
             <h2 className="font-headline font-bold text-white">Participaciones</h2>
-            <span className="ml-auto text-[10px] font-bold text-white/20">{stats.topParticipations.length} jugadores</span>
+            <span className="ml-auto text-[11px] font-bold text-white/50">{stats.topParticipations.length} jugadores</span>
           </div>
 
           {stats.topParticipations.length === 0 ? (
@@ -1357,7 +1357,7 @@ export default function Dashboard() {
                         style={{ background: '#31353c', border: `1.5px solid ${i < 3 ? rankColor + '50' : 'rgba(255,255,255,0.08)'}` }}>
                         {player.photo_url
                           ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                          : <span className="text-[10px] font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{player.name.charAt(0)}</span>}
+                          : <span className="text-[11px] font-black" style={{ color: 'rgba(255,255,255,0.5)' }}>{player.name.charAt(0)}</span>}
                       </div>
                       {/* Name + bar */}
                       <div className="flex-1 min-w-0">
@@ -1397,14 +1397,14 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="font-headline font-black text-white text-lg">Asistencia Manual</h2>
-                <p className="text-xs text-white/40 mt-0.5">{format(new Date(stats.nextMatch.date), 'dd MMM yyyy — HH:mm', { locale: es })}</p>
+                <p className="text-xs text-white/50 mt-0.5">{format(new Date(stats.nextMatch.date), 'dd MMM yyyy — HH:mm', { locale: es })}</p>
               </div>
               <button onClick={() => setShowAttendanceModal(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors">
                 <X size={16} />
               </button>
             </div>
 
-            <div className="flex gap-2 mb-4 text-[10px] font-bold uppercase tracking-widest">
+            <div className="flex gap-2 mb-4 text-[11px] font-bold uppercase tracking-widest">
               <span className="flex items-center gap-1 text-soccer-green"><CheckCircle2 size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Voy').length} Voy</span>
               <span className="flex items-center gap-1 text-red-400 ml-3"><XCircle size={11} />{attendanceList.filter(p => p.attendanceStatus === 'No voy').length} No Voy</span>
               <span className="flex items-center gap-1 text-amber-400 ml-3"><Clock size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Pendiente').length} Pendiente</span>
@@ -1426,19 +1426,19 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-white leading-tight">{player.name}</p>
-                          {player.nickname && <p className="text-[10px] text-white/30">"{player.nickname}"</p>}
+                          {player.nickname && <p className="text-[11px] text-white/50">"{player.nickname}"</p>}
                         </div>
                       </div>
                       <div className="flex gap-1.5">
                         <button onClick={() => handleAttendanceChange(player.id, 'Voy')}
-                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${player.attendanceStatus === 'Voy' ? 'bg-soccer-green text-black' : 'bg-soccer-green/10 text-soccer-green/50 hover:bg-soccer-green/20'}`}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${player.attendanceStatus === 'Voy' ? 'bg-soccer-green text-black' : 'bg-soccer-green/10 text-soccer-green/50 hover:bg-soccer-green/20'}`}
                         >Voy</button>
                         <button onClick={() => handleAttendanceChange(player.id, 'No voy')}
-                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${player.attendanceStatus === 'No voy' ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-400/50 hover:bg-red-500/20'}`}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${player.attendanceStatus === 'No voy' ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-400/50 hover:bg-red-500/20'}`}
                         >No voy</button>
                         {player.attendanceStatus !== 'Pendiente' && (
                           <button onClick={() => handleAttendanceChange(player.id, 'Pendiente')}
-                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-black bg-white/5 text-white/30 hover:bg-white/10 transition-all"
+                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-black bg-white/5 text-white/50 hover:bg-white/10 transition-all"
                             title="Quitar respuesta"
                           ><X size={10} /></button>
                         )}
@@ -1451,7 +1451,7 @@ export default function Dashboard() {
                     <div className="mt-4">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
-                        <span className="text-[9px] font-black uppercase tracking-widest px-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Invitados</span>
+                        <span className="text-[11px] font-black uppercase tracking-widest px-2" style={{ color: 'rgba(255,255,255,0.5)' }}>Invitados</span>
                         <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
                       </div>
 
@@ -1464,7 +1464,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-white leading-tight">{g.name}</p>
-                              <p className="text-[9px]" style={{ color: 'rgba(154,203,255,0.6)' }}>Invitado · Confirmado</p>
+                              <p className="text-[11px]" style={{ color: 'rgba(154,203,255,0.6)' }}>Invitado · Confirmado</p>
                             </div>
                           </div>
                           <button onClick={() => removeGuest(g.id)}

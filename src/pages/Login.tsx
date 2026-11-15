@@ -293,12 +293,12 @@ export default function Login() {
         {tab === 'captain' && !forgotMode && (
           <form onSubmit={handleCaptainLogin} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 className="input-field" placeholder="capitan@club.com" required />
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Contraseña</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Contraseña</label>
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} value={password}
                   onChange={e => setPassword(e.target.value)} className="input-field pr-11"
@@ -309,7 +309,7 @@ export default function Login() {
                 </button>
               </div>
               <button type="button" onClick={() => { setForgotMode(true); setError(''); setSuccess(''); }}
-                className="mt-1.5 text-xs text-white/30 hover:text-soccer-green transition-colors">
+                className="mt-1.5 text-xs text-white/50 hover:text-soccer-green transition-colors">
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
@@ -323,7 +323,7 @@ export default function Login() {
               {loading ? 'Entrando...' : 'Entrar como Capitán'}
             </button>
             <div className="pt-3 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <p className="text-xs text-white/30 mb-2">¿No tienes equipo aún?</p>
+              <p className="text-xs text-white/50 mb-2">¿No tienes equipo aún?</p>
               <Link to="/landing"
                 className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl text-xs font-bold transition-all"
                 style={{ background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.15)' }}>
@@ -336,7 +336,7 @@ export default function Login() {
         {tab === 'captain' && forgotMode && (
           <form onSubmit={handleForgotPassword} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Tu email</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Tu email</label>
               <input type="email" required value={resetEmail} onChange={e => setResetEmail(e.target.value)}
                 className="input-field" placeholder="capitan@club.com" autoFocus />
             </div>
@@ -344,7 +344,7 @@ export default function Login() {
               {loading ? 'Enviando...' : 'Enviar link de recuperación'}
             </button>
             <button type="button" onClick={() => { setForgotMode(false); setError(''); }}
-              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white transition-colors mx-auto">
+              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors mx-auto">
               <ArrowLeft size={13} /> Volver al login
             </button>
           </form>
@@ -367,7 +367,7 @@ export default function Login() {
               </div>
               <div className="text-left flex-1 min-w-0">
                 <p className="font-bold text-white text-sm">Ya tengo cuenta</p>
-                <p className="text-[11px] text-white/35 mt-0.5">Entra con tu email y contraseña</p>
+                <p className="text-[11px] text-white/50 mt-0.5">Entra con tu email y contraseña</p>
               </div>
               <ArrowRight size={15} className="text-soccer-green/50 group-hover:text-soccer-green transition-colors flex-shrink-0" />
             </button>
@@ -384,7 +384,7 @@ export default function Login() {
               </div>
               <div className="text-left flex-1 min-w-0">
                 <p className="font-bold text-white text-sm">Soy nuevo</p>
-                <p className="text-[11px] text-white/35 mt-0.5">Tengo el código de mi capitán</p>
+                <p className="text-[11px] text-white/50 mt-0.5">Tengo el código de mi capitán</p>
               </div>
               <ArrowRight size={15} className="text-[#9acbff]/50 group-hover:text-[#9acbff] transition-colors flex-shrink-0" />
             </button>
@@ -395,7 +395,7 @@ export default function Login() {
         {tab === 'player' && playerMode === 'returning' && (
           <form onSubmit={handleReturningLogin} className="space-y-4">
             <button type="button" onClick={resetPlayerMode}
-              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors mb-2">
+              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/60 transition-colors mb-2">
               <ArrowLeft size={13} /> Volver
             </button>
 
@@ -406,12 +406,12 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Email</label>
               <input type="email" value={returningEmail} onChange={e => setReturningEmail(e.target.value)}
                 className="input-field" placeholder="tu@email.com" required />
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Contraseña</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Contraseña</label>
               <div className="relative">
                 <input type={showReturningPassword ? 'text' : 'password'} value={returningPassword}
                   onChange={e => setReturningPassword(e.target.value)} className="input-field pr-11"
@@ -434,7 +434,7 @@ export default function Login() {
               </button>
             ) : (
               <form onSubmit={handlePlayerForgotPassword} className="mt-3 space-y-2">
-                <p className="text-[10px] text-white/40 text-center">Ingresa tu email y te enviamos un link para recuperarla</p>
+                <p className="text-[11px] text-white/50 text-center">Ingresa tu email y te enviamos un link para recuperarla</p>
                 <input type="email" required value={returningEmail}
                   onChange={e => setReturningEmail(e.target.value)}
                   className="input-field" placeholder="tu@email.com" />
@@ -443,7 +443,7 @@ export default function Login() {
                   {loading ? 'Enviando...' : 'Enviar link de recuperación'}
                 </button>
                 <button type="button" onClick={() => setPlayerForgotMode(false)}
-                  className="w-full text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  className="w-full text-center text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   Cancelar
                 </button>
               </form>
@@ -455,7 +455,7 @@ export default function Login() {
         {tab === 'player' && playerMode === 'new' && joinStep === 1 && (
           <form onSubmit={handleVerifyCode} className="space-y-4">
             <button type="button" onClick={resetPlayerMode}
-              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors mb-2">
+              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/60 transition-colors mb-2">
               <ArrowLeft size={13} /> Volver
             </button>
 
@@ -463,7 +463,7 @@ export default function Login() {
               <p className="text-white/40 text-sm">Ingresa el código que te dio tu capitán</p>
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Código del equipo</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Código del equipo</label>
               <input
                 type="text"
                 value={joinCode}
@@ -474,7 +474,7 @@ export default function Login() {
                 maxLength={6}
                 required
               />
-              <p className="text-[10px] mt-2 text-center text-white/25">6 caracteres · ejemplo: EB0L0F</p>
+              <p className="text-[11px] mt-2 text-center text-white/50">6 caracteres · ejemplo: EB0L0F</p>
             </div>
             <button type="submit" disabled={loading} className="btn-primary w-full py-3">
               {loading ? 'Verificando...' : 'Verificar código'}
@@ -489,7 +489,7 @@ export default function Login() {
               style={{ background: 'rgba(68,243,169,0.06)', border: '1px solid rgba(68,243,169,0.2)' }}>
               <span className="text-lg">⚽</span>
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-widest text-soccer-green/70">Equipo verificado</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-soccer-green/70">Equipo verificado</p>
                 <p className="font-bold text-white text-sm truncate">{joinTeam?.name}</p>
               </div>
               <button type="button" onClick={() => { setJoinStep(1); setJoinTeam(null); setError(''); }}
@@ -500,26 +500,26 @@ export default function Login() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre completo</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Nombre completo</label>
                 <input type="text" required value={playerName}
                   onChange={e => setPlayerName(e.target.value)}
                   className="input-field" placeholder="Tu nombre" />
               </div>
               <div className="col-span-2">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Email</label>
                 <input type="email" required value={playerEmail}
                   onChange={e => setPlayerEmail(e.target.value)}
                   className="input-field" placeholder="tu@email.com" />
               </div>
               <div className="col-span-2">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Posición</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Posición</label>
                 <select value={playerPosition} onChange={e => setPlayerPosition(e.target.value)}
                   className="input-field" style={{ background: 'rgba(49,53,60,0.8)' }}>
                   {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Contraseña</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Contraseña</label>
                 <div className="relative">
                   <input type={showPlayerPassword ? 'text' : 'password'} required
                     value={playerPassword} onChange={e => setPlayerPassword(e.target.value)}
@@ -531,7 +531,7 @@ export default function Login() {
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Confirmar</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Confirmar</label>
                 <input type={showPlayerPassword ? 'text' : 'password'} required
                   value={playerConfirm} onChange={e => setPlayerConfirm(e.target.value)}
                   className="input-field" placeholder="••••••••" />

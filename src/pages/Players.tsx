@@ -113,7 +113,7 @@ export default function Players() {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Equipo</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Equipo</p>
           <h1 className="font-headline text-3xl font-black text-white tracking-tight">Plantilla</h1>
           <p className="text-white/35 text-sm mt-1">Perfiles del equipo, posiciones y asistencia del año.</p>
         </div>
@@ -144,7 +144,7 @@ export default function Players() {
               >
                 {f}
                 <span
-                  className="text-[10px] font-black px-1.5 py-0.5 rounded-lg"
+                  className="text-[11px] font-black px-1.5 py-0.5 rounded-lg"
                   style={active
                     ? { background: 'rgba(68,243,169,0.2)', color: '#44f3a9' }
                     : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }
@@ -217,13 +217,13 @@ export default function Players() {
                 >
                   <div className="absolute left-4 top-4 z-10">
                     <span
-                      className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
+                      className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em]"
                       style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}
                     >
                       {player.status}
                     </span>
                   </div>
-                  <div className="absolute right-4 top-4 z-10 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
+                  <div className="absolute right-4 top-4 z-10 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em]"
                     style={{ background: 'rgba(10,14,20,0.9)', color: '#44f3a9' }}>
                     {getPositionGroup(player.position)}
                   </div>
@@ -245,34 +245,34 @@ export default function Players() {
                     <h3 className="font-headline text-2xl font-black uppercase leading-none text-white" title={player.name}>
                       {player.name}
                     </h3>
-                    {player.nickname && <p className="mt-1 text-xs font-semibold text-white/35 truncate">"{player.nickname}"</p>}
+                    {player.nickname && <p className="mt-1 text-xs font-semibold text-white/50 truncate">"{player.nickname}"</p>}
                     <p className="mt-3 text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: '#44f3a9' }}>
                       {player.position}
                     </p>
-                    {player.secondary_position && <p className="mt-1 text-[10px] text-white/30">{player.secondary_position}</p>}
+                    {player.secondary_position && <p className="mt-1 text-[11px] text-white/50">{player.secondary_position}</p>}
                   </div>
 
                   <div className="mt-5 grid grid-cols-2 gap-3">
                     <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <p className="text-[9px] text-white/25 uppercase tracking-wider mb-2 font-bold">Calidad <span style={{ color: '#ffd08b' }}>{player.rating}/7</span></p>
+                      <p className="text-[11px] text-white/50 uppercase tracking-wider mb-2 font-bold">Calidad <span style={{ color: '#ffd08b' }}>{player.rating}/7</span></p>
                       <SubStatStars player={player} size={9} compact />
                     </div>
                     <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1 font-bold">Asistencia</p>
+                      <p className="text-[11px] text-white/50 uppercase tracking-wider mb-1 font-bold">Asistencia</p>
                       <div className="flex items-end gap-1">
                         <span className="font-headline text-2xl font-black leading-none"
                           style={{ color: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }}>
                           {player.participationPct}
                         </span>
-                        <span className="pb-0.5 text-[10px] font-bold text-white/25">%</span>
+                        <span className="pb-0.5 text-[11px] font-bold text-white/50">%</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-3">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Partidos</span>
-                      <span className="text-[10px] font-bold text-white/35">{player.matchesPlayed}/{totalMatchesYear}</span>
+                      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">Partidos</span>
+                      <span className="text-[11px] font-bold text-white/50">{player.matchesPlayed}/{totalMatchesYear}</span>
                     </div>
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
                       <div className="h-full rounded-full transition-all duration-700"
@@ -282,7 +282,7 @@ export default function Players() {
 
                   {isAdmin && player.participationPct < 25 && totalMatchesYear >= 4 && (
                     <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(20,12,4,0.85)', border: '1px solid rgba(251,146,60,0.35)' }}>
-                      <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: '#fb923c' }}>⚠ Riesgo deserción</span>
+                      <span className="text-[11px] font-black uppercase tracking-wider" style={{ color: '#fb923c' }}>⚠ Riesgo deserción</span>
                     </div>
                   )}
 
@@ -305,7 +305,7 @@ export default function Players() {
         <div className="rounded-2xl overflow-hidden" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[9px] font-black uppercase tracking-[0.2em] text-white/25" style={{ background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <tr className="text-[11px] font-black uppercase tracking-[0.2em] text-white/50" style={{ background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <th className="px-5 py-4 text-left">Jugador</th>
                 <th className="px-4 py-4 text-left hidden md:table-cell">Posición</th>
                 <th className="px-4 py-4 text-center hidden sm:table-cell">Calidad</th>
@@ -338,7 +338,7 @@ export default function Players() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-white text-sm truncate max-w-[150px]">{player.name}</p>
-                          {player.nickname && <p className="text-[10px] text-white/30 truncate">"{player.nickname}"</p>}
+                          {player.nickname && <p className="text-[11px] text-white/50 truncate">"{player.nickname}"</p>}
                         </div>
                       </div>
                     </td>
@@ -346,7 +346,7 @@ export default function Players() {
                     {/* Position */}
                     <td className="px-4 py-3 hidden md:table-cell">
                       <p className="text-xs font-bold" style={{ color: '#44f3a9' }}>{player.position}</p>
-                      {player.secondary_position && <p className="text-[10px] text-white/25">{player.secondary_position}</p>}
+                      {player.secondary_position && <p className="text-[11px] text-white/50">{player.secondary_position}</p>}
                     </td>
 
                     {/* Rating */}
@@ -358,7 +358,7 @@ export default function Players() {
 
                     {/* Status */}
                     <td className="px-4 py-3 text-center">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap"
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap"
                         style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
                         {player.status}
                       </span>
@@ -371,7 +371,7 @@ export default function Players() {
                           <div className="h-full rounded-full"
                             style={{ width: `${player.participationPct}%`, background: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }} />
                         </div>
-                        <span className="text-[10px] font-black w-8 text-right"
+                        <span className="text-[11px] font-black w-8 text-right"
                           style={{ color: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }}>
                           {player.participationPct}%
                         </span>
@@ -395,7 +395,7 @@ export default function Players() {
               })}
             </tbody>
           </table>
-          <div className="px-5 py-3 text-[10px] text-white/25 text-right" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="px-5 py-3 text-[11px] text-white/50 text-right" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             {filtered.length} jugadores{filterPos !== 'Todos' ? ` · ${filterPos}` : ''}
           </div>
         </div>

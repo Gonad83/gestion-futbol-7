@@ -168,7 +168,7 @@ export default function Layout() {
                 <Shield size={36} strokeWidth={1.5} />
               )}
             </span>
-            <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black bg-soccer-green text-[#003822] border-[2.5px] border-surface-lowest">
+            <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black bg-soccer-green text-[#003822] border-[2.5px] border-surface-lowest">
               FC
             </span>
           </button>
@@ -185,7 +185,7 @@ export default function Layout() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar" aria-label="Secciones">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 px-3 mb-3">Navegación</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50 px-3 mb-3">Navegación</p>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const tone = item.tone ?? 'default';
@@ -207,7 +207,7 @@ export default function Layout() {
                 <Icon size={18} className="shrink-0" />
                 <span className="font-body font-semibold text-sm tracking-tight">{item.name}</span>
                 {tone === 'super' && !isActive && (
-                  <span className="ml-auto text-amber-500/70 text-[10px] font-bold uppercase tracking-widest">owner</span>
+                  <span className="ml-auto text-amber-500/70 text-[11px] font-bold uppercase tracking-widest">owner</span>
                 )}
               </Link>
             );
@@ -219,7 +219,7 @@ export default function Layout() {
           <div className="mx-3 mb-2 p-3 rounded-xl bg-gradient-to-br from-neon-gold/10 to-neon-gold/5 border border-neon-gold/25">
             <div className="flex items-center gap-1.5 mb-1 text-neon-gold">
               <Zap size={12} />
-              <p className="text-[10px] font-black uppercase tracking-widest">Plan Gratuito</p>
+              <p className="text-[11px] font-black uppercase tracking-widest">Plan Gratuito</p>
             </div>
             <p className="text-[11px] text-white/55 mb-2 leading-snug">Actualiza para desbloquear todas las funciones del club.</p>
             <Link
@@ -364,7 +364,7 @@ export default function Layout() {
 function RangoActual({ isAdmin }: { isAdmin: boolean }) {
   return (
     <>
-      <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.2em] mb-1.5">Tu Rango</p>
+      <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.2em] mb-1.5">Tu Rango</p>
       <div className="flex items-center gap-2">
         <span
           className={cn(

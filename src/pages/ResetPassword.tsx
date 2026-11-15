@@ -126,7 +126,7 @@ export default function ResetPassword() {
 
             <form onSubmit={handleReset} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nueva contraseña</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Nueva contraseña</label>
                 <div className="relative">
                   <input type={showPassword ? 'text' : 'password'} required value={password}
                     onChange={e => setPassword(e.target.value)} className="input-field pr-11"
@@ -138,7 +138,7 @@ export default function ResetPassword() {
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Confirmar contraseña</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Confirmar contraseña</label>
                 <input type={showPassword ? 'text' : 'password'} required value={confirm}
                   onChange={e => setConfirm(e.target.value)} className="input-field"
                   placeholder="••••••••" disabled={!sessionReady} />

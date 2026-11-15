@@ -166,7 +166,7 @@ export default function InterGeneraciones() {
         style={{ background: 'linear-gradient(135deg, rgba(255,208,139,0.12) 0%, rgba(68,243,169,0.08) 60%, rgba(28,32,38,0.9) 100%)' }}>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em]" style={{ color: '#ffd08b' }}>Campeonato</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em]" style={{ color: '#ffd08b' }}>Campeonato</p>
             <h1 className="font-headline font-black text-3xl md:text-4xl text-white tracking-tight mt-1 flex items-center gap-3">
               <Trophy className="shrink-0" style={{ color: '#ffd08b' }} size={32} />
               Inter Generaciones SSCC
@@ -309,11 +309,11 @@ function BotonCopiarLista({ texto }: { texto: string }) {
 function Kpi({ icon, label, value, sub, accent = '#44f3a9' }: { icon: React.ReactNode; label: string; value: string; sub?: string; accent?: string }) {
   return (
     <div className="rounded-2xl p-4" style={{ background: '#1c2026' }}>
-      <div className="flex items-center gap-2 text-white/40 text-[11px] font-bold uppercase tracking-wider">
+      <div className="flex items-center gap-2 text-white/50 text-[11px] font-bold uppercase tracking-wider">
         <span style={{ color: accent }}>{icon}</span>{label}
       </div>
       <p className="font-headline font-black text-2xl text-white mt-2">{value}</p>
-      {sub && <p className="text-[11px] text-white/35 mt-0.5">{sub}</p>}
+      {sub && <p className="text-[11px] text-white/50 mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -385,7 +385,7 @@ function ResumenTab({ edition, isAdmin, teamId, resumenTexto, stats, onSaved }: 
         <div className="glass-card rounded-3xl p-6">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-soccer-green">Se actualiza solo</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-soccer-green">Se actualiza solo</p>
               <h2 className="font-headline font-bold text-xl text-white">Resumen {edition.year}</h2>
             </div>
             <button onClick={copy} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all"
@@ -407,13 +407,13 @@ function ResumenTab({ edition, isAdmin, teamId, resumenTexto, stats, onSaved }: 
 
           {edition.payment_info && (
             <div className="mt-5 rounded-2xl p-4" style={{ background: '#0a0e14' }}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">Datos para pagar la cuota</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1">Datos para pagar la cuota</p>
               <p className="text-sm text-white/80 whitespace-pre-line">{edition.payment_info}</p>
             </div>
           )}
           {edition.details && (
             <div className="mt-3 rounded-2xl p-4" style={{ background: '#0a0e14' }}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">Detalles</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1">Detalles</p>
               <p className="text-sm text-white/80 whitespace-pre-line">{edition.details}</p>
             </div>
           )}
@@ -471,7 +471,7 @@ function ResumenTab({ edition, isAdmin, teamId, resumenTexto, stats, onSaved }: 
       <div className="lg:col-span-2">
         <div className="glass-card rounded-3xl p-6">
           <h3 className="font-headline font-bold text-white mb-1">Bases del campeonato</h3>
-          <p className="text-xs text-white/40 mb-5">Documento oficial para descargar.</p>
+          <p className="text-xs text-white/50 mb-5">Documento oficial para descargar.</p>
           {edition.bases_url ? (
             <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: '#0a0e14' }}>
               <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,208,139,0.12)', color: '#ffd08b' }}>
@@ -479,7 +479,7 @@ function ResumenTab({ edition, isAdmin, teamId, resumenTexto, stats, onSaved }: 
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-white truncate">{edition.bases_name || 'Bases'}</p>
-                <p className="text-[11px] text-white/35">Inter Generaciones {edition.year}</p>
+                <p className="text-[11px] text-white/50">Inter Generaciones {edition.year}</p>
               </div>
             </div>
           ) : (
@@ -522,7 +522,7 @@ function Fila({ icon, label, value }: { icon: React.ReactNode; label: string; va
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-soccer-green" style={{ background: 'rgba(68,243,169,0.08)' }}>{icon}</div>
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">{label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-white/50">{label}</p>
         <p className="text-sm text-white font-medium">{value}</p>
       </div>
     </div>
@@ -532,7 +532,7 @@ function Fila({ icon, label, value }: { icon: React.ReactNode; label: string; va
 function Campo({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
   return (
     <label className={full ? 'sm:col-span-2 block' : 'block'}>
-      <span className="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-1.5 block">{label}</span>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5 block">{label}</span>
       {children}
     </label>
   );
@@ -587,7 +587,7 @@ function JugadoresTab({ edition, isAdmin, players, roster, participants, onChang
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="font-headline font-bold text-xl text-white">Jugadores que participan</h2>
-          <p className="text-xs text-white/40">Cuota {clp(edition.fee)} por jugador{isAdmin ? ' · toca el estado para marcar el pago' : ''}</p>
+          <p className="text-xs text-white/50">Cuota {clp(edition.fee)} por jugador{isAdmin ? ' · toca el estado para marcar el pago' : ''}</p>
         </div>
         {isAdmin && !picking && (
           <button onClick={() => setPicking(true)} className="btn-primary px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2">
@@ -641,11 +641,11 @@ function JugadoresTab({ edition, isAdmin, players, roster, participants, onChang
         <div className="rounded-3xl overflow-hidden" style={{ background: '#181c22' }}>
           {roster.map((r, i) => (
             <div key={r.id} className="flex items-center gap-3 px-4 py-3" style={i % 2 ? { background: '#1c2026' } : {}}>
-              <span className="w-6 text-right text-xs text-white/30 font-bold">{i + 1}</span>
+              <span className="w-6 text-right text-xs text-white/50 font-bold">{i + 1}</span>
               <Avatar p={r.player!} size={38} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-white truncate">{r.player!.name}</p>
-                <p className="text-[11px] text-white/35 truncate">{r.player!.position || '—'}</p>
+                <p className="text-[11px] text-white/50 truncate">{r.player!.position || '—'}</p>
               </div>
               <button disabled={!isAdmin} onClick={() => togglePaid(r)}
                 className="px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all disabled:cursor-default"

@@ -531,7 +531,7 @@ export default function Matchmaking() {
             <Users className="text-soccer-green" size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-black text-soccer-green uppercase tracking-[0.2em] mb-0.5">Estrategia</p>
+            <p className="text-[11px] font-black text-soccer-green uppercase tracking-[0.2em] mb-0.5">Estrategia</p>
             <h1 className="text-2xl font-black text-white tracking-tight uppercase italic">Matchmaking</h1>
           </div>
         </div>
@@ -557,7 +557,7 @@ export default function Matchmaking() {
           </div>
         </div>
         {isPastMatch && (
-          <span className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest" style={{ background: 'rgba(148,163,184,0.1)', color: 'rgba(148,163,184,0.7)', border: '1px solid rgba(148,163,184,0.2)' }}>
+          <span className="text-[11px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest" style={{ background: 'rgba(148,163,184,0.1)', color: 'rgba(148,163,184,0.7)', border: '1px solid rgba(148,163,184,0.2)' }}>
             👁 Solo vista
           </span>
         )}
@@ -593,7 +593,7 @@ export default function Matchmaking() {
                     <UserPlus size={14} />
                     <span>{showGuestForm ? 'Cancelar' : 'Invitados'}</span>
                     {isFreePlan && (
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                      <span className="text-[11px] font-black px-1.5 py-0.5 rounded-full"
                         style={{ background: guestCount >= FREE_GUEST_LIMIT ? 'rgba(239,68,68,0.2)' : 'rgba(68,243,169,0.15)', color: guestCount >= FREE_GUEST_LIMIT ? '#f87171' : '#44f3a9' }}>
                         {guestCount}/{FREE_GUEST_LIMIT}
                       </span>
@@ -606,7 +606,7 @@ export default function Matchmaking() {
                     <CheckCircle2 size={14} />
                     <span>Confirmar Asistencia</span>
                     {isFreePlan && (
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                      <span className="text-[11px] font-black px-1.5 py-0.5 rounded-full"
                         style={{ background: registeredCount >= FREE_PLAYER_LIMIT ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)', color: registeredCount >= FREE_PLAYER_LIMIT ? '#f87171' : 'rgba(255,255,255,0.4)' }}>
                         {registeredCount}/{FREE_PLAYER_LIMIT}
                       </span>
@@ -674,10 +674,10 @@ export default function Matchmaking() {
                         </div>
                         <div>
                           <p className="text-xs font-black text-white">Límite de invitados alcanzado</p>
-                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>El plan Starter permite hasta {FREE_GUEST_LIMIT} invitados por partido.</p>
+                          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>El plan Starter permite hasta {FREE_GUEST_LIMIT} invitados por partido.</p>
                         </div>
                       </div>
-                      <a href="/#pricing" className="flex-shrink-0 flex items-center gap-1.5 text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-wider transition-all hover:brightness-110"
+                      <a href="/#pricing" className="flex-shrink-0 flex items-center gap-1.5 text-[11px] font-black px-4 py-2 rounded-xl uppercase tracking-wider transition-all hover:brightness-110"
                         style={{ background: 'linear-gradient(135deg, #ffd08b, #ffb830)', color: '#1a0e00' }}>
                         <Zap size={11} /> Actualizar plan
                       </a>
@@ -685,7 +685,7 @@ export default function Matchmaking() {
                   ) : (
                     <div className="flex flex-col sm:flex-row gap-4 items-end">
                       <div className="flex-1 w-full space-y-2">
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">
+                        <label className="block text-[11px] font-black uppercase tracking-widest text-soccer-green italic">
                           Nuevo Invitado {isFreePlan && <span style={{ color: 'rgba(255,255,255,0.3)' }}>({guestCount}/{FREE_GUEST_LIMIT})</span>}
                         </label>
                         <input
@@ -699,7 +699,7 @@ export default function Matchmaking() {
                         />
                       </div>
                       <div className="w-full sm:w-32 space-y-2">
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-soccer-green italic">Rating (1–7)</label>
+                        <label className="block text-[11px] font-black uppercase tracking-widest text-soccer-green italic">Rating (1–7)</label>
                         <input
                           type="number"
                           className="input-field bg-black/20"
@@ -722,9 +722,9 @@ export default function Matchmaking() {
                 return (
                   <div className="p-5 rounded-3xl fade-in bg-soccer-green/5 border border-soccer-green/20 space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-soccer-green">Sin respuesta — click para confirmar asistencia</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-soccer-green">Sin respuesta — click para confirmar asistencia</p>
                       {isFreePlan && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                        <span className="text-[11px] font-black px-2 py-0.5 rounded-full"
                           style={{ background: registeredCount >= FREE_PLAYER_LIMIT ? 'rgba(239,68,68,0.15)' : 'rgba(68,243,169,0.1)', color: registeredCount >= FREE_PLAYER_LIMIT ? '#f87171' : '#44f3a9' }}>
                           {registeredCount}/{FREE_PLAYER_LIMIT} jugadores
                         </span>
@@ -732,8 +732,8 @@ export default function Matchmaking() {
                     </div>
                     {!canAddRegistered ? (
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-2">
-                        <p className="text-xs text-white/40">Límite de {FREE_PLAYER_LIMIT} jugadores registrados alcanzado en el plan Starter.</p>
-                        <a href="/#pricing" className="flex-shrink-0 flex items-center gap-1.5 text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-wider transition-all hover:brightness-110"
+                        <p className="text-xs text-white/50">Límite de {FREE_PLAYER_LIMIT} jugadores registrados alcanzado en el plan Starter.</p>
+                        <a href="/#pricing" className="flex-shrink-0 flex items-center gap-1.5 text-[11px] font-black px-4 py-2 rounded-xl uppercase tracking-wider transition-all hover:brightness-110"
                           style={{ background: 'linear-gradient(135deg, #ffd08b, #ffb830)', color: '#1a0e00' }}>
                           <Zap size={11} /> Actualizar plan
                         </a>
@@ -748,7 +748,7 @@ export default function Matchmaking() {
                             onClick={() => canAddRegistered && addPlayerToConfirmed(player)}
                             className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-black/30 border border-white/10 hover:border-soccer-green/40 hover:bg-soccer-green/10 transition-all group"
                           >
-                            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-black flex-shrink-0" style={{ background: '#31353c' }}>
+                            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[11px] font-black flex-shrink-0" style={{ background: '#31353c' }}>
                               {player.photo_url ? <img src={player.photo_url} className="w-full h-full object-cover" alt={player.name} /> : player.name.charAt(0)}
                             </div>
                             <span className="text-xs font-bold text-white/70 group-hover:text-white transition-colors">{player.name}</span>
@@ -784,7 +784,7 @@ export default function Matchmaking() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-black text-sm uppercase tracking-tight truncate leading-none mb-1">{player.name}</p>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">{player.position || 'Invitado'}</span>
+                        <span className="text-[11px] font-bold text-slate-400 uppercase">{player.position || 'Invitado'}</span>
                       </div>
                     </div>
 
@@ -847,10 +847,10 @@ export default function Matchmaking() {
                         <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-800 border border-white/10 flex-shrink-0">
                           {player.photo_url 
                             ? <img src={player.photo_url} className="w-full h-full object-cover" alt={player.name} />
-                            : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white/20">{player.name.charAt(0)}</div>
+                            : <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-white/50">{player.name.charAt(0)}</div>
                           }
                         </div>
-                        <span className="text-xs font-bold text-white/40 truncate">{player.name}</span>
+                        <span className="text-xs font-bold text-white/50 truncate">{player.name}</span>
                       </div>
                     ))}
                   </div>
@@ -862,15 +862,15 @@ export default function Matchmaking() {
               <div className="flex flex-col gap-4 items-center py-4 px-8 rounded-[2.5rem] mx-auto max-w-fit bg-black/40 border border-white/5 backdrop-blur-3xl shadow-2xl">
                 <div className="flex items-center gap-6 flex-wrap justify-center">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest italic">Táctica</span>
+                    <span className="text-[11px] font-black text-white/50 uppercase tracking-widest italic">Táctica</span>
                     <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl">
                       {['A', 'B'].map((t: any) => (
                         <div key={t} className="flex items-center gap-2 px-3">
-                          <span className={`text-[10px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
+                          <span className={`text-[11px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
                           <div className="flex gap-1">
                             {getMatchFormations().map((f: any) => (
                               <button key={f.value} disabled={isPastMatch} onClick={() => { if (isPastMatch) return; t === 'A' ? setFormationA(f.value) : setFormationB(f.value); setSaved(false); }}
-                                className={`text-[10px] px-2.5 py-1 rounded-xl font-bold transition-all border ${
+                                className={`text-[11px] px-2.5 py-1 rounded-xl font-bold transition-all border ${
                                   (t === 'A' ? formationA : formationB) === f.value
                                     ? (t === 'A' ? 'bg-soccer-green text-black border-soccer-green shadow-[0_0_15px_rgba(68,243,169,0.3)]' : 'bg-blue-600 text-white border-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]')
                                     : 'bg-white/5 text-white/40 border-transparent hover:bg-white/10'
@@ -889,11 +889,11 @@ export default function Matchmaking() {
 
                 <div className="flex items-center gap-6 flex-wrap justify-center">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest italic">Identidad</span>
+                    <span className="text-[11px] font-black text-white/50 uppercase tracking-widest italic">Identidad</span>
                     <div className="flex gap-4">
                       {['A', 'B'].map((t: any) => (
                         <div key={t} className="flex items-center gap-3 px-3 py-1.5 bg-white/5 rounded-2xl">
-                          <span className={`text-[10px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
+                          <span className={`text-[11px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
                           <div className="flex gap-2">
                             {JERSEY_COLORS.map(c => (
                               <button key={c.value} disabled={isPastMatch} onClick={() => { if (isPastMatch) return; t === 'A' ? setColorA(c.value) : setColorB(c.value); setSaved(false); }}
@@ -964,12 +964,12 @@ export default function Matchmaking() {
                           </div>
                           <div>
                             <h3 className="font-headline text-lg font-black uppercase tracking-tighter" style={{ color: colorHex }}>Equipo {team}</h3>
-                            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{players.length} Jugadores Seleccionados</p>
+                            <p className="text-[11px] text-white/50 font-bold uppercase tracking-widest">{players.length} Jugadores Seleccionados</p>
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
                           <span className="text-xl font-black text-white italic">{getAvg(players)}</span>
-                          <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Rating Promedio</span>
+                          <span className="text-[11px] font-black text-white/50 uppercase tracking-[0.2em]">Rating Promedio</span>
                         </div>
                       </div>
                       
@@ -978,14 +978,14 @@ export default function Matchmaking() {
                           <div key={p.id} className="flex justify-between items-center px-4 py-3.5 rounded-2xl transition-all hover:translate-x-1 group/item" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.03)' }}>
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 bg-black/20 group-hover/item:border-white/30 transition-all flex-shrink-0">
-                                {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover object-center" alt={p.name} /> : <span className="text-[10px] font-black opacity-30">{p.name.charAt(0)}</span>}
+                                {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover object-center" alt={p.name} /> : <span className="text-[11px] font-black opacity-30">{p.name.charAt(0)}</span>}
                               </div>
                               <div className="flex-1 min-w-0">
                                 {(p.isGuest || p.name.includes('(I)')) && canEdit && editingGuestId === p.id ? (
                                   <div className="flex items-center gap-1.5">
                                     <input
                                       type="text"
-                                      className="bg-black/40 border border-soccer-green/30 rounded-lg px-2 py-1 text-[10px] flex-1 min-w-0 outline-none text-white"
+                                      className="bg-black/40 border border-soccer-green/30 rounded-lg px-2 py-1 text-[11px] flex-1 min-w-0 outline-none text-white"
                                       value={editingGuestName}
                                       onChange={e => setEditingGuestName(e.target.value)}
                                       onKeyDown={e => e.key === 'Enter' && saveGuestName(p.id)}
@@ -1026,7 +1026,7 @@ export default function Matchmaking() {
                                 )}
                               </div>
                             </div>
-                            <span className="text-[10px] font-bold text-white/30 uppercase italic ml-2 flex-shrink-0">{p.position?.split(' ')[0]}</span>
+                            <span className="text-[11px] font-bold text-white/50 uppercase italic ml-2 flex-shrink-0">{p.position?.split(' ')[0]}</span>
                           </div>
                         ))}
                       </div>
@@ -1034,7 +1034,7 @@ export default function Matchmaking() {
                       {canEdit && (
                         <button
                           onClick={() => { setShowGuestModal({ team }); setGuestModalName(''); setGuestModalRating('5'); }}
-                          className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-white/5 text-[10px] font-black uppercase tracking-[0.3em] text-white/20 hover:text-white/60 hover:border-white/20 hover:bg-white/[0.02] transition-all"
+                          className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-white/5 text-[11px] font-black uppercase tracking-[0.3em] text-white/50 hover:text-white/60 hover:border-white/20 hover:bg-white/[0.02] transition-all"
                         >
                           + Integrar Invitado
                         </button>
@@ -1053,7 +1053,7 @@ export default function Matchmaking() {
           <div className="glass-card w-full max-w-sm border-2 border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)] p-8">
             <div className="flex justify-between items-center mb-8">
               <div>
-                <p className="text-[10px] font-black text-soccer-green uppercase tracking-widest mb-1">Nueva incorporación</p>
+                <p className="text-[11px] font-black text-soccer-green uppercase tracking-widest mb-1">Nueva incorporación</p>
                 <h3 className="font-headline text-2xl font-black text-white italic uppercase tracking-tighter">Invitado · Equipo {showGuestModal.team}</h3>
               </div>
               <button onClick={() => setShowGuestModal(null)} className="p-2 rounded-xl bg-white/5 text-white/30 hover:text-white hover:bg-white/10 transition-all">
@@ -1063,18 +1063,18 @@ export default function Matchmaking() {
             
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block italic">Ficha Técnica · Nombre</label>
+                <label className="text-[11px] font-black text-white/50 uppercase tracking-widest block italic">Ficha Técnica · Nombre</label>
                 <input type="text" className="input-field bg-black/40 border-white/10" placeholder="Ej: Juan Pérez" value={guestModalName}
                   onChange={e => setGuestModalName(e.target.value)} autoFocus />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block italic">Habilidad · Rating (1–7)</label>
+                <label className="text-[11px] font-black text-white/50 uppercase tracking-widest block italic">Habilidad · Rating (1–7)</label>
                 <input type="number" className="input-field bg-black/40 border-white/10" min="1" max="7" value={guestModalRating}
                   onChange={e => setGuestModalRating(e.target.value)} />
               </div>
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowGuestModal(null)} className="flex-1 py-4 rounded-2xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 transition-all">Cancelar</button>
-                <button onClick={() => addGuestToTeam(showGuestModal.team)} className="flex-1 py-4 rounded-2xl bg-soccer-green text-[10px] font-black uppercase tracking-widest text-black shadow-xl shadow-soccer-green/20 hover:scale-[1.02] transition-all">Incorporar</button>
+                <button onClick={() => setShowGuestModal(null)} className="flex-1 py-4 rounded-2xl bg-white/5 text-[11px] font-black uppercase tracking-widest text-white/50 hover:bg-white/10 transition-all">Cancelar</button>
+                <button onClick={() => addGuestToTeam(showGuestModal.team)} className="flex-1 py-4 rounded-2xl bg-soccer-green text-[11px] font-black uppercase tracking-widest text-black shadow-xl shadow-soccer-green/20 hover:scale-[1.02] transition-all">Incorporar</button>
               </div>
             </div>
           </div>

@@ -21,7 +21,7 @@ export function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolea
         {showSlowMessage && (
           <div className="fade-in">
             <p className="text-slate-400 mb-2">Cargando datos del servidor...</p>
-            <p className="text-xs text-slate-500 max-w-xs">Si la carga tarda demasiado, revisa tu conexión a internet o intenta refrescar la página.</p>
+            <p className="text-xs text-slate-400 max-w-xs">Si la carga tarda demasiado, revisa tu conexión a internet o intenta refrescar la página.</p>
           </div>
         )}
       </div>

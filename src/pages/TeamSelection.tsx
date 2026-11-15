@@ -161,7 +161,7 @@ export default function TeamSelection() {
                       <div className="flex items-center gap-3 mb-1">
                         <h3 className="font-headline font-black text-2xl text-white truncate">{team.name}</h3>
                         {team.role === 'admin' && (
-                          <span className="bg-[#44f3a9]/10 text-[#44f3a9] text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-[#44f3a9]/20">
+                          <span className="bg-[#44f3a9]/10 text-[#44f3a9] text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-[#44f3a9]/20">
                             Admin
                           </span>
                         )}
@@ -220,7 +220,7 @@ export default function TeamSelection() {
 
                     <form onSubmit={handleCreateTeam} className="space-y-4">
                       <div>
-                        <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-2">Nombre del Club</label>
+                        <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Nombre del Club</label>
                         <input
                           type="text"
                           value={teamName}
@@ -254,7 +254,7 @@ export default function TeamSelection() {
                       )}
                     </form>
                     
-                    <div className="mt-6 flex items-center justify-center gap-4 text-xs font-semibold text-white/30">
+                    <div className="mt-6 flex items-center justify-center gap-4 text-xs font-semibold text-white/50">
                       <span className="flex items-center gap-1"><Shield size={12} /> Seguro</span>
                       <span className="w-1 h-1 rounded-full bg-white/20" />
                       <span>Mercado Pago</span>

@@ -133,7 +133,7 @@ export default function MyProfile() {
     <div className="fade-in pb-20 md:pb-0 space-y-6 max-w-2xl">
       {/* Header */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Cuenta</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Cuenta</p>
         <h1 className="font-headline text-3xl font-black text-white tracking-tight">Mi Perfil</h1>
       </div>
 
@@ -165,14 +165,14 @@ export default function MyProfile() {
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <span className="text-xs font-bold" style={{ color: '#44f3a9' }}>{playerProfile.position}</span>
             <span
-              className="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
+              className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
               style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}
             >
               {playerProfile.status}
             </span>
           </div>
           <div className="mt-2">
-            <span className="text-[10px] text-white/30 font-semibold">Rating {playerProfile.rating}/7</span>
+            <span className="text-[11px] text-white/50 font-semibold">Rating {playerProfile.rating}/7</span>
             <div className="mt-1">
               <SubStatStars player={playerProfile} size={11} />
             </div>
@@ -187,22 +187,22 @@ export default function MyProfile() {
       >
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp size={15} style={{ color: '#44f3a9' }} />
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Estadísticas {new Date().getFullYear()}</p>
+          <p className="text-[11px] font-black uppercase tracking-widest text-white/50">Estadísticas {new Date().getFullYear()}</p>
         </div>
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
             <p className="font-headline text-2xl font-black text-white">{participationStats.matchesPlayed}</p>
-            <p className="text-[9px] text-white/30 uppercase tracking-wider font-bold mt-0.5">Jugados</p>
+            <p className="text-[11px] text-white/50 uppercase tracking-wider font-bold mt-0.5">Jugados</p>
           </div>
           <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
             <p className="font-headline text-2xl font-black text-white">{participationStats.totalMatches}</p>
-            <p className="text-[9px] text-white/30 uppercase tracking-wider font-bold mt-0.5">Totales</p>
+            <p className="text-[11px] text-white/50 uppercase tracking-wider font-bold mt-0.5">Totales</p>
           </div>
           <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
             <p className="font-headline text-2xl font-black" style={{ color: participationStats.pct >= 70 ? '#44f3a9' : participationStats.pct >= 40 ? '#ffd08b' : '#f87171' }}>
               {participationStats.pct}%
             </p>
-            <p className="text-[9px] text-white/30 uppercase tracking-wider font-bold mt-0.5">Asistencia</p>
+            <p className="text-[11px] text-white/50 uppercase tracking-wider font-bold mt-0.5">Asistencia</p>
           </div>
         </div>
         <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -224,7 +224,7 @@ export default function MyProfile() {
 
         {/* Photo upload */}
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Foto de perfil</label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Foto de perfil</label>
           <div
             className="flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all"
             style={{ background: 'rgba(49,53,60,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -249,7 +249,7 @@ export default function MyProfile() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre completo</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Nombre completo</label>
             <input
               type="text"
               required
@@ -259,7 +259,7 @@ export default function MyProfile() {
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Apodo (opcional)</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Apodo (opcional)</label>
             <input
               type="text"
               className="input-field"
@@ -269,7 +269,7 @@ export default function MyProfile() {
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Posición Principal</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Posición Principal</label>
             <select
               className="input-field"
               style={{ background: 'rgba(49,53,60,0.8)' }}
@@ -286,7 +286,7 @@ export default function MyProfile() {
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Posición Secundaria</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Posición Secundaria</label>
             <select
               className="input-field"
               style={{ background: 'rgba(49,53,60,0.8)' }}
@@ -304,7 +304,7 @@ export default function MyProfile() {
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Estado</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Estado</label>
             <select
               className="input-field"
               style={{ background: 'rgba(49,53,60,0.8)' }}
@@ -317,7 +317,7 @@ export default function MyProfile() {
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Fecha de Nacimiento</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Fecha de Nacimiento</label>
             <input
               type="date"
               className="input-field"
@@ -332,7 +332,7 @@ export default function MyProfile() {
           className="flex items-center justify-between pt-3"
           style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
         >
-          <p className="text-[10px] text-white/25">El rating es gestionado por el administrador.</p>
+          <p className="text-[11px] text-white/50">El rating es gestionado por el administrador.</p>
           <button type="submit" disabled={saving} className="btn-primary px-6 py-2.5 gap-2">
             {saving
               ? 'Guardando...'

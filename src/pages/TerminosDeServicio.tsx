@@ -15,7 +15,7 @@ const SECTIONS = [
 export default function TerminosDeServicio() {
   return (
     <StaticLayout>
-      <span className="inline-block text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-6"
+      <span className="inline-block text-[11px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-6"
         style={{ background: 'rgba(154,203,255,0.1)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}>
         Legal
       </span>

@@ -22,7 +22,7 @@ export default function PaymentSuccess() {
 
         {/* Title */}
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#44f3a9' }}>
+          <p className="text-[11px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#44f3a9' }}>
             Pago exitoso
           </p>
           <h1 className="font-headline font-black text-4xl text-white tracking-tight mb-3">
@@ -39,7 +39,7 @@ export default function PaymentSuccess() {
           className="p-6 rounded-2xl text-left space-y-3"
           style={{ background: '#1c2026', border: '1px solid rgba(68,243,169,0.15)' }}
         >
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Próximos pasos</p>
+          <p className="text-[11px] font-black uppercase tracking-widest text-white/50">Próximos pasos</p>
           {[
             'Te contactaremos por WhatsApp para configurar tu equipo',
             'Recibirás acceso a la plataforma en menos de 24 horas',
@@ -47,7 +47,7 @@ export default function PaymentSuccess() {
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-3">
               <div
-                className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black mt-0.5"
+                className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-black mt-0.5"
                 style={{ background: 'rgba(68,243,169,0.15)', color: '#44f3a9' }}
               >
                 {i + 1}

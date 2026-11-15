@@ -70,7 +70,7 @@ export default function ConfirmarAsistencia() {
       <div className="w-full max-w-sm text-center space-y-6">
 
         {/* Logo / app name */}
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">MiClubPro</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-white/50">MiClubPro</p>
 
         {state === 'loading' && (
           <div className="flex flex-col items-center gap-4 py-12">
@@ -131,7 +131,7 @@ export default function ConfirmarAsistencia() {
 
             {isLoggedIn ? (
               <div className="space-y-2">
-                <p className="text-white/25 text-xs">
+                <p className="text-white/50 text-xs">
                   Redirigiendo al dashboard en {countdown}s...
                 </p>
                 <Link

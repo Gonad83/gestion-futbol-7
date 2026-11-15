@@ -104,7 +104,7 @@ export default function Calendar() {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] mb-1" style={{ color: 'rgba(68,243,169,0.7)' }}>Agenda</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] mb-1" style={{ color: 'rgba(68,243,169,0.7)' }}>Agenda</p>
           <h1 className="font-headline text-3xl font-black text-white tracking-tight">Calendario</h1>
         </div>
         {isAdmin && (
@@ -126,7 +126,7 @@ export default function Calendar() {
               <h2 className="font-headline font-bold text-white capitalize">
                 {format(currentDate, 'MMMM yyyy', { locale: es })}
               </h2>
-              <p className="text-[10px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <p className="text-[11px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
                 {matches.length + birthdaysThisMonth.length} evento{(matches.length + birthdaysThisMonth.length) !== 1 ? 's' : ''}
               </p>
             </div>
@@ -200,13 +200,13 @@ export default function Calendar() {
 
           {/* Legend */}
           <div className="flex flex-wrap gap-4 mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
               <span>⚽</span> Deportivo
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
               <span>🎉</span> Recreacional
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
               <Cake size={10} className="text-pink-400" /> Cumpleaños
             </span>
           </div>
@@ -218,7 +218,7 @@ export default function Calendar() {
             <h3 className="font-headline font-bold text-white text-lg capitalize">
               {format(currentDate, 'MMMM', { locale: es })}
             </h3>
-            <span className="text-[10px] font-black px-2.5 py-1 rounded-lg"
+            <span className="text-[11px] font-black px-2.5 py-1 rounded-lg"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}>
               {allEvents.length} {allEvents.length === 1 ? 'evento' : 'eventos'}
             </span>
@@ -260,7 +260,7 @@ export default function Calendar() {
                           {format(event.date, "EEEE d 'de' MMMM", { locale: es })}
                         </p>
                       </div>
-                      <span className="text-[9px] font-black px-2.5 py-1 rounded-full flex-shrink-0 uppercase"
+                      <span className="text-[11px] font-black px-2.5 py-1 rounded-full flex-shrink-0 uppercase"
                         style={{ background: 'rgba(236,72,153,0.15)', color: '#f472b6' }}>
                         {format(event.date, 'EEE d', { locale: es })}
                       </span>
@@ -288,12 +288,12 @@ export default function Calendar() {
                         {m.description || (m.event_type === 'Deportivo' ? 'Partido deportivo' : 'Evento recreacional')}
                       </p>
                       <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        <span className="text-[11px] flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <span className="text-[11px] flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
                           <Clock size={10} />
                           {format(event.date, "EEE d · HH:mm", { locale: es })}
                         </span>
                         {m.location && (
-                          <span className="text-[11px] flex items-center gap-1 truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                          <span className="text-[11px] flex items-center gap-1 truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>
                             <MapPin size={10} className="flex-shrink-0" />
                             {m.location}
                           </span>
@@ -302,12 +302,12 @@ export default function Calendar() {
                     </div>
 
                     <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                      <span className="text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider"
+                      <span className="text-[11px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider"
                         style={{ background: `${cfg.color}18`, color: cfg.color }}>
                         {m.event_type}
                       </span>
                       {m.event_type === 'Deportivo' && (
-                        <span className="text-[10px] font-black" style={{ color: cfg.color }}>
+                        <span className="text-[11px] font-black" style={{ color: cfg.color }}>
                           {confirmed > 0 ? `${confirmed} conf.` : m.status}
                         </span>
                       )}

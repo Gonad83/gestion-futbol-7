@@ -221,7 +221,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
                           </button>
                         ))}
                       </div>
-                      <span className="text-xs text-white/40 w-6 text-right">{value}</span>
+                      <span className="text-xs text-white/50 w-6 text-right">{value}</span>
                     </div>
                   );
                 })}

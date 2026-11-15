@@ -230,7 +230,7 @@ export default function AdminPlayers() {
     <div className="fade-in pb-20 md:pb-0 space-y-6" onClick={() => { setMenuId(null); }}>
       {/* Header */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Panel</p>
         <h1 className="font-headline text-3xl font-black text-white tracking-tight">Administrar Equipo</h1>
         <p className="text-white/35 text-sm mt-1">Gestiona plantilla, notificaciones y perfil del equipo.</p>
       </div>
@@ -242,13 +242,13 @@ export default function AdminPlayers() {
         <div className="px-5 py-3 flex flex-wrap items-center justify-between gap-3" style={{ background: '#0a0e14', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           {/* Left */}
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => bulkNotify(true)} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all" style={{ background: 'rgba(154,203,255,0.08)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.15)' }}>
+            <button onClick={() => bulkNotify(true)} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all" style={{ background: 'rgba(154,203,255,0.08)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.15)' }}>
               <Bell size={12} /> Activar notif.
             </button>
-            <button onClick={() => bulkNotify(false)} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <button onClick={() => bulkNotify(false)} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <BellOff size={12} /> Desactivar
             </button>
-            <button onClick={syncAccounts} disabled={loading} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl" style={{ background: 'rgba(68,243,169,0.06)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.15)' }}>
+            <button onClick={syncAccounts} disabled={loading} className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl" style={{ background: 'rgba(68,243,169,0.06)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.15)' }}>
               <CheckCircle2 size={12} /> Vincular cuentas
             </button>
           </div>
@@ -258,7 +258,7 @@ export default function AdminPlayers() {
             {unlinkedCount > 0 && (
               <button
                 onClick={() => setFilterAccount(f => f === 'all' ? 'unlinked' : 'all')}
-                className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all ${filterAccount === 'unlinked' ? 'bg-amber-500 text-black' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}
+                className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all ${filterAccount === 'unlinked' ? 'bg-amber-500 text-black' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}
               >
                 <Circle size={12} /> {filterAccount === 'unlinked' ? 'Viendo sin cuenta' : `${unlinkedCount} sin cuenta`}
               </button>
@@ -269,7 +269,7 @@ export default function AdminPlayers() {
               <button
                 onClick={() => setSendMenuOpen(v => !v)}
                 disabled={sending !== null}
-                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl transition-all disabled:opacity-50"
                 style={{ background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}
               >
                 {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
@@ -303,7 +303,7 @@ export default function AdminPlayers() {
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-sm">
-              <thead className="text-[9px] font-black uppercase tracking-[0.2em] text-white/25" style={{ background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <thead className="text-[11px] font-black uppercase tracking-[0.2em] text-white/50" style={{ background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <tr>
                   <th className="px-5 py-4 text-left">Jugador</th>
                   <th className="px-4 py-4 text-left hidden md:table-cell">Posición</th>
@@ -332,18 +332,18 @@ export default function AdminPlayers() {
                             <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0" style={{ background: '#31353c', border: '1px solid rgba(255,255,255,0.06)' }}>
                               {player.photo_url
                                 ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                                : <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white/30">{player.name.charAt(0)}</div>
+                                : <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white/50">{player.name.charAt(0)}</div>
                               }
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="font-semibold text-white text-sm truncate max-w-[130px]">{player.name}</p>
                                 {!player.user_id
-                                  ? <span className="text-[8px] font-black uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 rounded-sm leading-tight">Sin Cuenta</span>
+                                  ? <span className="text-[10px] font-black uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 rounded-sm leading-tight">Sin Cuenta</span>
                                   : <div className="w-1.5 h-1.5 rounded-full bg-soccer-green/40 shadow-[0_0_4px_rgba(68,243,169,0.5)]" />
                                 }
                               </div>
-                              {player.nickname && <p className="text-[10px] text-white/30 truncate">"{player.nickname}"</p>}
+                              {player.nickname && <p className="text-[11px] text-white/50 truncate">"{player.nickname}"</p>}
                             </div>
                           </div>
                         </td>
@@ -351,7 +351,7 @@ export default function AdminPlayers() {
                         {/* Posición */}
                         <td className="px-4 py-3 hidden md:table-cell">
                           <p className="text-xs font-medium" style={{ color: '#44f3a9' }}>{player.position}</p>
-                          {player.secondary_position && <p className="text-[10px] text-white/25">{player.secondary_position}</p>}
+                          {player.secondary_position && <p className="text-[11px] text-white/50">{player.secondary_position}</p>}
                         </td>
 
                         {/* Rating */}
@@ -379,7 +379,7 @@ export default function AdminPlayers() {
                         {/* Estado */}
                         <td className="px-4 py-3 text-center">
                           <select value={player.status} onChange={e => changeStatus(player, e.target.value)}
-                            className={`text-[10px] font-bold px-2 py-1 rounded-full border cursor-pointer bg-transparent outline-none ${STATUS_STYLE[player.status] || STATUS_STYLE.Inactivo}`}>
+                            className={`text-[11px] font-bold px-2 py-1 rounded-full border cursor-pointer bg-transparent outline-none ${STATUS_STYLE[player.status] || STATUS_STYLE.Inactivo}`}>
                             <option value="Activo" className="bg-slate-900 text-emerald-400">Activo</option>
                             <option value="Lesionado" className="bg-slate-900 text-red-400">Lesionado</option>
                             <option value="Inactivo" className="bg-slate-900 text-white/30">Inactivo</option>
@@ -462,7 +462,7 @@ export default function AdminPlayers() {
           </div>
         )}
 
-        <div className="px-5 py-3 text-[10px] text-white/25 text-right" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="px-5 py-3 text-[11px] text-white/50 text-right" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           {players.length} jugadores · {players.filter(p => p.status === 'Activo').length} activos · {players.filter(p => p.notify !== false && p.status === 'Activo').length} con notificaciones
         </div>
       </div>

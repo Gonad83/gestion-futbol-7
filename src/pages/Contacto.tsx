@@ -6,7 +6,7 @@ export default function Contacto() {
 
   return (
     <StaticLayout>
-      <span className="inline-block text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-6"
+      <span className="inline-block text-[11px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-6"
         style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>
         Contáctanos
       </span>

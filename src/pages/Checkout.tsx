@@ -195,7 +195,7 @@ export default function Checkout() {
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-2 text-xs p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)' }}>
+          <div className="flex items-center gap-2 text-xs p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)' }}>
             <Lock size={13} style={{ flexShrink: 0 }} />
             Pago 100% seguro · Sin guardar datos de tarjeta
           </div>
@@ -212,7 +212,7 @@ export default function Checkout() {
               { key: 'teamName', label: 'Nombre del equipo', placeholder: 'Los Cóndores FC', type: 'text' },
             ].map(field => (
               <div key={field.key}>
-                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   {field.label}
                 </label>
                 <input
@@ -233,7 +233,7 @@ export default function Checkout() {
             </p>
           )}
 
-          <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Elige tu método de pago
           </p>
 
@@ -254,7 +254,7 @@ export default function Checkout() {
           {/* Divider */}
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>o también</span>
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>o también</span>
             <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
           </div>
 
@@ -272,7 +272,7 @@ export default function Checkout() {
             )}
           </button>
 
-          <p className="text-xs text-center mt-5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <p className="text-xs text-center mt-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Al pagar aceptas los{' '}
             <Link to="/terminos-de-servicio" className="underline" style={{ color: 'rgba(255,255,255,0.4)' }}>
               Términos de servicio

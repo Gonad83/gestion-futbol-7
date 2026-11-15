@@ -407,7 +407,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                               onChange={e => setRepeatEndDate(e.target.value)}
                             />
                           </div>
-                          <p className="col-span-2 text-[10px] text-slate-500">
+                          <p className="col-span-2 text-[11px] text-slate-400">
                             {(() => {
                               const cur = new Date(repeatStartDate + 'T12:00:00');
                               while (cur.getDay() !== repeatDay) cur.setDate(cur.getDate() + 1);
@@ -552,7 +552,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-white leading-tight">{att.player?.name}</p>
-                                {att.player?.nickname && <p className="text-[10px] text-slate-400">"{att.player.nickname}"</p>}
+                                {att.player?.nickname && <p className="text-[11px] text-slate-400">"{att.player.nickname}"</p>}
                               </div>
                             </div>
                             <CheckCircle2 size={16} className="text-emerald-500" />
@@ -563,7 +563,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                       {/* BAJAS */}
                       {attendances.some(a => a.status === 'No voy') && (
                         <div className="pt-4 border-t border-glass-border">
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-red-400/70 mb-3 px-1">Bajas del Partido</h4>
+                          <h4 className="text-[11px] font-bold uppercase tracking-wider text-red-400/70 mb-3 px-1">Bajas del Partido</h4>
                           <div className="space-y-2">
                             {attendances.filter(a => a.status === 'No voy').map(att => (
                               <div key={att.id} className="flex items-center justify-between p-2.5 rounded-lg bg-red-500/5 border border-red-500/10 opacity-70">

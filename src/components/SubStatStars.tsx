@@ -39,7 +39,7 @@ export default function SubStatStars({ player, size = 9, compact = false }: { pl
             const value = subStat(player, s.key);
             return (
               <div key={s.key} className="flex items-center gap-1.5" title={`${s.label}: ${value}/${MAX_STARS}`}>
-                <span className={`${compact ? 'w-7' : 'w-14'} text-left text-[9px] font-bold uppercase tracking-wider text-white/35`}>
+                <span className={`${compact ? 'w-8' : 'w-14'} text-left text-[10px] font-bold uppercase tracking-wider text-white/50`}>
                   {compact ? s.short : s.label}
                 </span>
                 <StarRow value={value} size={size} />

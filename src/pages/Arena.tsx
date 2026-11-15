@@ -355,9 +355,9 @@ export default function Arena() {
   return (
     <div className="fade-in pb-24 md:pb-8">
       <div className="mb-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Club Pro</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Club Pro</p>
         <h1 className="font-headline text-3xl font-black text-white tracking-tight italic uppercase">Arena</h1>
-        <p className="text-white/30 text-xs mt-1">Conecta con otros equipos, juega amistosos y participa en torneos</p>
+        <p className="text-white/50 text-xs mt-1">Conecta con otros equipos, juega amistosos y participa en torneos</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -388,7 +388,7 @@ export default function Arena() {
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
                       <Swords size={16} />
                     </div>
-                    <div><p className="text-sm font-black text-white">Mis Amistosos</p><p className="text-[10px] text-white/30">Gestiona tus solicitudes</p></div>
+                    <div><p className="text-sm font-black text-white">Mis Amistosos</p><p className="text-[11px] text-white/50">Gestiona tus solicitudes</p></div>
                     {!showReqForm && (
                       <button onClick={() => setShowReqForm(true)}
                         className="ml-auto flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-xl"
@@ -401,19 +401,19 @@ export default function Arena() {
                   {showReqForm && (
                     <form onSubmit={handlePublishReq} className="p-5 space-y-3 border-b" style={divStyle}>
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Fecha</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Fecha</label>
                           <input type="date" required className="input-field text-sm" value={reqForm.date} onChange={e => setReqForm(f => ({ ...f, date: e.target.value }))} /></div>
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Hora</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Hora</label>
                           <input type="time" required className="input-field text-sm" value={reqForm.time} onChange={e => setReqForm(f => ({ ...f, time: e.target.value }))} /></div>
                       </div>
-                      <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Cancha / Lugar</label>
+                      <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Cancha / Lugar</label>
                         <input type="text" required className="input-field text-sm" placeholder="Complejo Dep. Las Condes" value={reqForm.location} onChange={e => setReqForm(f => ({ ...f, location: e.target.value }))} /></div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Formato</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Formato</label>
                           <select className="input-field bg-slate-900 text-sm" value={reqForm.format} onChange={e => setReqForm(f => ({ ...f, format: e.target.value }))}>
                             <option>5vs5</option><option>7vs7</option><option>11vs11</option>
                           </select></div>
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nota (opcional)</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Nota (opcional)</label>
                           <input type="text" className="input-field text-sm" placeholder="Ej: Llevamos árbitro" value={reqForm.notes} onChange={e => setReqForm(f => ({ ...f, notes: e.target.value }))} /></div>
                       </div>
                       <div className="flex gap-2 pt-1">
@@ -428,7 +428,7 @@ export default function Arena() {
                   )}
 
                   {myRequests.length === 0 && !showReqForm ? (
-                    <div className="px-5 py-8 text-center"><Swords size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/25 text-xs">No tienes solicitudes activas.</p></div>
+                    <div className="px-5 py-8 text-center"><Swords size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/50 text-xs">No tienes solicitudes activas.</p></div>
                   ) : (
                     <div className="divide-y" style={divStyle}>
                       {myRequests.map(req => {
@@ -437,20 +437,20 @@ export default function Arena() {
                           <div key={req.id} className="px-5 py-4 space-y-2">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.label}</span>
+                                <span className={`text-[11px] font-black px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.label}</span>
                                 <span className="text-xs font-bold text-white">{req.format}</span>
-                                <span className="text-[10px] text-white/40 flex items-center gap-1"><Clock size={9} /> {fmtDate(req.date)} · {req.time}</span>
+                                <span className="text-[11px] text-white/50 flex items-center gap-1"><Clock size={9} /> {fmtDate(req.date)} · {req.time}</span>
                               </div>
                               {(req.status === 'open' || req.status === 'challenged') && (
                                 <button onClick={() => handleCancelReq(req.id)} className="text-red-400/50 hover:text-red-400 transition-colors"><X size={13} /></button>
                               )}
                             </div>
-                            <p className="text-[11px] text-white/40 flex items-center gap-1"><MapPin size={9} /> {req.location}</p>
+                            <p className="text-[11px] text-white/50 flex items-center gap-1"><MapPin size={9} /> {req.location}</p>
                             {req.status === 'challenged' && req.challenger && (
                               <div className="p-3 rounded-xl flex items-center justify-between gap-3" style={{ background: 'rgba(255,208,139,0.06)', border: '1px solid rgba(255,208,139,0.15)' }}>
                                 <div>
                                   <p className="text-xs font-black text-amber-400">⚔️ {req.challenger.team_name} quiere jugar</p>
-                                  {(req.challenger.city || req.challenger.commune) && <p className="text-[10px] text-white/30 mt-0.5">{[req.challenger.commune, req.challenger.city].filter(Boolean).join(', ')}</p>}
+                                  {(req.challenger.city || req.challenger.commune) && <p className="text-[11px] text-white/50 mt-0.5">{[req.challenger.commune, req.challenger.city].filter(Boolean).join(', ')}</p>}
                                 </div>
                                 <div className="flex gap-2 flex-shrink-0">
                                   <button onClick={() => handleAcceptReq(req.id)} className="flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-lg" style={{ background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.25)' }}><Check size={11} /> Aceptar</button>
@@ -475,32 +475,32 @@ export default function Arena() {
               <div className="rounded-2xl overflow-hidden" style={cardStyle}>
                 <div className="px-5 py-4 flex items-center gap-3" style={headerStyle}>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(154,203,255,0.1)', color: '#9acbff' }}><Users size={16} /></div>
-                  <div><p className="text-sm font-black text-white">Buscar Rival</p><p className="text-[10px] text-white/30">{filteredOpen.length} solicitudes abiertas</p></div>
+                  <div><p className="text-sm font-black text-white">Buscar Rival</p><p className="text-[11px] text-white/50">{filteredOpen.length} solicitudes abiertas</p></div>
                 </div>
                 <div className="px-5 py-3 flex gap-2 flex-wrap" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                   <Filter size={12} className="text-white/20 mt-0.5 flex-shrink-0" />
                   {FORMATS_ALL.map(f => (
-                    <button key={f} onClick={() => setFilterFmt(f)} className="text-[10px] font-black px-2.5 py-1 rounded-lg transition-all"
+                    <button key={f} onClick={() => setFilterFmt(f)} className="text-[11px] font-black px-2.5 py-1 rounded-lg transition-all"
                       style={filterFmt === f ? { background: 'rgba(154,203,255,0.15)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.3)' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.07)' }}>
                       {f}
                     </button>
                   ))}
-                  <select className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
+                  <select className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
                     value={filterAge} onChange={e => setFilterAge(e.target.value)}>
                     <option value="Todos" className="bg-slate-900">Todas las edades</option>
                     {AGE_RANGES.map(r => <option key={r} value={r} className="bg-slate-900">{r}</option>)}
                   </select>
-                  <select className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
+                  <select className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
                     value={filterRegion} onChange={e => setFilterRegion(e.target.value)}>
                     {REGIONS_CL.map(r => <option key={r} value={r} className="bg-slate-900">{r}</option>)}
                   </select>
-                  <input className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
+                  <input className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
                     value={filterCity} onChange={e => setFilterCity(e.target.value)} placeholder="Ciudad" />
-                  <input className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
+                  <input className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
                     value={filterCommune} onChange={e => setFilterCommune(e.target.value)} placeholder="Comuna" />
                 </div>
                 {filteredOpen.length === 0 ? (
-                  <div className="px-5 py-10 text-center"><Globe size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/25 text-xs">No hay solicitudes abiertas.</p></div>
+                  <div className="px-5 py-10 text-center"><Globe size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/50 text-xs">No hay solicitudes abiertas.</p></div>
                 ) : (
                   <div className="divide-y" style={divStyle}>
                     {filteredOpen.map(req => (
@@ -512,14 +512,14 @@ export default function Arena() {
                         <div className="flex-1 min-w-0">
                           <p className="font-black text-sm text-white truncate">{req.team?.team_name}</p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            {(req.team?.commune || req.team?.city) && <span className="text-[10px] text-white/30 flex items-center gap-1"><MapPin size={9} />{[req.team?.commune, req.team?.city].filter(Boolean).join(', ')}</span>}
-                            <span className="text-[10px] text-white/30 flex items-center gap-1"><Clock size={9} />{fmtDate(req.date)} · {req.time}</span>
-                            <span className="text-[10px] font-black" style={{ color: '#9acbff' }}>{req.format}</span>
-                            {req.team?.age_range && <span className="text-[10px] text-white/30">{req.team.age_range}</span>}
-                            {req.team?.preferred_format && <span className="text-[10px] text-white/20">pref. {req.team.preferred_format}</span>}
+                            {(req.team?.commune || req.team?.city) && <span className="text-[11px] text-white/50 flex items-center gap-1"><MapPin size={9} />{[req.team?.commune, req.team?.city].filter(Boolean).join(', ')}</span>}
+                            <span className="text-[11px] text-white/50 flex items-center gap-1"><Clock size={9} />{fmtDate(req.date)} · {req.time}</span>
+                            <span className="text-[11px] font-black" style={{ color: '#9acbff' }}>{req.format}</span>
+                            {req.team?.age_range && <span className="text-[11px] text-white/50">{req.team.age_range}</span>}
+                            {req.team?.preferred_format && <span className="text-[11px] text-white/50">pref. {req.team.preferred_format}</span>}
                           </div>
-                          <p className="text-[10px] text-white/25 mt-0.5 flex items-center gap-1 truncate"><MapPin size={9} />{req.location}</p>
-                          {req.notes && <p className="text-[10px] text-white/20 mt-0.5 italic truncate">"{req.notes}"</p>}
+                          <p className="text-[11px] text-white/50 mt-0.5 flex items-center gap-1 truncate"><MapPin size={9} />{req.location}</p>
+                          {req.notes && <p className="text-[11px] text-white/50 mt-0.5 italic truncate">"{req.notes}"</p>}
                         </div>
                         {isMatchmaker && (
                           <button onClick={() => handleChallenge(req.id)} className="flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
@@ -543,7 +543,7 @@ export default function Arena() {
                 <div className="rounded-2xl overflow-hidden" style={cardStyle}>
                   <div className="px-5 py-4 flex items-center gap-3" style={headerStyle}>
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,208,139,0.1)', color: '#ffd08b' }}><Trophy size={16} /></div>
-                    <div><p className="text-sm font-black text-white">Mis Torneos</p><p className="text-[10px] text-white/30">Torneos que organizas</p></div>
+                    <div><p className="text-sm font-black text-white">Mis Torneos</p><p className="text-[11px] text-white/50">Torneos que organizas</p></div>
                     {!showTourForm && (
                       <button onClick={() => setShowTourForm(true)} className="ml-auto flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-xl"
                         style={{ background: 'rgba(255,208,139,0.1)', color: '#ffd08b', border: '1px solid rgba(255,208,139,0.2)' }}>
@@ -554,45 +554,45 @@ export default function Arena() {
 
                   {showTourForm && (
                     <form onSubmit={handleCreateTournament} className="p-5 space-y-3 border-b" style={divStyle}>
-                      <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre del torneo</label>
+                      <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Nombre del torneo</label>
                         <input type="text" required className="input-field text-sm" placeholder="Copa de Verano 2026" value={tourForm.name} onChange={e => setTourForm(f => ({ ...f, name: e.target.value }))} /></div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Fecha</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Fecha</label>
                           <input type="date" required className="input-field text-sm" value={tourForm.date} onChange={e => setTourForm(f => ({ ...f, date: e.target.value }))} /></div>
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Formato</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Formato</label>
                           <select className="input-field bg-slate-900 text-sm" value={tourForm.format} onChange={e => setTourForm(f => ({ ...f, format: e.target.value }))}>
                             <option>5vs5</option><option>7vs7</option><option>11vs11</option>
                           </select></div>
                       </div>
-                      <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Cancha / Lugar</label>
+                      <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Cancha / Lugar</label>
                         <input type="text" required className="input-field text-sm" placeholder="Estadio / Complejo" value={tourForm.location} onChange={e => setTourForm(f => ({ ...f, location: e.target.value }))} /></div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Ciudad</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Ciudad</label>
                           <input type="text" className="input-field text-sm" placeholder="Santiago" value={tourForm.city} onChange={e => setTourForm(f => ({ ...f, city: e.target.value }))} /></div>
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Comuna</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Comuna</label>
                           <input type="text" className="input-field text-sm" placeholder="Las Condes" value={tourForm.commune} onChange={e => setTourForm(f => ({ ...f, commune: e.target.value }))} /></div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Region</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Region</label>
                           <select className="input-field bg-slate-900 text-sm" value={tourForm.region} onChange={e => setTourForm(f => ({ ...f, region: e.target.value }))}>
                             {REGIONS_CL.filter(r => r !== 'Todas').map(r => <option key={r}>{r}</option>)}
                           </select></div>
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Rango Etario</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Rango Etario</label>
                           <select className="input-field bg-slate-900 text-sm" value={tourForm.age_range} onChange={e => setTourForm(f => ({ ...f, age_range: e.target.value }))}>
                             {AGE_RANGES.map(r => <option key={r}>{r}</option>)}
                           </select></div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Cupos (nº equipos)</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Cupos (nº equipos)</label>
                           <input type="number" min="2" max="64" required className="input-field text-sm" value={tourForm.max_teams} onChange={e => setTourForm(f => ({ ...f, max_teams: e.target.value }))} /></div>
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Inscripción (CLP)</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Inscripción (CLP)</label>
                           <input type="number" min="0" required className="input-field text-sm" placeholder="0 = Gratis" value={tourForm.entry_fee} onChange={e => setTourForm(f => ({ ...f, entry_fee: e.target.value }))} /></div>
                       </div>
                       {parseInt(tourForm.entry_fee) > 0 && (
-                        <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Datos de transferencia</label>
+                        <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Datos de transferencia</label>
                           <textarea className="input-field resize-none text-sm" rows={2} placeholder="Banco, Nº cuenta, RUT, nombre…" value={tourForm.payment_info} onChange={e => setTourForm(f => ({ ...f, payment_info: e.target.value }))} /></div>
                       )}
-                      <div><label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Descripción (opcional)</label>
+                      <div><label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Descripción (opcional)</label>
                         <input type="text" className="input-field text-sm" placeholder="Bases, reglas, premios…" value={tourForm.description} onChange={e => setTourForm(f => ({ ...f, description: e.target.value }))} /></div>
                       <div className="flex gap-2 pt-1">
                         <button type="submit" disabled={creatingTour} className="btn-primary flex-1 py-2 text-sm">
@@ -604,7 +604,7 @@ export default function Arena() {
                   )}
 
                   {myTournaments.length === 0 && !showTourForm ? (
-                    <div className="px-5 py-8 text-center"><Trophy size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/25 text-xs">No has creado torneos aún.</p></div>
+                    <div className="px-5 py-8 text-center"><Trophy size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/50 text-xs">No has creado torneos aún.</p></div>
                   ) : (
                     <div className="divide-y" style={divStyle}>
                       {myTournaments.map(t => {
@@ -618,44 +618,44 @@ export default function Arena() {
                                 <div className="flex-1 min-w-0">
                                   <p className="font-black text-sm text-white truncate">{t.name}</p>
                                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.label}</span>
-                                    <span className="text-[10px] text-white/40 flex items-center gap-1"><Clock size={9} />{fmtDate(t.date)}</span>
-                                    <span className="text-[10px] font-black" style={{ color: '#ffd08b' }}>{t.format} · {t.age_range}</span>
-                                    <span className="text-[10px] text-white/30">{clp(t.entry_fee)}</span>
+                                    <span className={`text-[11px] font-black px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.label}</span>
+                                    <span className="text-[11px] text-white/50 flex items-center gap-1"><Clock size={9} />{fmtDate(t.date)}</span>
+                                    <span className="text-[11px] font-black" style={{ color: '#ffd08b' }}>{t.format} · {t.age_range}</span>
+                                    <span className="text-[11px] text-white/50">{clp(t.entry_fee)}</span>
                                   </div>
                                 </div>
-                                <button onClick={() => handleExpandTour(t.id)} className="text-[10px] font-black px-2 py-1 rounded-lg flex-shrink-0"
+                                <button onClick={() => handleExpandTour(t.id)} className="text-[11px] font-black px-2 py-1 rounded-lg flex-shrink-0"
                                   style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.07)' }}>
                                   {isExp ? 'Cerrar' : `Ver inscritos${regs.length ? ` (${regs.length})` : ''}`}
                                 </button>
                               </div>
                               {t.status === 'open' && (
                                 <div className="flex gap-2">
-                                  <button onClick={() => handleCloseTournament(t.id, 'ongoing')} className="text-[10px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>Iniciar</button>
-                                  <button onClick={() => handleCloseTournament(t.id, 'cancelled')} className="text-[10px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>Cancelar</button>
+                                  <button onClick={() => handleCloseTournament(t.id, 'ongoing')} className="text-[11px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>Iniciar</button>
+                                  <button onClick={() => handleCloseTournament(t.id, 'cancelled')} className="text-[11px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>Cancelar</button>
                                 </div>
                               )}
                               {t.status === 'ongoing' && (
-                                <button onClick={() => handleCloseTournament(t.id, 'finished')} className="text-[10px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>Finalizar torneo</button>
+                                <button onClick={() => handleCloseTournament(t.id, 'finished')} className="text-[11px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>Finalizar torneo</button>
                               )}
                             </div>
                             {isExp && (
                               <div className="px-5 pb-4 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-white/25 pt-3">Inscritos · {regs.length} / {t.max_teams}</p>
-                                {regs.length === 0 ? <p className="text-white/20 text-xs italic">Aún no hay inscritos.</p> : regs.map(reg => {
+                                <p className="text-[11px] font-black uppercase tracking-widest text-white/50 pt-3">Inscritos · {regs.length} / {t.max_teams}</p>
+                                {regs.length === 0 ? <p className="text-white/50 text-xs italic">Aún no hay inscritos.</p> : regs.map(reg => {
                                   const rb = regBadge[reg.status] || regBadge.pending;
                                   return (
                                     <div key={reg.id} className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
                                       <div>
                                         <p className="text-xs font-black text-white">{reg.team?.team_name}</p>
-                                        {(reg.team?.commune || reg.team?.city) && <p className="text-[10px] text-white/30">{[reg.team?.commune, reg.team?.city].filter(Boolean).join(', ')}</p>}
+                                        {(reg.team?.commune || reg.team?.city) && <p className="text-[11px] text-white/50">{[reg.team?.commune, reg.team?.city].filter(Boolean).join(', ')}</p>}
                                       </div>
                                       <div className="flex items-center gap-2">
-                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${rb.cls}`}>{rb.label}</span>
+                                        <span className={`text-[11px] font-black px-2 py-0.5 rounded-full border ${rb.cls}`}>{rb.label}</span>
                                         {reg.status === 'pending' && (
                                           <>
-                                            <button onClick={() => handleConfirmReg(reg.id)} className="text-[10px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.25)' }}><Check size={11} /></button>
-                                            <button onClick={() => handleRejectReg(reg.id)} className="text-[10px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}><X size={11} /></button>
+                                            <button onClick={() => handleConfirmReg(reg.id)} className="text-[11px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.25)' }}><Check size={11} /></button>
+                                            <button onClick={() => handleRejectReg(reg.id)} className="text-[11px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}><X size={11} /></button>
                                           </>
                                         )}
                                       </div>
@@ -676,32 +676,32 @@ export default function Arena() {
               <div className="rounded-2xl overflow-hidden" style={cardStyle}>
                 <div className="px-5 py-4 flex items-center gap-3" style={headerStyle}>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(154,203,255,0.1)', color: '#9acbff' }}><Globe size={16} /></div>
-                  <div><p className="text-sm font-black text-white">Torneos Disponibles</p><p className="text-[10px] text-white/30">{filteredTournaments.length} abiertos para inscripcion</p></div>
+                  <div><p className="text-sm font-black text-white">Torneos Disponibles</p><p className="text-[11px] text-white/50">{filteredTournaments.length} abiertos para inscripcion</p></div>
                 </div>
                 <div className="px-5 py-3 flex gap-2 flex-wrap" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                   <Filter size={12} className="text-white/20 mt-0.5 flex-shrink-0" />
                   {FORMATS_ALL.map(f => (
-                    <button key={f} onClick={() => setTourFilterFmt(f)} className="text-[10px] font-black px-2.5 py-1 rounded-lg transition-all"
+                    <button key={f} onClick={() => setTourFilterFmt(f)} className="text-[11px] font-black px-2.5 py-1 rounded-lg transition-all"
                       style={tourFilterFmt === f ? { background: 'rgba(154,203,255,0.15)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.3)' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.07)' }}>
                       {f}
                     </button>
                   ))}
-                  <select className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
+                  <select className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
                     value={tourFilterAge} onChange={e => setTourFilterAge(e.target.value)}>
                     <option value="Todos" className="bg-slate-900">Todas las edades</option>
                     {AGE_RANGES.map(r => <option key={r} value={r} className="bg-slate-900">{r}</option>)}
                   </select>
-                  <select className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
+                  <select className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none"
                     value={tourFilterRegion} onChange={e => setTourFilterRegion(e.target.value)}>
                     {REGIONS_CL.map(r => <option key={r} value={r} className="bg-slate-900">{r}</option>)}
                   </select>
-                  <input className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
+                  <input className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
                     value={tourFilterCity} onChange={e => setTourFilterCity(e.target.value)} placeholder="Ciudad" />
-                  <input className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
+                  <input className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-white/5 text-white/50 border border-white/10 outline-none placeholder:text-white/20"
                     value={tourFilterCommune} onChange={e => setTourFilterCommune(e.target.value)} placeholder="Comuna" />
                 </div>
                 {filteredTournaments.length === 0 ? (
-                  <div className="px-5 py-10 text-center"><Trophy size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/25 text-xs">No hay torneos con inscripción abierta.</p></div>
+                  <div className="px-5 py-10 text-center"><Trophy size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/50 text-xs">No hay torneos con inscripción abierta.</p></div>
                 ) : (
                   <div className="divide-y" style={divStyle}>
                     {filteredTournaments.map(t => {
@@ -716,7 +716,7 @@ export default function Arena() {
                               </div>
                               <div className="min-w-0">
                                 <p className="font-black text-sm text-white truncate">{t.name}</p>
-                                <p className="text-[10px] text-white/30">por {t.organizer?.team_name}</p>
+                                <p className="text-[11px] text-white/50">por {t.organizer?.team_name}</p>
                               </div>
                             </div>
                             {isMatchmaker && !myReg && (
@@ -727,21 +727,21 @@ export default function Arena() {
                             )}
                             {myReg && (
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${regBadge[myReg.status]?.cls}`}>{regBadge[myReg.status]?.label}</span>
+                                <span className={`text-[11px] font-black px-2 py-0.5 rounded-full border ${regBadge[myReg.status]?.cls}`}>{regBadge[myReg.status]?.label}</span>
                                 {myReg.status === 'pending' && <button onClick={() => handleWithdraw(myReg.id)} className="text-red-400/50 hover:text-red-400 transition-colors"><X size={13} /></button>}
                               </div>
                             )}
                           </div>
                           <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-[10px] text-white/40 flex items-center gap-1"><Clock size={9} />{fmtDate(t.date)}</span>
-                            <span className="text-[10px] text-white/40 flex items-center gap-1"><MapPin size={9} />{t.location}{t.city ? `, ${t.city}` : ''}</span>
-                            <span className="text-[10px] font-black" style={{ color: '#9acbff' }}>{t.format}</span>
-                            <span className="text-[10px] text-white/40">{t.age_range}</span>
-                            <span className="text-[10px] font-black" style={{ color: t.entry_fee > 0 ? '#ffd08b' : '#44f3a9' }}>
+                            <span className="text-[11px] text-white/50 flex items-center gap-1"><Clock size={9} />{fmtDate(t.date)}</span>
+                            <span className="text-[11px] text-white/50 flex items-center gap-1"><MapPin size={9} />{t.location}{t.city ? `, ${t.city}` : ''}</span>
+                            <span className="text-[11px] font-black" style={{ color: '#9acbff' }}>{t.format}</span>
+                            <span className="text-[11px] text-white/50">{t.age_range}</span>
+                            <span className="text-[11px] font-black" style={{ color: t.entry_fee > 0 ? '#ffd08b' : '#44f3a9' }}>
                               {t.entry_fee > 0 ? <><CreditCard size={9} className="inline mr-0.5" />{clp(t.entry_fee)}</> : '✓ Gratis'}
                             </span>
                           </div>
-                          {t.description && <p className="text-[10px] text-white/25 italic truncate">"{t.description}"</p>}
+                          {t.description && <p className="text-[11px] text-white/50 italic truncate">"{t.description}"</p>}
                         </div>
                       );
                     })}
@@ -763,17 +763,17 @@ export default function Arena() {
                           <div className="min-w-0">
                             <p className="text-sm font-black text-white truncate">{reg.tournament?.name}</p>
                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                              <span className="text-[10px] text-white/30 flex items-center gap-1"><Clock size={9} />{reg.tournament?.date ? fmtDate(reg.tournament.date) : ''}</span>
+                              <span className="text-[11px] text-white/50 flex items-center gap-1"><Clock size={9} />{reg.tournament?.date ? fmtDate(reg.tournament.date) : ''}</span>
                               {reg.tournament?.entry_fee > 0 && (
-                                <span className="text-[10px] font-black" style={{ color: '#ffd08b' }}>{clp(reg.tournament.entry_fee)}</span>
+                                <span className="text-[11px] font-black" style={{ color: '#ffd08b' }}>{clp(reg.tournament.entry_fee)}</span>
                               )}
                               {reg.status === 'pending' && reg.tournament?.payment_info && (
-                                <span className="text-[10px] text-white/25 italic truncate">Transferir a: {reg.tournament.payment_info}</span>
+                                <span className="text-[11px] text-white/50 italic truncate">Transferir a: {reg.tournament.payment_info}</span>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${rb.cls}`}>{rb.label}</span>
+                            <span className={`text-[11px] font-black px-2 py-0.5 rounded-full border ${rb.cls}`}>{rb.label}</span>
                             {reg.status === 'pending' && <button onClick={() => handleWithdraw(reg.id)} className="text-red-400/50 hover:text-red-400 transition-colors"><X size={13} /></button>}
                           </div>
                         </div>
@@ -839,10 +839,10 @@ export default function Arena() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <p className="text-lg font-black text-white italic">{avg}</p>
-                <p className="text-[9px] text-white/25 uppercase tracking-widest font-bold">rating prom.</p>
+                <p className="text-[11px] text-white/50 uppercase tracking-widest font-bold">rating prom.</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}><RotateCcw size={11} /> Reset</button>
+                <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.07)' }}><RotateCcw size={11} /> Reset</button>
                 <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
                   style={saved ? { background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.3)' } : { background: '#44f3a9', color: '#003822' }}>
                   {saved ? <><CheckCircle2 size={12} /> Guardado</> : <><Save size={12} /> Guardar</>}
@@ -850,18 +850,18 @@ export default function Arena() {
               </div>
             </div>
             <div>
-              <p className="text-[9px] font-black text-white/25 uppercase tracking-widest mb-2">Táctica</p>
+              <p className="text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">Táctica</p>
               <div className="flex flex-wrap gap-2">
                 {FORMATIONS.map(f => (
                   <button key={f.value} onClick={() => applyFormation(f.value)} className="px-3 py-1.5 rounded-xl text-xs font-bold"
                     style={formation === f.value ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.4)' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <span className="font-black">{f.value}</span><span className="ml-1 text-[10px] opacity-60">{f.name}</span>
+                    <span className="font-black">{f.value}</span><span className="ml-1 text-[11px] opacity-60">{f.name}</span>
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-[9px] font-black text-white/25 uppercase tracking-widest mb-2">Camiseta</p>
+              <p className="text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">Camiseta</p>
               <div className="flex gap-2 flex-wrap">
                 {JERSEY_COLORS.map(c => (
                   <button key={c.value} onClick={() => { setColor(c.value); setSaved(false); }} title={c.name}
@@ -869,7 +869,7 @@ export default function Arena() {
                 ))}
               </div>
             </div>
-            {anySwap && <p className="text-[10px] text-soccer-green font-bold animate-pulse">⚡ Toca otro jugador para realizar el cambio · Toca el campo para cancelar</p>}
+            {anySwap && <p className="text-[11px] text-soccer-green font-bold animate-pulse">⚡ Toca otro jugador para realizar el cambio · Toca el campo para cancelar</p>}
           </div>
         </div>
       </div>

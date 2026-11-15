@@ -107,7 +107,7 @@ export default function RegisterCaptain() {
             <CheckCircle2 size={32} style={{ color: '#44f3a9' }} />
           </div>
           {planParam !== 'free' && (
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: '#44f3a9' }}>
+            <p className="text-[11px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: '#44f3a9' }}>
               Pago confirmado
             </p>
           )}
@@ -133,22 +133,22 @@ export default function RegisterCaptain() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre completo</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Nombre completo</label>
               <input type="text" required value={name} onChange={e => setName(e.target.value)}
                 className="input-field" placeholder="Tu nombre" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Email</label>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                 className="input-field" placeholder="tu@email.com" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre del equipo</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Nombre del equipo</label>
               <input type="text" required value={teamName} onChange={e => setTeamName(e.target.value)}
                 className="input-field" placeholder="Ej: Los Cóndores FC" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Contraseña</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Contraseña</label>
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} required value={password}
                   onChange={e => setPassword(e.target.value)} className="input-field pr-11"
@@ -160,7 +160,7 @@ export default function RegisterCaptain() {
               </div>
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Confirmar contraseña</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Confirmar contraseña</label>
               <input type={showPassword ? 'text' : 'password'} required value={confirm}
                 onChange={e => setConfirm(e.target.value)} className="input-field" placeholder="••••••••" />
             </div>
@@ -179,31 +179,31 @@ export default function RegisterCaptain() {
               </button>
               {showArena && (
                 <div className="px-4 pb-4 space-y-3">
-                  <p className="text-[10px] text-white/30">Estos datos ayudan a conectar tu equipo con amistosos y torneos filtrados por zona, edad y formato.</p>
+                  <p className="text-[11px] text-white/50">Estos datos ayudan a conectar tu equipo con amistosos y torneos filtrados por zona, edad y formato.</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Ciudad</label>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Ciudad</label>
                       <input type="text" required className="input-field" value={city} onChange={e => setCity(e.target.value)} placeholder="Santiago" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Comuna</label>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Comuna</label>
                       <input type="text" required className="input-field" value={commune} onChange={e => setCommune(e.target.value)} placeholder="Las Condes" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Región</label>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Región</label>
                       <select required className="input-field bg-slate-900" value={region} onChange={e => setRegion(e.target.value)}>
                         <option value="">-- Seleccionar --</option>
                         {REGIONS_CL.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Rango Etario</label>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Rango Etario</label>
                       <select className="input-field bg-slate-900" value={ageRange} onChange={e => setAgeRange(e.target.value)}>
                         {AGE_RANGES.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Formato Preferido</label>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Formato Preferido</label>
                       <select className="input-field bg-slate-900" value={preferredFormat} onChange={e => setPreferredFormat(e.target.value)}>
                         {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
                       </select>
@@ -222,7 +222,7 @@ export default function RegisterCaptain() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-white/25">
+        <p className="text-center text-xs text-white/50">
           ¿Ya tienes cuenta?{' '}
           <Link to="/login" style={{ color: '#44f3a9' }} className="underline">Iniciar sesión</Link>
         </p>
