@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MiClubPro">
-  <rect width="512" height="512" rx="112" fill="#10141a"/>
-  <!-- M de MiClub: los trazos del centro son los brazos en alto de un jugador -->
-  <path d="M136 372 V176 L256 304 L376 176 V372" fill="none" stroke="#44f3a9" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="256" cy="166" r="36" fill="#f2f6f4"/>
-</svg>
