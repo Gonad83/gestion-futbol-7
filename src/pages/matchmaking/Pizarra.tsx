@@ -1,0 +1,225 @@
+import type { Dispatch, SetStateAction } from 'react';
+import { X, Edit2, Check, Copy } from 'lucide-react';
+import FifaCard from '../../components/FifaCard';
+import { JERSEY_COLORS, getPosition, getAvg, type JugadorMM, type SeleccionCambio, type Equipo, type Formacion } from '../../lib/matchmaking';
+
+interface Props {
+  teamA: JugadorMM[];
+  teamB: JugadorMM[];
+  formationA: string;
+  setFormationA: Dispatch<SetStateAction<string>>;
+  formationB: string;
+  setFormationB: Dispatch<SetStateAction<string>>;
+  colorA: string;
+  setColorA: Dispatch<SetStateAction<string>>;
+  colorB: string;
+  setColorB: Dispatch<SetStateAction<string>>;
+  swapSelection: SeleccionCambio | null;
+  setSaved: Dispatch<SetStateAction<boolean>>;
+  editingGuestId: string | null;
+  setEditingGuestId: Dispatch<SetStateAction<string | null>>;
+  editingGuestName: string;
+  setEditingGuestName: Dispatch<SetStateAction<string>>;
+  copied: boolean;
+  setShowGuestModal: Dispatch<SetStateAction<{ team: Equipo } | null>>;
+  setGuestModalName: Dispatch<SetStateAction<string>>;
+  setGuestModalRating: Dispatch<SetStateAction<string>>;
+  isPastMatch: boolean;
+  canEdit: boolean;
+  getMatchFormations: () => Formacion[];
+  removeFromPool: (jugador: JugadorMM) => void;
+  saveGuestName: (guestId: string) => void;
+  handleSwap: (team: Equipo, index: number) => void;
+  copyTeamsForWhatsApp: () => void;
+}
+
+export function Pizarra({ teamA, teamB, formationA, setFormationA, formationB, setFormationB, colorA, setColorA, colorB, setColorB, swapSelection, setSaved, editingGuestId, setEditingGuestId, editingGuestName, setEditingGuestName, copied, setShowGuestModal, setGuestModalName, setGuestModalRating, isPastMatch, canEdit, getMatchFormations, removeFromPool, saveGuestName, handleSwap, copyTeamsForWhatsApp }: Props) {
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 items-center py-4 px-8 rounded-[2.5rem] mx-auto max-w-fit bg-black/40 border border-white/5 backdrop-blur-3xl shadow-2xl">
+        <div className="flex items-center gap-6 flex-wrap justify-center">
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-black text-white/50 uppercase tracking-widest italic">Táctica</span>
+            <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl">
+              {(['A', 'B'] as const).map((t) => (
+                <div key={t} className="flex items-center gap-2 px-3">
+                  <span className={`text-[11px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
+                  <div className="flex gap-1">
+                    {getMatchFormations().map((f) => (
+                      <button key={f.value} disabled={isPastMatch} onClick={() => { if (isPastMatch) return; if (t === 'A') setFormationA(f.value); else setFormationB(f.value); setSaved(false); }}
+                        className={`text-[11px] px-2.5 py-1 rounded-xl font-bold transition-all border ${
+                          (t === 'A' ? formationA : formationB) === f.value
+                            ? (t === 'A' ? 'bg-soccer-green text-black border-soccer-green shadow-[0_0_15px_rgba(68,243,169,0.3)]' : 'bg-blue-600 text-white border-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]')
+                            : 'bg-white/5 text-white/40 border-transparent hover:bg-white/10'
+                        }`}>
+                        {f.value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full h-px bg-white/5" />
+
+        <div className="flex items-center gap-6 flex-wrap justify-center">
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-black text-white/50 uppercase tracking-widest italic">Identidad</span>
+            <div className="flex gap-4">
+              {(['A', 'B'] as const).map((t) => (
+                <div key={t} className="flex items-center gap-3 px-3 py-1.5 bg-white/5 rounded-2xl">
+                  <span className={`text-[11px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
+                  <div className="flex gap-2">
+                    {JERSEY_COLORS.map(c => (
+                      <button key={c.value} disabled={isPastMatch} onClick={() => { if (isPastMatch) return; if (t === 'A') setColorA(c.value); else setColorB(c.value); setSaved(false); }}
+                        className={`w-5 h-5 rounded-lg border-2 transition-all ${c.class} shadow-lg ${
+                          (t === 'A' ? colorA : colorB) === c.value ? 'scale-125 border-white ring-2 ring-white/20' : 'border-transparent opacity-30 hover:opacity-100'
+                        }`} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative w-full aspect-[16/10] md:aspect-[16/8] rounded-[3rem] overflow-hidden border-[6px] p-6 group shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)]"
+        style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)', borderColor: '#0f172a' }}>
+        <div className="absolute inset-0 opacity-20 pointer-events-none"
+          style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10%, rgba(255,255,255,0.05) 10%, rgba(255,255,255,0.05) 20%)', backgroundSize: '200% 100%' }} />
+        <div className="absolute inset-8 border-2 border-white/20 rounded-[2rem] pointer-events-none" />
+        <div className="absolute left-1/2 top-8 bottom-8 w-0.5 bg-white/20 pointer-events-none" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 md:w-64 md:h-64 border-2 border-white/20 rounded-full pointer-events-none" />
+        <div className="absolute left-8 top-1/2 -translate-y-1/2 w-20 h-44 md:w-36 md:h-72 border-2 border-white/20 border-l-0 rounded-r-2xl pointer-events-none" />
+        <div className="absolute right-8 top-1/2 -translate-y-1/2 w-20 h-44 md:w-36 md:h-72 border-2 border-white/20 border-r-0 rounded-l-2xl pointer-events-none" />
+
+        <div className="pitch-team-label left-12 top-10 flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${JERSEY_COLORS.find(c => c.value === colorA)?.class}`} />
+          EQUIPO A
+        </div>
+        <div className="pitch-team-label right-12 top-10 flex items-center gap-2">
+          EQUIPO B
+          <div className={`w-3 h-3 rounded-full ${JERSEY_COLORS.find(c => c.value === colorB)?.class}`} />
+        </div>
+
+        {teamA.map((p, i) => (
+          <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'A', teamA.length, formationA)} onClick={() => handleSwap('A', i)}>
+            <FifaCard player={p} color={i === 0 ? 'gold' : colorA} index={i} isSelected={swapSelection?.team === 'A' && swapSelection?.index === i} />
+          </div>
+        ))}
+        {teamB.map((p, i) => (
+          <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'B', teamB.length, formationB)} onClick={() => handleSwap('B', i)}>
+            <FifaCard player={p} color={i === 0 ? 'gold' : colorB} index={i} isSelected={swapSelection?.team === 'B' && swapSelection?.index === i} />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-center">
+        <button
+          onClick={copyTeamsForWhatsApp}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border ${copied ? 'bg-soccer-green/20 text-soccer-green border-soccer-green/40' : 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border-white/10'}`}
+        >
+          <Copy size={14} />
+          <span>{copied ? '¡Copiado!' : 'Compartir Equipos por WhatsApp'}</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {(['A', 'B'] as const).map(team => {
+          const players = team === 'A' ? teamA : teamB;
+          const color = team === 'A' ? colorA : colorB;
+          const colorHex = color === 'emerald' ? '#10b981' : color === 'blue' ? '#3b82f6' : color === 'white' ? '#fff' : color === 'yellow' ? '#eab308' : color === 'red' ? '#ef4444' : color === 'purple' ? '#a855f7' : color === 'lightblue' ? '#38bdf8' : '#1e293b';
+          return (
+            <div key={team} className="glass-card overflow-hidden group/card shadow-2xl transition-all hover:bg-white/[0.03]" style={{ borderTop: `4px solid ${colorHex}` }}>
+              <div className="flex justify-between items-center mb-6 px-2">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black italic shadow-lg ${team === 'A' ? 'bg-soccer-green text-black' : 'bg-blue-600 text-white'}`}>
+                    {team}
+                  </div>
+                  <div>
+                    <h3 className="font-headline text-lg font-black uppercase tracking-tighter" style={{ color: colorHex }}>Equipo {team}</h3>
+                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-widest">{players.length} Jugadores Seleccionados</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-xl font-black text-white italic">{getAvg(players)}</span>
+                  <span className="text-[11px] font-black text-white/50 uppercase tracking-[0.2em]">Rating Promedio</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {players.map((p) => (
+                  <div key={p.id} className="flex justify-between items-center px-4 py-3.5 rounded-2xl transition-all hover:translate-x-1 group/item" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 bg-black/20 group-hover/item:border-white/30 transition-all flex-shrink-0">
+                        {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover object-center" alt={p.name} /> : <span className="text-[11px] font-black opacity-30">{p.name.charAt(0)}</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {(p.isGuest || p.name.includes('(I)')) && canEdit && editingGuestId === p.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              className="bg-black/40 border border-soccer-green/30 rounded-lg px-2 py-1 text-[11px] flex-1 min-w-0 outline-none text-white"
+                              value={editingGuestName}
+                              onChange={e => setEditingGuestName(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && saveGuestName(p.id)}
+                              autoFocus
+                            />
+                            <button onClick={() => saveGuestName(p.id)} className="text-soccer-green flex-shrink-0">
+                              <Check size={14} />
+                            </button>
+                            <button onClick={() => setEditingGuestId(null)} className="text-slate-500 flex-shrink-0">
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-black text-xs text-white/90 uppercase tracking-tight truncate group-hover/item:text-white transition-colors">
+                              {p.name}
+                            </span>
+                            {(p.isGuest || p.name.includes('(I)')) && canEdit && (
+                              <button
+                                onClick={() => {
+                                  setEditingGuestId(p.id);
+                                  setEditingGuestName(p.name.replace(/\(I\)$/i, '').trim());
+                                }}
+                                className="text-soccer-green/60 hover:text-soccer-green flex-shrink-0 transition-colors"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            )}
+                            {canEdit && (
+                              <button
+                                onClick={() => removeFromPool(p)}
+                                className="opacity-0 group-hover/item:opacity-100 text-red-500/40 hover:text-red-500 flex-shrink-0 transition-all ml-1"
+                              >
+                                <X size={11} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-white/50 uppercase italic ml-2 flex-shrink-0">{p.position?.split(' ')[0]}</span>
+                  </div>
+                ))}
+              </div>
+
+              {canEdit && (
+                <button
+                  onClick={() => { setShowGuestModal({ team }); setGuestModalName(''); setGuestModalRating('5'); }}
+                  className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-white/5 text-[11px] font-black uppercase tracking-[0.3em] text-white/50 hover:text-white/60 hover:border-white/20 hover:bg-white/[0.02] transition-all"
+                >
+                  + Integrar Invitado
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

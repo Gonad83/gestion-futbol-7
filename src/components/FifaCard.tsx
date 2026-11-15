@@ -3,8 +3,8 @@
 interface Player {
   id: string;
   name: string;
-  nickname?: string;
-  position?: string;
+  nickname?: string | null;
+  position?: string | null;
   photo_url?: string | null;
   rating: number;
 }
