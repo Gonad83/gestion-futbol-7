@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Club Pro">
+  <defs><linearGradient id="g" x1="60" y1="452" x2="452" y2="60" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2b6ff5"/><stop offset="1" stop-color="#44f3a9"/></linearGradient><clipPath id="b0"><circle cx="198" cy="256" r="58"/></clipPath></defs>
+  <rect width="512" height="512" rx="112" fill="#0b0f15"/>
+  <!-- Escudo de club con CP y el balón adentro -->
+  <g fill="none" stroke="url(#g)" stroke-width="44" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M256 70 L408 120 V262 C408 356 344 416 256 448 C168 416 104 356 104 262 V120 Z" stroke-width="22"/>
+    <g transform="translate(256 246) scale(0.56) translate(-262 -267)"><path d="M277.7 189.1 A104 104 0 1 0 277.7 322.9" stroke-linecap="butt"/><path d="M332 382 V152 H356 a62 62 0 0 1 0 124 H332"/><circle cx="198" cy="256" r="58" fill="url(#g)" stroke="none"/>
+    <g clip-path="url(#b0)" stroke="#0b0f15" stroke-width="4.9" stroke-linejoin="round" stroke-linecap="round" fill="#0b0f15">
+    <path d="M198.0 236.3 L216.8 249.9 L209.6 272.0 L186.4 272.0 L179.2 249.9 Z"/>
+    <path d="M198.0 236.3 L198.0 215.4" fill="none"/>
+    <path d="M198.0 215.4 L174.1 193.7 L221.9 193.7 Z"/>
+    <path d="M216.8 249.9 L236.6 243.5" fill="none"/>
+    <path d="M236.6 243.5 L249.8 214.0 L264.6 259.5 Z"/>
+    <path d="M209.6 272.0 L221.9 288.8" fill="none"/>
+    <path d="M221.9 288.8 L253.9 292.3 L215.3 320.4 Z"/>
+    <path d="M186.4 272.0 L174.1 288.8" fill="none"/>
+    <path d="M174.1 288.8 L180.7 320.4 L142.1 292.3 Z"/>
+    <path d="M179.2 249.9 L159.4 243.5" fill="none"/>
+    <path d="M159.4 243.5 L131.4 259.5 L146.2 214.0 Z"/>
+    </g></g>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Club Pro">
+  <defs><linearGradient id="g" x1="60" y1="452" x2="452" y2="60" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2b6ff5"/><stop offset="1" stop-color="#44f3a9"/></linearGradient><clipPath id="b0"><circle cx="256" cy="256" r="86"/></clipPath></defs>
+  <rect width="512" height="512" rx="112" fill="#0b0f15"/>
+  <!-- Solo la C abrazando el balón: pensado para verse bien muy chico -->
+  <g fill="none" stroke="url(#g)" stroke-width="50" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M374.2 163.7 A150 150 0 1 0 374.2 348.3" stroke-linecap="butt"/>
+    <circle cx="256" cy="256" r="86" fill="url(#g)" stroke="none"/>
+    <g clip-path="url(#b0)" stroke="#0b0f15" stroke-width="7.3" stroke-linejoin="round" stroke-linecap="round" fill="#0b0f15">
+    <path d="M256.0 226.8 L283.8 247.0 L273.2 279.7 L238.8 279.7 L228.2 247.0 Z"/>
+    <path d="M256.0 226.8 L256.0 195.8" fill="none"/>
+    <path d="M256.0 195.8 L220.6 163.7 L291.4 163.7 Z"/>
+    <path d="M283.8 247.0 L313.3 237.4" fill="none"/>
+    <path d="M313.3 237.4 L332.9 193.8 L354.8 261.2 Z"/>
+    <path d="M273.2 279.7 L291.4 304.7" fill="none"/>
+    <path d="M291.4 304.7 L338.9 309.9 L281.6 351.5 Z"/>
+    <path d="M238.8 279.7 L220.6 304.7" fill="none"/>
+    <path d="M220.6 304.7 L230.4 351.5 L173.1 309.9 Z"/>
+    <path d="M228.2 247.0 L198.7 237.4" fill="none"/>
+    <path d="M198.7 237.4 L157.2 261.2 L179.1 193.8 Z"/>
+    </g>
+  </g>
+</svg>
