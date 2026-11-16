@@ -5,13 +5,35 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// El precio lo fija el servidor: lo que mande el navegador como monto se ignora.
+// Debe coincidir con PLAN_INFO en src/pages/Checkout.tsx y con la portada.
+const PLANES: Record<string, Record<string, { monto: number; titulo: string }>> = {
+  pro: {
+    mensual: { monto: 9990, titulo: 'MiClubPro: Plan Pro Mensual' },
+    anual: { monto: 95880, titulo: 'MiClubPro: Plan Pro Anual' },
+  },
+  elite: {
+    mensual: { monto: 24990, titulo: 'MiClubPro: Plan Elite Mensual' },
+    anual: { monto: 239880, titulo: 'MiClubPro: Plan Elite Anual' },
+  },
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS });
   }
 
   try {
-    const { plan, cycle, amount, planLabel, origin, payer } = await req.json();
+    const { plan, cycle, origin, payer } = await req.json();
+    const elegido = PLANES[String(plan)]?.[String(cycle)];
+    if (!elegido) {
+      return new Response(JSON.stringify({ error: 'Plan no válido' }), {
+        status: 400,
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+    const amount = elegido.monto;
+    const planLabel = elegido.titulo;
 
     const MP_ACCESS_TOKEN = Deno.env.get('MP_ACCESS_TOKEN');
     if (!MP_ACCESS_TOKEN) throw new Error('MP_ACCESS_TOKEN no configurado en Supabase');
@@ -25,7 +47,7 @@ serve(async (req) => {
       // Pago único anual
       const preference = {
         items: [{
-          title: planLabel || `Club Pro — Plan ${plan} Anual`,
+          title: planLabel,
           quantity: 1,
           unit_price: amount,
           currency_id: 'CLP',
@@ -52,7 +74,7 @@ serve(async (req) => {
     } else {
       // Suscripción mensual recurrente
       const subscription = {
-        reason: planLabel || `Club Pro — Plan ${plan} Mensual`,
+        reason: planLabel,
         external_reference: `clubpro_${plan}_monthly_${Date.now()}`,
         payer_email: payer?.email || '',
         auto_recurring: {

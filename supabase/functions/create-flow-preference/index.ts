@@ -5,6 +5,19 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// El precio lo fija el servidor: lo que mande el navegador como monto se ignora.
+// Debe coincidir con PLAN_INFO en src/pages/Checkout.tsx y con la portada.
+const PLANES: Record<string, Record<string, { monto: number; titulo: string }>> = {
+  pro: {
+    mensual: { monto: 9990, titulo: 'MiClubPro: Plan Pro Mensual' },
+    anual: { monto: 95880, titulo: 'MiClubPro: Plan Pro Anual' },
+  },
+  elite: {
+    mensual: { monto: 24990, titulo: 'MiClubPro: Plan Elite Mensual' },
+    anual: { monto: 239880, titulo: 'MiClubPro: Plan Elite Anual' },
+  },
+};
+
 const FLOW_API_URL = 'https://www.flow.cl/api';
 
 async function signParams(params: Record<string, string>, secretKey: string): Promise<string> {
@@ -21,7 +34,16 @@ serve(async (req) => {
   }
 
   try {
-    const { plan, cycle, amount, planLabel, origin, payer } = await req.json();
+    const { plan, cycle, origin, payer } = await req.json();
+    const elegido = PLANES[String(plan)]?.[String(cycle)];
+    if (!elegido) {
+      return new Response(JSON.stringify({ error: 'Plan no válido' }), {
+        status: 400,
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+    const amount = elegido.monto;
+    const planLabel = elegido.titulo;
 
     const FLOW_API_KEY = Deno.env.get('FLOW_API_KEY');
     const FLOW_SECRET_KEY = Deno.env.get('FLOW_SECRET_KEY');
@@ -33,7 +55,7 @@ serve(async (req) => {
     const params: Record<string, string> = {
       apiKey: FLOW_API_KEY,
       commerceOrder,
-      subject: planLabel || `Club Pro — Plan ${plan}`,
+      subject: planLabel,
       currency: 'CLP',
       amount: String(amount),
       email: payer?.email || '',
