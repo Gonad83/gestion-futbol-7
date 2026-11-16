@@ -60,7 +60,8 @@ serve(async (req) => {
       amount: String(amount),
       email: payer?.email || '',
       urlConfirmation: `${supabaseUrl}/functions/v1/flow-webhook`,
-      urlReturn: `${origin}/payment-success?gateway=flow&plan=${plan}&cycle=${cycle}&email=${encodeURIComponent(payer?.email || '')}&name=${encodeURIComponent(payer?.name || '')}&team=${encodeURIComponent(payer?.teamName || '')}`,
+      // Flow vuelve con un POST y el sitio estático no lo acepta: pasa por flow-return, que redirige con GET.
+      urlReturn: `${supabaseUrl}/functions/v1/flow-return?${new URLSearchParams({ o: String(origin ?? ''), plan: String(plan), cycle: String(cycle), email: payer?.email || '', name: payer?.name || '', team: payer?.teamName || '' })}`,
       paymentMethod: '9',
     };
 

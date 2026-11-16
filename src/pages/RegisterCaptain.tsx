@@ -40,8 +40,15 @@ export default function RegisterCaptain() {
   const [ageRange, setAgeRange] = useState('Open');
   const [preferredFormat, setPreferredFormat] = useState('7vs7');
 
-  const planLabel = planParam === 'annual' ? 'Anual' : planParam === 'monthly' ? 'Mensual' : 'Prueba Gratis';
-  const planColor = planParam === 'annual' ? '#44f3a9' : planParam === 'monthly' ? '#9acbff' : 'rgba(255,255,255,0.5)';
+  // El enlace trae lo comprado (pro / elite) y el ciclo (mensual / anual). La base guarda el
+  // ciclo como plan (monthly / annual) y solo lo acepta si existe un pago confirmado de ese correo.
+  const esPagado = planParam === 'pro' || planParam === 'elite';
+  const esAnual = params.get('cycle') === 'anual';
+  const planBase = esPagado ? (esAnual ? 'annual' : 'monthly') : planParam;
+  const planLabel = esPagado
+    ? `${planParam === 'elite' ? 'Elite' : 'Pro'} ${esAnual ? 'Anual' : 'Mensual'}`
+    : planParam === 'annual' ? 'Anual' : planParam === 'monthly' ? 'Mensual' : 'Prueba Gratis';
+  const planColor = planBase === 'annual' ? '#44f3a9' : planBase === 'monthly' ? '#9acbff' : 'rgba(255,255,255,0.5)';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +74,7 @@ export default function RegisterCaptain() {
       const { error: regErr } = await supabase.rpc('register_new_captain', {
         p_team_name: teamName.trim(),
         p_join_code: generateJoinCode(),
-        p_plan: planParam,
+        p_plan: planBase,
         p_captain_name: name.trim() || email.split('@')[0],
         p_captain_email: email.trim(),
         p_owner_id: signUpData.user.id,
@@ -108,7 +115,7 @@ export default function RegisterCaptain() {
           </div>
           {planParam !== 'free' && (
             <p className="text-[11px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: '#44f3a9' }}>
-              Pago confirmado
+              Último paso
             </p>
           )}
           <h1 className="font-headline font-black text-3xl text-white tracking-tight">
