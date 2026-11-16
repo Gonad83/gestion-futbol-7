@@ -15,10 +15,10 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
   pro: {
     mensual: {
       label: 'Plan Pro Mensual',
-      price: '$2.990',
+      price: '$9.990',
       period: '/mes',
       subtext: 'Facturación mensual · Cancela cuando quieras',
-      amount: 2990,
+      amount: 9990,
       color: '#9acbff',
       features: [
         'Hasta 14 jugadores — titulares y suplentes',
@@ -33,10 +33,10 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
     },
     anual: {
       label: 'Plan Pro Anual',
-      price: '$17.940',
+      price: '$95.880',
       period: '/año',
-      subtext: '$1.495/mes · Ahorras $17.940 vs mensual',
-      amount: 17940,
+      subtext: '$7.990/mes · Ahorras $24.000 vs mensual',
+      amount: 95880,
       color: '#9acbff',
       features: [
         'Hasta 14 jugadores — titulares y suplentes',
@@ -53,10 +53,10 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
   elite: {
     mensual: {
       label: 'Plan Elite Mensual',
-      price: '$4.990',
+      price: '$24.990',
       period: '/mes',
       subtext: 'Facturación mensual · Cancela cuando quieras',
-      amount: 4990,
+      amount: 24990,
       color: '#44f3a9',
       features: [
         'Todo lo del plan Pro incluido',
@@ -70,10 +70,10 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
     },
     anual: {
       label: 'Plan Elite Anual',
-      price: '$29.940',
+      price: '$239.880',
       period: '/año',
-      subtext: '$2.495/mes · Ahorras $29.940 vs mensual',
-      amount: 29940,
+      subtext: '$19.990/mes · Ahorras $60.000 vs mensual',
+      amount: 239880,
       color: '#44f3a9',
       features: [
         'Todo lo del plan Pro incluido',

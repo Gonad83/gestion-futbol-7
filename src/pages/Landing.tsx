@@ -1,700 +1,463 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Users, CalendarDays, DollarSign, Star, Zap,
-  CheckCircle2, ArrowRight, MessageCircle, Shield,
-  BarChart3, Smartphone, Loader2, X, Menu
-} from 'lucide-react';
-import AuroraPricing from '../components/ui/aurora-pricing';
-import HowItWorks from '../components/HowItWorks';
+import './landing.css';
 
-const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
+// Los jugadores, el rival y los montos de la caja son de ejemplo: solo muestran
+// cómo se ve la app. Los precios de los planes sí son los reales y deben
+// coincidir con PLAN_INFO en Checkout.tsx.
 
-type Plan = 'free' | 'pro' | 'elite' | 'monthly' | 'annual';
+type Estado = 'va' | 'falta' | 'no';
+type Posicion = 'ARQ' | 'DEF' | 'MED' | 'DEL';
+type Jugador = { n: string; p: Posicion; r: number };
+type Ciclo = 'mensual' | 'anual';
 
-const MONTHLY = 4990;
-const ANNUAL_MES = 2495;   // 50% off
-const ANNUAL_TOTAL = ANNUAL_MES * 12; // 29.940
-const ANNUAL_SAVINGS = MONTHLY * 12 - ANNUAL_TOTAL; // 29.940
+const TOTAL = 14;
+const CONFIRMADOS_INICIO = 9;
+const ASISTENCIA: { n: string; e: Estado }[] = [
+  { n: 'Carlos Rojas', e: 'va' },
+  { n: 'Marco Fuentes', e: 'falta' },
+  { n: 'Pablo Lagos', e: 'falta' },
+  { n: 'Rodrigo Vera', e: 'no' },
+];
+const ETIQUETA: Record<Estado, string> = { va: 'Va', falta: 'Confirmar', no: 'No va' };
 
-const FEATURES = [
-  { icon: <Users size={22} />, color: '#44f3a9', title: 'Gestión de Plantilla', desc: 'Registra jugadores con foto, posición, apodo, rating y estado. Controla activos, lesionados e inactivos.' },
-  { icon: <CalendarDays size={22} />, color: '#9acbff', title: 'Calendario Inteligente', desc: 'Programa partidos y eventos. Visualiza cumpleaños de jugadores. Dos tipos de evento: Deportivo y Recreacional.' },
-  { icon: <CheckCircle2 size={22} />, color: '#44f3a9', title: 'Confirmación de Asistencia', desc: 'Los jugadores confirman su asistencia por mail o de forma manual. Ve en tiempo real cuántos van.' },
-  { icon: <Zap size={22} />, color: '#ffd08b', title: 'Armado Automático de Equipos', desc: 'El sistema divide los jugadores confirmados en equipos balanceados por rating y posición. Exporta a WhatsApp.' },
-  { icon: <DollarSign size={22} />, color: '#44f3a9', title: 'Caja y Cuotas', desc: 'Registra cuotas, egresos e ingresos. Identifica morosos al instante. Filtra por estado de pago.' },
-  { icon: <Star size={22} />, color: '#ffd700', title: 'Votación MVP Semanal', desc: 'Vota al mejor jugador de cada partido Deportivo. El sistema genera un historial de MVPs y ranking.' },
-  { icon: <BarChart3 size={22} />, color: '#9acbff', title: 'Estadísticas de Participación', desc: 'Seguimiento anual de partidos jugados y % de asistencia por jugador, con indicador visual de color.' },
-  { icon: <Shield size={22} />, color: '#44f3a9', title: 'Roles Capitán / Jugador', desc: 'El capitán gestiona todo. Los jugadores ven su perfil, confirman asistencia y votan al MVP.' },
-  { icon: <Smartphone size={22} />, color: '#9acbff', title: 'Diseño Mobile-First', desc: 'Funciona perfecto en el celular. Comparte listas de asistencia y equipos directo a WhatsApp.' },
+const JUGADORES: Jugador[] = [
+  { n: 'Carlos Rojas', p: 'ARQ', r: 4 },
+  { n: 'Gabriel Herrera', p: 'ARQ', r: 3 },
+  { n: 'Diego García', p: 'DEF', r: 5 },
+  { n: 'Andrés Bravo', p: 'DEF', r: 3 },
+  { n: 'Nicolás Kramm', p: 'DEF', r: 4 },
+  { n: 'Tomás Pizarro', p: 'DEF', r: 2 },
+  { n: 'Marco Fuentes', p: 'MED', r: 5 },
+  { n: 'Pablo Lagos', p: 'MED', r: 3 },
+  { n: 'Walter Ríos', p: 'MED', r: 4 },
+  { n: 'Sergio Muñoz', p: 'MED', r: 2 },
+  { n: 'Rodrigo Vera', p: 'DEL', r: 5 },
+  { n: 'Luis Barra', p: 'DEL', r: 3 },
+  { n: 'Felipe Orellana', p: 'DEL', r: 4 },
+  { n: 'Ignacio Soto', p: 'DEL', r: 2 },
+];
+const POSICIONES: Posicion[] = ['ARQ', 'DEF', 'MED', 'DEL'];
+const NOMBRE_POS: Record<Posicion, string> = { ARQ: 'Arqueros', DEF: 'Defensas', MED: 'Medios', DEL: 'Delanteros' };
+
+const iniciales = (n: string) => n.split(' ').map(p => p[0]).join('').slice(0, 2);
+const apellido = (n: string) => n.split(' ').slice(1).join(' ');
+const suma = (eq: Jugador[]) => eq.reduce((t, j) => t + j.r, 0);
+const promedio = (eq: Jugador[]) => (suma(eq) / eq.length).toFixed(1).replace('.', ',');
+
+// Reparte por posición (cada equipo con su arquero, defensas, etc.) y, dentro de
+// cada posición, del mejor al más bajo hacia el equipo que va perdiendo en nivel.
+function armarEquipos(): [Jugador[], Jugador[]] {
+  const a: Jugador[] = [];
+  const b: Jugador[] = [];
+  const tope = Math.ceil(JUGADORES.length / 2);
+  const mezclados = JUGADORES.map(j => ({ j, azar: Math.random() })).sort((x, y) => x.azar - y.azar).map(x => x.j);
+  const ordenados = mezclados.sort((x, y) => POSICIONES.indexOf(x.p) - POSICIONES.indexOf(y.p) || y.r - x.r);
+  for (const j of ordenados) {
+    const enPos = (eq: Jugador[]) => eq.filter(k => k.p === j.p).length;
+    let destino: Jugador[];
+    if (a.length >= tope) destino = b;
+    else if (b.length >= tope) destino = a;
+    else if (enPos(a) !== enPos(b)) destino = enPos(a) < enPos(b) ? a : b;
+    else if (suma(a) !== suma(b)) destino = suma(a) < suma(b) ? a : b;
+    else destino = Math.random() < 0.5 ? a : b;
+    destino.push(j);
+  }
+  return [a, b];
+}
+
+const PRECIOS = {
+  pro: { mensual: '$9.990', anual: '$7.990', notaAnual: '$95.880 al año, en un pago' },
+  elite: { mensual: '$24.990', anual: '$19.990', notaAnual: '$239.880 al año, en un pago' },
+};
+const NOTA_MENSUAL = 'Pago mes a mes, sin permanencia';
+
+const PREGUNTAS = [
+  ['¿Necesito instalar algo?', 'No. MiClubPro funciona desde el navegador de tu celular o computador. Creas una cuenta y empiezas.'],
+  ['¿Cómo funciona el mes de prueba?', 'Al registrarte tienes un mes completo gratis, sin tarjeta de crédito.'],
+  ['¿Cómo confirman asistencia los jugadores?', 'Reciben un correo con un link único y confirman o rechazan con un clic. El capitán también puede confirmar a mano desde su panel.'],
+  ['¿Cómo se arman los equipos?', 'El sistema toma a los confirmados, mira su nivel y posición, y los divide en dos equipos lo más parejos posible. El resultado se exporta a WhatsApp.'],
+  ['¿Puedo cancelar cuando quiera?', 'Sí, sin preguntas ni multas. Tu equipo y sus datos quedan guardados 90 días después de cancelar.'],
+  ['¿Mis datos están seguros?', 'Sí. Los datos viajan y se guardan cifrados, y no se venden ni se comparten con terceros.'],
 ];
 
-const PLANS: {
-  id: Plan;
-  label: string;
-  badge: string | null;
-  accentColor: string;
-  price: string;
-  period: string;
-  subtext: string;
-  highlight: boolean;
-  features: string[];
-  cta: string;
-}[] = [
-  {
-    id: 'free',
-    label: 'Prueba Gratis',
-    badge: '1 MES',
-    accentColor: 'rgba(255,255,255,0.45)',
-    price: '$0',
-    period: '',
-    subtext: 'Sin tarjeta de crédito · Sin compromiso',
-    highlight: false,
-    features: [
-      'Hasta 10 jugadores registrados',
-      'Hasta 4 jugadores invitados (para Matchmaking)',
-      'Calendario y eventos',
-      'Armado de equipos',
-      'Caja y cuotas',
-      'Votación MVP',
-      'Estadísticas de participación',
-    ],
-    cta: 'Empezar gratis',
-  },
-  {
-    id: 'monthly',
-    label: 'Mensual',
-    badge: null,
-    accentColor: '#9acbff',
-    price: `$${MONTHLY.toLocaleString('es-CL')}`,
-    period: '/mes',
-    subtext: 'Incluye 1 mes de prueba · Sin compromiso',
-    highlight: false,
-    features: [
-      'Jugadores ilimitados',
-      'Calendario y eventos',
-      'Armado de equipos',
-      'Caja y cuotas',
-      'Votación MVP',
-      'Estadísticas de participación',
-      'Soporte por WhatsApp',
-    ],
-    cta: 'Elegir mensual',
-  },
-  {
-    id: 'annual',
-    label: 'Anual',
-    badge: '50% OFF',
-    accentColor: '#44f3a9',
-    price: `$${ANNUAL_MES.toLocaleString('es-CL')}`,
-    period: '/mes',
-    subtext: `$${ANNUAL_TOTAL.toLocaleString('es-CL')}/año · Ahorras $${ANNUAL_SAVINGS.toLocaleString('es-CL')}`,
-    highlight: true,
-    features: [
-      'Jugadores ilimitados',
-      'Calendario y eventos',
-      'Armado de equipos',
-      'Caja y cuotas',
-      'Votación MVP',
-      'Estadísticas de participación',
-      'Soporte prioritario',
-      'Acceso anticipado a nuevas funciones',
-    ],
-    cta: 'Elegir anual',
-  },
-];
+const FOTO = (id: string, ancho: number) => `https://images.unsplash.com/photo-${id}?w=${ancho}&q=72&auto=format&fit=crop`;
 
 export default function Landing() {
-  const [billing, setBilling] = useState<Plan>('annual');
-  const [showModal, setShowModal] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [paying, setPaying] = useState(false);
-  const [payError, setPayError] = useState('');
+  const raiz = useRef<HTMLDivElement>(null);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [asistencia, setAsistencia] = useState(ASISTENCIA);
+  const [equipos, setEquipos] = useState<[Jugador[], Jugador[]] | null>(null);
+  const [ciclo, setCiclo] = useState<Ciclo>('anual');
+  const [registro, setRegistro] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', teamName: '' });
+  const [aviso, setAviso] = useState('');
 
-  const [showSplash, setShowSplash] = useState(false);
-  const [splashFading, setSplashFading] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const confirmados = CONFIRMADOS_INICIO + asistencia.filter((j, i) => j.e === 'va' && ASISTENCIA[i].e === 'falta').length;
+  const faltan = asistencia.some(j => j.e === 'falta');
 
+  // Aparición al bajar. Si el navegador no tiene IntersectionObserver, todo queda visible.
   useEffect(() => {
-    const seen = localStorage.getItem('clubpro_intro_seen');
-    if (!seen) setShowSplash(true);
+    const nodo = raiz.current;
+    if (!nodo || !('IntersectionObserver' in window)) return;
+    nodo.classList.add('lp-js');
+    const ojo = new IntersectionObserver(entradas => {
+      entradas.forEach(en => {
+        if (!en.isIntersecting) return;
+        en.target.classList.add('visto');
+        ojo.unobserve(en.target);
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    nodo.querySelectorAll('[data-rev]').forEach(el => ojo.observe(el));
+    return () => ojo.disconnect();
   }, []);
 
-  const closeSplash = () => {
-    setSplashFading(true);
-    setTimeout(() => {
-      setShowSplash(false);
-      localStorage.setItem('clubpro_intro_seen', '1');
-    }, 700);
-  };
-  const whatsappLink = 'https://wa.me/56900000000?text=Hola%2C%20quiero%20info%20sobre%20la%20app%20de%20gesti%C3%B3n%20de%20f%C3%BAtbol';
+  useEffect(() => {
+    if (!aviso) return;
+    const t = setTimeout(() => setAviso(''), 2600);
+    return () => clearTimeout(t);
+  }, [aviso]);
 
-  const openModal = (plan: Plan, cycle?: 'mensual' | 'anual') => {
-    if (plan === 'free') {
-      setShowModal(true);
-      setBilling(plan);
-      return;
-    }
-    const planId = plan === 'elite' ? 'elite' : 'pro';
-    const billingCycle = cycle ?? 'mensual';
-    window.location.href = `/checkout?plan=${planId}&cycle=${billingCycle}`;
-  };
+  useEffect(() => {
+    if (!registro) return;
+    const cerrar = (e: KeyboardEvent) => { if (e.key === 'Escape') setRegistro(false); };
+    window.addEventListener('keydown', cerrar);
+    return () => window.removeEventListener('keydown', cerrar);
+  }, [registro]);
 
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const diferencia = useMemo(() => (equipos ? Math.abs(suma(equipos[0]) - suma(equipos[1])) : 0), [equipos]);
 
-    if (billing === 'free') {
-      const params = new URLSearchParams({
-        plan: 'free', email: form.email, name: form.name, team: form.teamName, status: 'approved',
-      });
-      window.location.href = `/register-captain?${params.toString()}`;
-      return;
-    }
+  const confirmar = (i: number) => setAsistencia(lista => lista.map((j, k) => (k === i && j.e === 'falta' ? { ...j, e: 'va' } : j)));
 
-    setPaying(true);
-    setPayError('');
+  const copiar = async () => {
+    if (!equipos) return;
+    const bloque = (nombre: string, eq: Jugador[]) => `*${nombre}*\n${eq.map(j => `• ${j.n} (${j.p})`).join('\n')}`;
+    const texto = `⚽ Viernes 21:00 · Cancha Norte\n\n${bloque('Equipo A', equipos[0])}\n\n${bloque('Equipo B', equipos[1])}`;
     try {
-      const res = await fetch(MP_FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          plan: billing,
-          origin: window.location.origin,
-          payer: { name: form.name, email: form.email, teamName: form.teamName },
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.url) throw new Error(data.error || 'Error al crear el pago');
-      window.location.href = data.url;
-    } catch (err: any) {
-      setPayError(err.message || 'Error al conectar con Mercado Pago');
-      setPaying(false);
+      await navigator.clipboard.writeText(texto);
+      setAviso('Lista copiada: pégala en el grupo');
+    } catch {
+      setAviso('No se pudo copiar desde este navegador');
     }
   };
 
-  const selectedPlan = PLANS.find(p => p.id === billing)!;
+  const crearEquipo = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams({ plan: 'free', email: form.email, name: form.name, team: form.teamName, status: 'approved' });
+    window.location.href = `/register-captain?${params.toString()}`;
+  };
+
+  const mitad = (eq: Jugador[]) => {
+    let k = 0;
+    return POSICIONES.map(p => (
+      <ul className="linea" aria-label={NOMBRE_POS[p]} key={p}>
+        {eq.filter(j => j.p === p).map(j => (
+          <li className="ficha" style={{ animationDelay: `${(k++) * 45}ms` }} key={j.n}>
+            <span className="cam">{iniciales(j.n)}</span>
+            <span className="fn">{apellido(j.n)}</span>
+            <span className="fniv">{j.p} ★{j.r}</span>
+          </li>
+        ))}
+      </ul>
+    ));
+  };
+
+  const BotonGratis = ({ clase = 'btn btn-verde' }: { clase?: string }) => (
+    <button type="button" className={clase} onClick={() => { setMenuAbierto(false); setRegistro(true); }}>Crear mi equipo gratis</button>
+  );
 
   return (
-    <div className="min-h-screen" style={{ background: 'radial-gradient(ellipse at 60% 0%, #0e1e35 0%, #0d1520 35%, #0b1018 100%)', fontFamily: 'Manrope, sans-serif', color: '#fff' }}>
+    <div className="lp" ref={raiz}>
+      <header className="nav" id="inicio">
+        <a className="marca" href="#inicio" aria-label="MiClubPro, inicio">
+          <img src="/logo.png" alt="" width={30} height={30} />
+          <span>MiClub<b>Pro</b></span>
+        </a>
+        <button className="nav-btn" type="button" aria-expanded={menuAbierto} aria-controls="menu" aria-label="Abrir menú" onClick={() => setMenuAbierto(v => !v)}><i /><i /><i /></button>
+        <nav className={`menu${menuAbierto ? ' abierto' : ''}`} id="menu" aria-label="Principal" onClick={e => { if ((e.target as HTMLElement).closest('a')) setMenuAbierto(false); }}>
+          <a href="#armado">Pruébalo</a>
+          <a href="#features">Funciones</a>
+          <a href="#how-it-works">Cómo funciona</a>
+          <a href="#pricing">Precios</a>
+          <a href="#preguntas">Preguntas</a>
+          <Link className="menu-entrar" to="/login">Ingresar</Link>
+          <BotonGratis clase="btn btn-verde btn-ch" />
+        </nav>
+      </header>
 
-
-      {/* NAV */}
-      <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4"
-        style={{ background: 'rgba(10,14,20,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <Link to="/" className="flex items-center gap-3 flex-shrink-0">
-          <img src="/logo.png" alt="Club Pro Logo" className="w-9 h-9 object-contain" />
-          <span className="font-headline font-black text-white text-lg tracking-tight uppercase">Club Pro</span>
-        </Link>
-        {/* Desktop links — pill bar */}
-        <div className="hidden md:flex items-center rounded-xl p-1"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          {[
-            { label: 'Funcionalidades', href: '#features' },
-            { label: 'Cómo funciona', href: '#how-it-works' },
-            { label: 'Precios', href: '#pricing' },
-          ].map(l => (
-            <a key={l.label} href={l.href}
-              className="text-sm font-semibold px-4 py-1.5 rounded-lg transition-all hover:text-white hover:bg-white/10"
-              style={{ color: 'rgba(255,255,255,0.55)' }}>
-              {l.label}
-            </a>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <Link to="/login"
-            className="flex items-center gap-1.5 text-sm font-black px-4 py-2 rounded-xl transition-all hover:brightness-110"
-            style={{ background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822' }}>
-            Ingresar a MiClubPro <ArrowRight size={13} />
-          </Link>
-          <button className="md:hidden p-2 text-white/40 hover:text-white" onClick={() => setMobileMenuOpen(v => !v)}>
-            <Menu size={20} />
-          </button>
-        </div>
-      </nav>
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden sticky top-[65px] z-40 px-6 py-4 space-y-2" style={{ background: 'rgba(10,14,20,0.97)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          {[
-            { label: 'Funcionalidades', href: '#features' },
-            { label: 'Cómo funciona', href: '#how-it-works' },
-            { label: 'Precios', href: '#pricing' },
-          ].map(l => (
-            <a key={l.label} href={l.href} onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-white/60 hover:text-white py-2 transition-colors">
-              {l.label}
-            </a>
-          ))}
-        </div>
-      )}
-
-      {/* HERO */}
-      <section className="relative overflow-hidden px-6 pt-24 pb-28 text-center">
-
-        {/* Video intro overlay — solo primera visita */}
-        {showSplash && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 20,
-            background: '#000',
-            opacity: splashFading ? 0 : 1,
-            transition: 'opacity 0.8s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <video
-              ref={videoRef}
-              src="/intro.mp4"
-              autoPlay
-              muted
-              playsInline
-              onEnded={closeSplash}
-              style={{
-                maxWidth: '560px',
-                width: '90%',
-                height: 'auto',
-                display: 'block',
-                borderRadius: '16px',
-              }}
-            />
-            <button
-              onClick={closeSplash}
-              style={{
-                position: 'absolute', bottom: 20, right: 20,
-                background: 'rgba(0,0,0,0.6)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: '#fff', fontFamily: 'Manrope, sans-serif',
-                fontWeight: 700, fontSize: 13,
-                padding: '8px 20px', borderRadius: 8,
-                cursor: 'pointer', backdropFilter: 'blur(8px)',
-                letterSpacing: '0.05em',
-              }}
-            >
-              Saltar →
-            </button>
-          </div>
-        )}
-
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full"
-            style={{ background: 'radial-gradient(ellipse, rgba(68,243,169,0.08) 0%, transparent 70%)' }} />
-        </div>
-        <div className="relative max-w-3xl mx-auto"
-          style={{ opacity: showSplash && !splashFading ? 0 : 1, transition: 'opacity 0.8s ease' }}>
-          <span className="inline-block text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full mb-6"
-            style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>
-            Para equipos deportivos
-          </span>
-          <h1 className="font-headline font-black text-5xl sm:text-6xl md:text-7xl text-white tracking-tight leading-[1.05] mb-6">
-            Gestiona tu equipo<br />
-            <span style={{ color: '#44f3a9' }}>como un profesional</span>
-          </h1>
-          <p className="text-white/50 text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed">
-            Asistencia, equipos balanceados, caja, votación MVP y más — todo en una sola app para tu equipo deportivo.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="#pricing"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-base transition-all hover:brightness-110"
-              style={{ background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822', boxShadow: '0 8px 32px rgba(68,243,169,0.3)' }}>
-              Ver planes <ArrowRight size={16} />
-            </a>
-            <a href={whatsappLink} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:bg-white/10"
-              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <MessageCircle size={16} /> Consultar por WhatsApp
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* HERO VIDEO */}
-      <section className="px-4 sm:px-6 pb-16 max-w-5xl mx-auto">
-        <div className="relative mx-auto" style={{ perspective: '1400px' }}>
-          <div style={{ transform: 'rotateX(4deg)', transformOrigin: 'center top', transformStyle: 'preserve-3d' }}>
-            <div className="rounded-2xl overflow-hidden" style={{
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 48px 140px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px rgba(68,243,169,0.06)'
-            }}>
-              <video
-                src="/hero.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="w-full block"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* APP PREVIEW */}
-      <section className="px-4 sm:px-6 pb-24 max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#9acbff' }}>Vista previa</p>
-          <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight">La app por dentro</h2>
-          <p className="text-white/40 text-base mt-3 max-w-md mx-auto">Todo lo que necesita tu club, en una interfaz limpia y rápida.</p>
-        </div>
-
-        <div className="relative mx-auto" style={{ perspective: '1400px' }}>
-          <div style={{ transform: 'rotateX(5deg)', transformOrigin: 'center top', transformStyle: 'preserve-3d' }}>
-            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 48px 140px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)' }}>
-              {/* Browser bar */}
-              <div className="flex items-center gap-3 px-4 py-3" style={{ background: '#080c10', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <div className="w-3 h-3 rounded-full" style={{ background: '#ff5f57' }} />
-                  <div className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
-                  <div className="w-3 h-3 rounded-full" style={{ background: '#28c840' }} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 max-w-xs mx-auto rounded-md px-3 py-1 text-[11px]" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}>
-                    <span>🔒</span> app.clubpro.cl/dashboard
-                  </div>
-                </div>
-              </div>
-
-              {/* App layout */}
-              <div className="flex" style={{ background: '#10141a', height: '420px' }}>
-                {/* Sidebar */}
-                <div className="hidden sm:flex flex-col w-52 flex-shrink-0" style={{ background: '#0a0e14', borderRight: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="flex flex-col items-center gap-2 px-4 pt-6 pb-4">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-xs font-black" style={{ background: 'rgba(68,243,169,0.15)', border: '2px solid rgba(68,243,169,0.3)', color: '#44f3a9' }}>FC</div>
-                    <p className="text-white font-headline font-bold text-xs text-center">Los Cóndores FC</p>
-                    <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.25)' }}>capitan@ejemplo.cl</p>
-                  </div>
-                  <div className="px-3 space-y-0.5 flex-1">
-                    <p className="text-[8px] font-bold uppercase tracking-[0.2em] px-3 mb-2 mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>Navegación</p>
-                    {[
-                      { label: 'Dashboard', active: true, color: '#44f3a9' },
-                      { label: 'Caja', active: false },
-                      { label: 'Plantilla', active: false },
-                      { label: 'Calendario', active: false },
-                      { label: 'Matchmaking', active: false },
-                    ].map(item => (
-                      <div key={item.label} className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
-                        style={item.active ? { background: 'rgba(68,243,169,0.1)', boxShadow: 'inset 0 0 0 1px rgba(68,243,169,0.2)' } : {}}>
-                        <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: item.active ? '#44f3a9' : 'rgba(255,255,255,0.2)' }} />
-                        <span className="text-xs font-semibold" style={{ color: item.active ? '#fff' : 'rgba(255,255,255,0.35)' }}>{item.label}</span>
-                        {item.active && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: '#44f3a9' }} />}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-3 mx-2 mb-3 rounded-xl" style={{ background: 'rgba(255,208,139,0.07)', border: '1px solid rgba(255,208,139,0.2)' }}>
-                    <p className="text-[8px] font-black uppercase tracking-wider mb-1" style={{ color: '#ffd08b' }}>Plan Gratuito</p>
-                    <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Actualiza para desbloquear todo.</p>
-                  </div>
-                </div>
-
-                {/* Main content */}
-                <div className="flex-1 p-5 overflow-hidden">
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Bienvenido</p>
-                      <h3 className="font-headline font-black text-white text-xl">Dashboard</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>⚽</div>
-                    </div>
-                  </div>
-
-                  {/* KPI grid */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                    {[
-                      { label: 'Jugadores', value: '14', sub: 'activos', color: '#44f3a9' },
-                      { label: 'Próximo partido', value: 'Vie 16', sub: 'mayo', color: '#9acbff' },
-                      { label: 'Caja', value: '$84.500', sub: 'disponible', color: '#ffd08b' },
-                      { label: 'Asistencia', value: '78%', sub: 'promedio', color: '#44f3a9' },
-                    ].map(kpi => (
-                      <div key={kpi.label} className="p-3 rounded-xl" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <p className="text-[8px] text-white/30 font-bold uppercase tracking-wider mb-1">{kpi.label}</p>
-                        <p className="font-headline font-black text-lg leading-none" style={{ color: kpi.color }}>{kpi.value}</p>
-                        <p className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>{kpi.sub}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Match card + players row */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    <div className="p-4 rounded-xl" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-[8px] font-black uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>Próximo Partido</p>
-                        <span className="text-[8px] px-2 py-0.5 rounded-full font-black" style={{ background: 'rgba(68,243,169,0.15)', color: '#44f3a9' }}>Viernes</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: 'rgba(68,243,169,0.1)' }}>⚽</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-xs font-bold truncate">vs. Los Leones FC</p>
-                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Cancha Norte · 21:00</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Confirmados</p>
-                          <p className="text-sm font-black" style={{ color: '#44f3a9' }}>9 / 14</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <p className="text-[8px] font-black uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>Plantilla</p>
-                      <div className="flex gap-2 flex-wrap">
-                        {[
-                          { init: 'CR', c: '68,243,169' }, { init: 'DG', c: '154,203,255' }, { init: 'AB', c: '68,243,169' },
-                          { init: 'MF', c: '255,208,139' }, { init: 'PL', c: '154,203,255' }, { init: 'RV', c: '68,243,169' },
-                        ].map((p, i) => (
-                          <div key={i} className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0"
-                            style={{ background: `rgba(${p.c},0.15)`, color: `rgb(${p.c})`, border: `1px solid rgba(${p.c},0.3)` }}>
-                            {p.init}
-                          </div>
-                        ))}
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
-                          style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}>+8</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      <main>
+        <section className="hero">
+          <h1>Deja de perseguir a tu equipo <em>por WhatsApp.</em></h1>
+          <div className="hero-pie">
+            <div className="hero-txt">
+              <p className="bajada">Asistencia confirmada, equipos parejos y cuotas al día antes de cada partido. Desde el celular, sin instalar nada.</p>
+              <div className="acciones">
+                <BotonGratis />
+                <a className="btn btn-linea" href="#armado">Probar el armado</a>
               </div>
             </div>
-          </div>
-          {/* Glow */}
-          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-2/3 h-20 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse, rgba(68,243,169,0.1) 0%, transparent 70%)', filter: 'blur(24px)' }} />
-        </div>
-      </section>
-
-      <HowItWorks />
-
-      {/* FEATURES */}
-      <section id="features" className="px-6 pb-24 max-w-6xl mx-auto">
-        <div className="text-center mb-14">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: '#44f3a9' }}>Funcionalidades</p>
-          <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight">Todo lo que necesita tu equipo</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="p-6 rounded-2xl transition-all hover:translate-y-[-2px]"
-              style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: `${f.color}15`, color: f.color, border: `1px solid ${f.color}20` }}>
-                {f.icon}
+            <figure className="hero-foto">
+              <img src={FOTO('1632300951015-42d7df909581', 1500)} alt="Partido de fútbol amateur en cancha sintética al atardecer, visto desde la reja" width={1500} height={844} fetchPriority="high" />
+            </figure>
+            <div className="partido" aria-label="Ejemplo interactivo de confirmación de asistencia">
+              <p className="par-rot">Próximo partido</p>
+              <p className="par-tit">vs. Los Leones FC</p>
+              <p className="par-dato">Viernes, 21:00. Cancha Norte</p>
+              <p className="par-cuenta"><strong><span>{confirmados}</span>/{TOTAL}</strong> confirmados</p>
+              <div className="pips" aria-hidden="true">
+                {Array.from({ length: TOTAL }, (_, i) => <i className={i < confirmados ? 'on' : ''} key={i} />)}
               </div>
-              <h3 className="font-headline font-bold text-white text-base mb-2">{f.title}</h3>
-              <p className="text-white/40 text-sm leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* PRICING */}
-      <AuroraPricing onSelectPlan={openModal} />
-
-      {/* BOTTOM CTA */}
-      <section className="px-6 pb-24">
-        <div className="max-w-2xl mx-auto text-center p-12 rounded-3xl relative overflow-hidden"
-          style={{ background: '#1c2026', border: '1px solid rgba(68,243,169,0.12)' }}>
-          <div className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(68,243,169,0.07) 0%, transparent 70%)' }} />
-          <h2 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight mb-4 relative">
-            ¿Listo para ordenar<br />tu equipo?
-          </h2>
-          <p className="text-white/40 text-base mb-8 relative">
-            Empieza hoy con un mes gratis. Sin compromisos.
-          </p>
-          <a href={whatsappLink} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-base transition-all hover:brightness-110 relative"
-            style={{ background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822', boxShadow: '0 8px 32px rgba(68,243,169,0.3)' }}>
-            <MessageCircle size={18} /> Contáctanos por WhatsApp
-          </a>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer style={{ background: '#07090f', borderTop: '1px solid rgba(255,255,255,0.06)', fontFamily: 'Manrope, sans-serif' }}>
-        <div className="max-w-6xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-10">
-          {/* Brand */}
-          <div className="md:col-span-1">
-            <div className="flex items-center gap-2 mb-3">
-              <img src="/logo.png" alt="MiClubPro" className="w-8 h-8 object-contain" />
-              <span className="font-headline font-black text-white text-base uppercase tracking-tight">MiClubPro</span>
-            </div>
-            <p className="text-white/35 text-sm leading-relaxed">Gestión inteligente para equipos deportivos en Chile.</p>
-          </div>
-
-          {/* Col 1 */}
-          <div>
-            <p className="text-white font-bold text-sm mb-4">MiClubPro</p>
-            <div className="w-8 h-0.5 mb-5" style={{ background: '#ffd08b' }} />
-            <div className="space-y-3">
-              {[
-                { label: 'Sobre nosotros', to: '/sobre-nosotros' },
-                { label: 'Funcionalidades', to: '/#features' },
-                { label: 'Precios', to: '/#pricing' },
-              ].map(l => (
-                <Link key={l.label} to={l.to} className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
-                  {l.label}
-                </Link>
-              ))}
+              <ul className="lista">
+                {asistencia.map((j, i) => (
+                  <li key={j.n}>
+                    <button type="button" disabled={j.e !== 'falta'} onClick={() => confirmar(i)}>
+                      <span className="nom">{j.n}</span>
+                      <span className={`chip ${j.e}`}>{ETIQUETA[j.e]}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="par-pista">{faltan ? 'Toca a los que faltan para confirmarlos' : 'Listo: ya sabes con quién cuentas'}</p>
             </div>
           </div>
+        </section>
 
-          {/* Col 2 */}
-          <div>
-            <p className="text-white font-bold text-sm mb-4">Soporte</p>
-            <div className="w-8 h-0.5 mb-5" style={{ background: '#44f3a9' }} />
-            <div className="space-y-3">
-              {[
-                { label: 'Centro de ayuda', to: '/centro-de-ayuda' },
-                { label: 'Tutoriales', to: '/tutoriales' },
-                { label: 'Preguntas frecuentes', to: '/preguntas-frecuentes' },
-                { label: 'Contacto', to: '/contacto' },
-              ].map(l => (
-                <Link key={l.label} to={l.to} className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
-                  {l.label}
-                </Link>
-              ))}
+        <section className="bloque problema">
+          <h2 data-rev>Un grupo de WhatsApp no organiza un equipo.</h2>
+          <div className="prob-grid">
+            <div className="chat" aria-label="Así se coordina hoy" data-rev>
+              <p className="glo"><b>Nico</b>¿Quién va el viernes?</p>
+              <p className="glo"><b>Pablo</b>yo</p>
+              <p className="glo"><b>Tomás</b>yo +1</p>
+              <p className="glo"><b>Sergio</b>depende de la pega</p>
+              <p className="glo"><b>Lucho</b>¿a qué hora era?</p>
+              <p className="glo mio">¿Alguien pagó la cancha?</p>
+              <p className="glo"><b>Pablo</b>👍</p>
+              <p className="glo"><b>Nico</b>¿somos 13 o 14?</p>
+            </div>
+            <div className="orden" aria-label="Así queda con MiClubPro" data-rev>
+              <p className="orden-tit">El mismo viernes, en MiClubPro</p>
+              <dl>
+                <div><dt>9/14</dt><dd>confirmados, con nombre y apellido</dd></div>
+                <div><dt>7 vs 7</dt><dd>equipos armados por nivel y posición</dd></div>
+                <div><dt>2</dt><dd>cuotas pendientes, y sabes de quién</dd></div>
+              </dl>
+              <p className="orden-nota">Cada jugador confirma con un clic desde su correo. Tú solo miras el número.</p>
             </div>
           </div>
+        </section>
 
-          {/* Col 3 */}
-          <div>
-            <p className="text-white font-bold text-sm mb-4">Legal</p>
-            <div className="w-8 h-0.5 mb-5" style={{ background: '#9acbff' }} />
-            <div className="space-y-3">
-              {[
-                { label: 'Términos de servicio', to: '/terminos-de-servicio' },
-                { label: 'Política de privacidad', to: '/politica-de-privacidad' },
-                { label: 'Seguridad', to: '/seguridad' },
-              ].map(l => (
-                <Link key={l.label} to={l.to} className="block text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#44f3a9')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}>
-                  {l.label}
-                </Link>
-              ))}
+        <section className="pasto" id="armado">
+          <div className="pasto-in">
+            <h2>Arma dos equipos parejos en un clic.</h2>
+            <p className="cab-p">Estos 14 jugadores son de ejemplo. El sistema los reparte por nivel y posición para que nadie reclame.</p>
+            <div className="arm-barra">
+              <button className="btn btn-claro" type="button" onClick={() => setEquipos(armarEquipos())}>{equipos ? 'Mezclar de nuevo' : 'Armar equipos'}</button>
+              {equipos && <button className="btn btn-linea-claro" type="button" onClick={copiar}>Copiar para WhatsApp</button>}
             </div>
-          </div>
-        </div>
-
-        {/* Bottom bar */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-center">
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
-              © 2025 MiClubPro.cl · Todos los derechos reservados.
+            {!equipos && (
+              <div className="pozo">
+                {POSICIONES.map(p => (
+                  <div className="grupo" key={p}>
+                    <h3>{NOMBRE_POS[p]}</h3>
+                    <ul>{JUGADORES.filter(j => j.p === p).map(j => <li key={j.n}><span>{j.n}</span><b>★{j.r}</b></li>)}</ul>
+                  </div>
+                ))}
+              </div>
+            )}
+            {equipos && (
+              <div className="equipos">
+                <div className="eq-cab">
+                  <p><b>Equipo A</b><span>Nivel ★{promedio(equipos[0])}</span></p>
+                  <p><b>Equipo B</b><span>Nivel ★{promedio(equipos[1])}</span></p>
+                </div>
+                <div className="cancha">
+                  <div className="mitad mitad-a">{mitad(equipos[0])}</div>
+                  <div className="mitad mitad-b">{mitad(equipos[1])}</div>
+                </div>
+              </div>
+            )}
+            <p className="arm-nota" aria-live="polite">
+              {equipos && (diferencia === 0
+                ? 'Quedaron con el mismo nivel total y un arquero por lado.'
+                : `Diferencia de nivel total: ${diferencia} punto${diferencia === 1 ? '' : 's'}, con un arquero por lado.`)}
             </p>
           </div>
+        </section>
+
+        <section className="bloque" id="features">
+          <h2 data-rev>La caja, el MVP y el calendario también quedan ordenados.</h2>
+          <div className="func-grid">
+            <article className="f-caja" data-rev>
+              <div>
+                <h3>Caja clara y morosos a la vista</h3>
+                <p>Registras cuotas, ingresos y gastos. Ves quién está al día y quién debe, sin planillas ni conversaciones incómodas.</p>
+              </div>
+              <div className="caja-demo" aria-label="Ejemplo de caja">
+                <p className="caja-tit"><span>Cuota de noviembre</span><b>$60.000 de $70.000</b></p>
+                <ul>
+                  <li><span>Carlos Rojas</span><b className="ok">Pagó</b></li>
+                  <li><span>Diego García</span><b className="ok">Pagó</b></li>
+                  <li><span>Marco Fuentes</span><b className="debe">Debe $5.000</b></li>
+                  <li><span>Pablo Lagos</span><b className="debe">Debe $5.000</b></li>
+                </ul>
+                <p className="caja-pie">12 de 14 al día</p>
+              </div>
+            </article>
+            <article className="f-mvp" data-rev>
+              <img src={FOTO('1697111820775-4b5a28d7a3f3', 900)} alt="Jugador amateur rematando de volea en una cancha sintética" width={900} height={600} loading="lazy" />
+              <div>
+                <h3>Votación MVP</h3>
+                <p>Después de cada partido el equipo vota al mejor. El ranking queda guardado toda la temporada.</p>
+              </div>
+            </article>
+            <article className="f-min" data-rev><h3>Calendario</h3><p>Partidos, eventos y cumpleaños del plantel en un solo lugar.</p></article>
+            <article className="f-min" data-rev><h3>Estadísticas</h3><p>Partidos jugados y asistencia de cada jugador.</p></article>
+            <article className="f-min" data-rev><h3>Plantilla</h3><p>Foto, posición, apodo, nivel y estado de cada uno.</p></article>
+            <article className="f-min" data-rev><h3>Roles</h3><p>El capitán administra. Los jugadores confirman y votan.</p></article>
+          </div>
+        </section>
+
+        <section className="bloque" id="how-it-works">
+          <div className="como-grid">
+            <figure className="como-foto" data-rev>
+              <img src={FOTO('1752681304960-bd4e018a04bb', 900)} alt="Equipo de fútbol abrazado en círculo antes de empezar el partido" width={900} height={1125} loading="lazy" />
+            </figure>
+            <div>
+              <h2 data-rev>Listo en cinco minutos.</h2>
+              <ol className="pasos">
+                <li data-rev><h3>Crea tu equipo</h3><p>Te registras con tu correo, le pones nombre y logo.</p></li>
+                <li data-rev><h3>Suma a tus jugadores</h3><p>Compartes el link de invitación o los agregas tú con posición y nivel.</p></li>
+                <li data-rev><h3>Agenda el partido</h3><p>Fecha, hora y cancha. Los correos de confirmación salen solos.</p></li>
+                <li data-rev><h3>Arma y juega</h3><p>Generas los equipos, pegas la lista en el grupo y anotas las cuotas.</p></li>
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section className="bloque" id="pricing">
+          <div className="pre-cab">
+            <div>
+              <h2 data-rev>Un plan por equipo, no por jugador.</h2>
+              <p className="cab-p">Con el plantel completo, el plan Pro sale menos de $750 por jugador al mes.</p>
+            </div>
+            <div className="periodo" role="group" aria-label="Forma de pago">
+              <button type="button" className={ciclo === 'mensual' ? 'activo' : ''} onClick={() => setCiclo('mensual')}>Mensual</button>
+              <button type="button" className={ciclo === 'anual' ? 'activo' : ''} onClick={() => setCiclo('anual')}>Anual <small>20% menos</small></button>
+            </div>
+          </div>
+          <div className="planes">
+            <article className="plan" data-rev>
+              <h3>Starter</h3>
+              <p className="plan-para">Para probarlo con tu equipo</p>
+              <p className="precio"><strong>$0</strong></p>
+              <p className="plan-nota">1 mes completo, sin tarjeta</p>
+              <BotonGratis clase="btn btn-linea" />
+              <ul>
+                <li>1 equipo, 10 jugadores y 4 invitados</li>
+                <li>Confirmación de asistencia por correo</li>
+                <li>Armado automático de equipos</li>
+                <li>Caja: cuotas y gastos</li>
+                <li>Votación MVP</li>
+                <li>Exporta a WhatsApp</li>
+              </ul>
+            </article>
+            <article className="plan plan-top" data-rev>
+              <h3>Pro</h3>
+              <p className="plan-para">1 equipo, hasta 14 jugadores</p>
+              <p className="precio"><strong>{PRECIOS.pro[ciclo]}</strong><span>/mes</span></p>
+              <p className="plan-nota">{ciclo === 'anual' ? PRECIOS.pro.notaAnual : NOTA_MENSUAL}</p>
+              <a className="btn btn-verde" href={`/checkout?plan=pro&cycle=${ciclo}`}>Empezar con Pro</a>
+              <ul>
+                <li>Titulares y suplentes: hasta 14</li>
+                <li>Armado por posición y nivel</li>
+                <li>Confirmación automática por correo</li>
+                <li>Caja con morosos al instante</li>
+                <li>Estadísticas de asistencia por jugador</li>
+                <li>Soporte por WhatsApp en horario hábil</li>
+              </ul>
+            </article>
+            <article className="plan" data-rev>
+              <h3>Elite</h3>
+              <p className="plan-para">Para quien maneja una liga</p>
+              <p className="precio"><strong>{PRECIOS.elite[ciclo]}</strong><span>/mes</span></p>
+              <p className="plan-nota">{ciclo === 'anual' ? PRECIOS.elite.notaAnual : NOTA_MENSUAL}</p>
+              <a className="btn btn-linea" href={`/checkout?plan=elite&cycle=${ciclo}`}>Empezar con Elite</a>
+              <ul>
+                <li>Todo lo del plan Pro</li>
+                <li>Jugadores ilimitados</li>
+                <li>Toda tu liga en un solo panel</li>
+                <li>Ranking MVP histórico del torneo</li>
+                <li>Arena: cruces y fixtures automáticos</li>
+                <li>Soporte prioritario</li>
+              </ul>
+            </article>
+          </div>
+          <p className="pre-pie">Valores en pesos chilenos. Sin contrato: cambias de plan o cancelas cuando quieras.</p>
+        </section>
+
+        <section className="bloque" id="preguntas">
+          <div className="faq-grid">
+            <h2 data-rev>Antes de empezar.</h2>
+            <div className="faq">
+              {PREGUNTAS.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}
+            </div>
+          </div>
+        </section>
+
+        <section className="cierre">
+          <img src={FOTO('1711447395363-5595964fd7ab', 1800)} alt="" width={1800} height={1200} loading="lazy" />
+          <div className="cierre-in">
+            <h2><span>El viernes se juega.</span> Que lo demás esté listo el jueves.</h2>
+            <div className="acciones">
+              <BotonGratis />
+              <Link className="btn btn-linea-claro" to="/contacto">Hablar con nosotros</Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="pie">
+        <div className="pie-marca">
+          <span className="marca"><span>MiClub<b>Pro</b></span></span>
+          <p>Gestión para equipos de fútbol 7 en Chile.</p>
         </div>
+        <nav aria-label="Pie">
+          <Link to="/sobre-nosotros">Sobre nosotros</Link>
+          <Link to="/tutoriales">Tutoriales</Link>
+          <Link to="/centro-de-ayuda">Centro de ayuda</Link>
+          <Link to="/preguntas-frecuentes">Preguntas frecuentes</Link>
+          <Link to="/contacto">Contacto</Link>
+          <Link to="/terminos-de-servicio">Términos</Link>
+          <Link to="/politica-de-privacidad">Privacidad</Link>
+          <Link to="/seguridad">Seguridad</Link>
+        </nav>
+        <p className="pie-legal">© 2026 MiClubPro.cl</p>
       </footer>
 
-      {/* CHECKOUT MODAL */}
-      {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
-        >
-          <div className="w-full max-w-md rounded-3xl p-7 relative"
-            style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-
-            <button onClick={() => setShowModal(false)}
-              className="absolute top-5 right-5 w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
-              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}>
-              <X size={15} />
-            </button>
-
-            {/* Plan summary */}
-            <div className="flex items-center justify-between p-4 rounded-2xl mb-6"
-              style={selectedPlan.highlight
-                ? { background: 'rgba(68,243,169,0.06)', border: '1px solid rgba(68,243,169,0.2)' }
-                : billing === 'monthly'
-                  ? { background: 'rgba(154,203,255,0.06)', border: '1px solid rgba(154,203,255,0.15)' }
-                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest mb-0.5"
-                  style={{ color: selectedPlan.accentColor }}>
-                  Plan {selectedPlan.label}
-                </p>
-                <p className="font-headline font-black text-white text-xl">
-                  {billing === 'annual'
-                    ? `$${ANNUAL_TOTAL.toLocaleString('es-CL')}`
-                    : billing === 'monthly'
-                      ? `$${MONTHLY.toLocaleString('es-CL')}`
-                      : '$0'}
-                  <span className="text-sm font-normal text-white/40 ml-1">
-                    {billing === 'annual' ? '/año' : billing === 'monthly' ? '/mes' : ''}
-                  </span>
-                </p>
-                {billing === 'annual' && (
-                  <p className="text-[10px] mt-0.5" style={{ color: '#44f3a9' }}>50% OFF · Ahorras ${ANNUAL_SAVINGS.toLocaleString('es-CL')}</p>
-                )}
-                {billing === 'free' && (
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>1 mes gratis · Sin tarjeta</p>
-                )}
-              </div>
-              {selectedPlan.badge && billing !== 'free' && (
-                <span className="text-[9px] font-black px-2 py-1 rounded-full"
-                  style={{ background: selectedPlan.accentColor, color: selectedPlan.highlight ? '#003822' : '#0a0e14' }}>
-                  {selectedPlan.badge}
-                </span>
-              )}
-            </div>
-
-            <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-4">Tus datos</p>
-
-            <form onSubmit={handleCheckout} className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre completo</label>
-                <input type="text" required placeholder="Ej. Carlos Pérez"
-                  value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="input-field" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
-                <input type="email" required placeholder="tu@email.com"
-                  value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  className="input-field" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Nombre del equipo</label>
-                <input type="text" required placeholder="Ej. Los Cóndores FC"
-                  value={form.teamName} onChange={e => setForm(f => ({ ...f, teamName: e.target.value }))}
-                  className="input-field" />
-              </div>
-
-              {payError && <p className="text-xs text-red-400 pt-1">{payError}</p>}
-
-              <button
-                type="submit"
-                disabled={paying}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-black text-sm transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
-                style={selectedPlan.highlight
-                  ? { background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822', boxShadow: '0 4px 20px rgba(68,243,169,0.3)' }
-                  : billing === 'monthly'
-                    ? { background: 'rgba(154,203,255,0.15)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.25)' }
-                    : { background: 'rgba(255,255,255,0.1)', color: '#fff' }}
-              >
-                {paying
-                  ? <><Loader2 size={15} className="animate-spin" /> Preparando pago...</>
-                  : billing === 'free'
-                    ? <>Crear cuenta gratis <ArrowRight size={15} /></>
-                    : <>Ir a pagar con Mercado Pago <ArrowRight size={15} /></>
-                }
-              </button>
-
-              <p className="text-[10px] text-white/20 text-center pt-1">
-                {billing === 'free'
-                  ? 'Sin tarjeta de crédito requerida'
-                  : 'Serás redirigido a Mercado Pago de forma segura'}
-              </p>
+      {registro && (
+        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="registro-titulo" onClick={e => { if (e.target === e.currentTarget) setRegistro(false); }}>
+          <div className="modal-caja">
+            <button className="modal-x" type="button" aria-label="Cerrar" onClick={() => setRegistro(false)}>×</button>
+            <h2 id="registro-titulo">Crea tu equipo</h2>
+            <p>Un mes gratis, sin tarjeta de crédito.</p>
+            <form onSubmit={crearEquipo}>
+              <label>Nombre completo
+                <input type="text" required autoFocus autoComplete="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              </label>
+              <label>Correo
+                <input type="email" required autoComplete="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              </label>
+              <label>Nombre del equipo
+                <input type="text" required value={form.teamName} onChange={e => setForm(f => ({ ...f, teamName: e.target.value }))} />
+              </label>
+              <button className="btn btn-verde" type="submit">Crear cuenta gratis</button>
             </form>
           </div>
         </div>
       )}
+
+      <div className={`aviso-flotante${aviso ? ' ver' : ''}`} role="status" aria-live="polite">{aviso}</div>
     </div>
   );
 }
