@@ -2,6 +2,7 @@
  * Datos de Matchmaking: lo que la pantalla le pide o le guarda a Supabase.
  * Las reglas del armado de equipos están en lib/matchmaking.
  */
+import { planVigente } from '../plan';
 import { supabase, withTimeout } from '../supabase';
 import type { JugadorMM, PartidoMM } from '../matchmaking';
 
@@ -35,7 +36,7 @@ const comoInvitado = (g: JugadorMM): JugadorMM => ({ ...g, isGuest: true, photo_
 /** Partidos para armar: los de las próximas 3 semanas y los últimos 3 jugados (sin eventos recreacionales). */
 export async function cargarPartidos(teamId: number): Promise<{ teamSettings: AjustesEquipoMM | null; proximos: PartidoMM[]; jugados: PartidoMM[] }> {
   const { data: s } = await supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle();
-  const teamSettings = s ? { team_name: s.team_name, logo_url: s.logo_url || '', plan: s.plan || 'free' } : null;
+  const teamSettings = s ? { team_name: s.team_name, logo_url: s.logo_url || '', plan: planVigente(s.plan, s.plan_expires_at) } : null;
 
   const ahora = new Date().toISOString();
   const enTresSemanas = new Date();

@@ -63,8 +63,9 @@ serve(async (req) => {
       }
       if (error) throw new Error(error.message);
 
-      // Si el capitán ya tenía cuenta, o se registró antes de que llegara este aviso, activa su plan.
-      const { error: errPlan } = await supabase.rpc('aplicar_pago_flow', { p_email: payment.payerEmail, p_plan: plan, p_tier: tier });
+      // Si el capitán ya tenía cuenta, o se registró antes de que llegara este aviso, activa o extiende su plan.
+      // La base aplica cada pago una sola vez (flow_payments.applied_at), aunque Flow repita el aviso.
+      const { error: errPlan } = await supabase.rpc('aplicar_pago_flow', { p_token: token });
       if (errPlan) console.error('aplicar_pago_flow:', errPlan.message);
     }
 

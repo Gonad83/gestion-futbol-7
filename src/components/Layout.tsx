@@ -8,6 +8,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { esSuperAdmin } from '../lib/config';
+import { diasParaVencer, planVigente } from '../lib/plan';
 import { ErrorBoundary } from './ErrorBoundary';
 
 type NavTone = 'default' | 'admin' | 'super';
@@ -39,7 +40,7 @@ export default function Layout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoZoomed, setIsLogoZoomed] = useState(false);
-  const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '', join_code: '', plan: '' });
+  const [teamSettings, setTeamSettings] = useState({ team_name: '', logo_url: '', join_code: '', plan: '', planGuardado: '', tier: '', venceEl: '' });
 
   useEffect(() => {
     if (!teamId) return;
@@ -47,7 +48,7 @@ export default function Layout() {
       try {
         const { data } = await supabase
           .from('team_settings')
-          .select('team_name, logo_url, join_code, plan')
+          .select('*')
           .eq('id', teamId)
           .maybeSingle();
         if (data) {
@@ -55,7 +56,11 @@ export default function Layout() {
             team_name: data.team_name,
             logo_url: data.logo_url || '',
             join_code: data.join_code || '',
-            plan: data.plan || 'free'
+            // plan es el que rige hoy; planGuardado, el que se pagó (sirve para ofrecer la renovación).
+            plan: planVigente(data.plan, data.plan_expires_at),
+            planGuardado: data.plan || 'free',
+            tier: data.tier || '',
+            venceEl: data.plan_expires_at || '',
           });
         }
       } catch (e) {
@@ -64,6 +69,16 @@ export default function Layout() {
     };
     fetchTeamSettings();
   }, [teamId]);
+
+  // Renovación: se avisa desde 7 días antes del vencimiento y mientras el plan siga vencido.
+  const diasPlan = teamSettings.planGuardado !== 'free' ? diasParaVencer(teamSettings.venceEl || null) : null;
+  const avisoRenovacion = isAdmin && !esSuperAdmin(user?.email) && diasPlan !== null && diasPlan <= 7;
+  const enlaceRenovar = `/checkout?${new URLSearchParams({
+    plan: teamSettings.tier === 'elite' ? 'elite' : 'pro',
+    cycle: teamSettings.planGuardado === 'annual' ? 'anual' : 'mensual',
+    email: user?.email || '',
+    team: teamSettings.team_name,
+  })}`;
 
   // Con el menú o el logo abiertos, Escape los cierra.
   useEffect(() => {
@@ -214,8 +229,27 @@ export default function Layout() {
           })}
         </nav>
 
+        {/* Plan pagado por vencer o vencido: se ofrece renovar el mismo plan */}
+        {avisoRenovacion && (
+          <div className="mx-3 mb-2 p-3 rounded-xl bg-gradient-to-br from-neon-gold/10 to-neon-gold/5 border border-neon-gold/25">
+            <p className="text-[11px] font-black uppercase tracking-widest text-neon-gold mb-1">
+              {diasPlan! <= 0 ? 'Tu plan venció' : diasPlan === 1 ? 'Tu plan vence mañana' : `Tu plan vence en ${diasPlan} días`}
+            </p>
+            <p className="text-[11px] text-white/55 mb-2 leading-snug">
+              {diasPlan! <= 0 ? 'El equipo volvió a los límites del plan gratis. Tus datos siguen guardados.' : 'Renueva para no volver a los límites del plan gratis.'}
+            </p>
+            <Link
+              to={enlaceRenovar}
+              className="flex items-center justify-center gap-1 text-[11px] font-black py-2 px-3 rounded-lg uppercase tracking-wider transition hover:brightness-110 active:scale-95 bg-gradient-to-br from-neon-gold to-[#ffb830] text-[#1a0e00]"
+            >
+              <Zap size={11} />
+              Renovar plan
+            </Link>
+          </div>
+        )}
+
         {/* Aviso de plan gratuito (no se muestra al dueño de la plataforma) */}
-        {isAdmin && teamSettings.plan === 'free' && !isSuperAdmin && (
+        {isAdmin && teamSettings.plan === 'free' && !isSuperAdmin && !avisoRenovacion && (
           <div className="mx-3 mb-2 p-3 rounded-xl bg-gradient-to-br from-neon-gold/10 to-neon-gold/5 border border-neon-gold/25">
             <div className="flex items-center gap-1.5 mb-1 text-neon-gold">
               <Zap size={12} />

@@ -94,7 +94,9 @@ export default function Checkout() {
   const cycle = (params.get('cycle') as Cycle) === 'anual' ? 'anual' : 'mensual';
   const info = PLAN_INFO[planId][cycle];
 
-  const [form, setForm] = useState({ name: '', email: '', teamName: '' });
+  // Quien renueva desde el panel llega con su correo y su equipo en el enlace. El pago se asocia
+  // al equipo por el correo, así que debe ser el mismo de la cuenta.
+  const [form, setForm] = useState({ name: params.get('name') || '', email: params.get('email') || '', teamName: params.get('team') || '' });
   const [loadingMP, setLoadingMP] = useState(false);
   const [loadingFlow, setLoadingFlow] = useState(false);
   const [error, setError] = useState('');
