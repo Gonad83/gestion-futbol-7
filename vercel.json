@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/((?!assets/|robots.txt|sitemap.xml|llms.txt|og-image.png|favicon.svg|logo.png|sw.js|manifest.json).*)",
-      "destination": "/app.html"
+      "destination": "/app"
     }
   ],
   "headers": [
@@ -15,7 +15,7 @@
       ]
     },
     {
-      "source": "/app.html",
+      "source": "/app",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     },
     {
