@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Camera, CheckCircle2, AlertCircle, Copy, Check, Share2, Save, Send } from 'lucide-react';
+import { Camera, CheckCircle2, AlertCircle, Copy, Check, Share2, Send } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { aviso } from '../lib/avisos';
 import { EQUIPO_ACTUALIZADO } from '../lib/config';
-import { Capa } from '../components/Capa';
+import { BarraGuardar } from '../components/BarraGuardar';
 
 const REGIONS_CL = [
   'Región Metropolitana','Arica y Parinacota','Tarapacá','Antofagasta','Atacama',
@@ -384,21 +384,7 @@ export default function Settings() {
         </form>
       )}
 
-      {hayCambios && (
-        <Capa>
-          <div className="fixed inset-x-0 z-30 px-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6 md:left-auto md:right-8 md:w-[26rem] scale-in">
-            <div className="flex items-center justify-between gap-3 p-2 pl-4 rounded-full"
-              style={{ background: '#262a31', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px -10px rgba(0,0,0,0.8)' }}>
-              <span className="flex items-center gap-2 text-sm text-white/80"><span className="w-2 h-2 rounded-full bg-soccer-green" /> Cambios sin guardar</span>
-              <button type="button" onClick={() => handleSave()} disabled={saving}
-                className="h-11 px-6 rounded-full flex items-center gap-2 font-headline font-bold text-[#003822] cursor-pointer disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #44f3a9, #00d68f)' }}>
-                <Save size={16} /> {saving ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
-          </div>
-        </Capa>
-      )}
+      <BarraGuardar visible={hayCambios} guardando={saving} guardar={() => handleSave()} />
     </div>
   );
 }

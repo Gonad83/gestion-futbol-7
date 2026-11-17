@@ -1,348 +1,254 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Camera, Upload, Save, UserCircle, CheckCircle2, TrendingUp } from 'lucide-react';
-import SubStatStars from '../components/SubStatStars';
+import { Camera, UserCircle, Star } from 'lucide-react';
 import { aviso } from '../lib/avisos';
+import { BarraGuardar } from '../components/BarraGuardar';
+import { AnilloAsistencia } from './players/ListaPlantilla';
 
 const POSITION_GROUPS = [
   { group: 'Portero', roles: ['Portero'] },
   { group: 'Defensa', roles: ['Defensa Central', 'Lateral Izquierdo', 'Lateral Derecho'] },
   { group: 'Medio', roles: ['Medio Defensivo (MCD)', 'Medio Mixto (MC)', 'Enganche / 10 (MCO)', 'Volante Izquierdo', 'Volante Derecho'] },
-  { group: 'Delantero', roles: ['Delantero Centro (9)', 'Segundo Delantero', 'Extremo Izquierdo', 'Extremo Derecho'] }
+  { group: 'Delantero', roles: ['Delantero Centro (9)', 'Segundo Delantero', 'Extremo Izquierdo', 'Extremo Derecho'] },
 ];
 
-const STATUS_STYLE: Record<string, { bg: string; color: string; border: string }> = {
-  Activo:    { bg: 'rgba(68,243,169,0.1)',   color: '#44f3a9', border: 'rgba(68,243,169,0.2)' },
-  Lesionado: { bg: 'rgba(248,113,113,0.1)',  color: '#f87171', border: 'rgba(248,113,113,0.2)' },
-  Inactivo:  { bg: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: 'rgba(255,255,255,0.08)' },
-};
+const ESTADOS = [
+  { valor: 'Activo', activo: { background: 'rgba(68,243,169,0.15)', color: '#44f3a9' } },
+  { valor: 'Lesionado', activo: { background: 'rgba(248,113,113,0.18)', color: '#fca5a5' } },
+  { valor: 'Inactivo', activo: { background: '#31353c', color: '#fff' } },
+] as const;
 
+interface Datos {
+  name: string;
+  nickname: string;
+  position: string;
+  secondary_position: string;
+  status: string;
+  birth_date: string;
+}
+
+const etiqueta = 'block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1.5';
+
+function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-white/60 mb-2 px-1">{titulo}</h2>
+      <div className="rounded-[20px] p-4 space-y-4" style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.05)' }}>{children}</div>
+    </section>
+  );
+}
+
+function SelectorPosicion({ id, valor, cambiar, conNinguna }: { id: string; valor: string; cambiar: (v: string) => void; conNinguna?: boolean }) {
+  return (
+    <select id={id} className="input-field bg-slate-900" value={valor} onChange={e => cambiar(e.target.value)}>
+      {conNinguna && <option value="">Ninguna</option>}
+      {POSITION_GROUPS.map(g => (
+        <optgroup key={g.group} label={g.group}>
+          {g.roles.map(r => <option key={r} value={r}>{r}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+/**
+ * Mi perfil. Diseño basado en el concepto de Stitch (docs/diseno/perfil-movil-stitch.png):
+ * ficha arriba, tu año en números, tus datos y tu estado; se guarda con la
+ * barra que aparece solo cuando cambiaste algo.
+ */
 export default function MyProfile() {
   const { playerProfile, refreshProfile } = useAuth();
-  const [formData, setFormData] = useState<any>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [participationStats, setParticipationStats] = useState({ matchesPlayed: 0, totalMatches: 0, pct: 0 });
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [datos, setDatos] = useState<Datos | null>(null);
+  const [original, setOriginal] = useState('');
+  const [foto, setFoto] = useState<File | null>(null);
+  const [vistaFoto, setVistaFoto] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [anio, setAnio] = useState({ jugados: 0, total: 0, pct: 0 });
+  const archivo = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (playerProfile) {
-      setFormData({
-        name: playerProfile.name || '',
-        nickname: playerProfile.nickname || '',
-        position: playerProfile.position || 'Delantero Centro (9)',
-        secondary_position: playerProfile.secondary_position || '',
-        photo_url: playerProfile.photo_url || '',
-        status: playerProfile.status || 'Activo',
-        birth_date: playerProfile.birth_date || '',
-      });
-      setPhotoPreview(playerProfile.photo_url || '');
-      fetchParticipation(playerProfile.id);
-    }
+    if (!playerProfile) return;
+    const d: Datos = {
+      name: playerProfile.name || '',
+      nickname: playerProfile.nickname || '',
+      position: playerProfile.position || 'Delantero Centro (9)',
+      secondary_position: playerProfile.secondary_position || '',
+      status: playerProfile.status || 'Activo',
+      birth_date: playerProfile.birth_date || '',
+    };
+    setDatos(d);
+    setOriginal(JSON.stringify(d));
+    setVistaFoto(playerProfile.photo_url || '');
+
+    // Partidos del año de SU equipo (antes contaba los de todos los equipos que la base dejara ver).
+    const inicio = new Date(new Date().getFullYear(), 0, 1).toISOString();
+    (async () => {
+      const { data: partidos } = await supabase.from('matches').select('id')
+        .eq('team_id', playerProfile.team_id).gte('date', inicio).lt('date', new Date().toISOString());
+      const ids = (partidos || []).map((m: { id: string }) => m.id);
+      if (ids.length === 0) { setAnio({ jugados: 0, total: 0, pct: 0 }); return; }
+      const { data: fue } = await supabase.from('attendance').select('id').eq('player_id', playerProfile.id).eq('status', 'Voy').in('match_id', ids);
+      const jugados = fue?.length || 0;
+      setAnio({ jugados, total: ids.length, pct: Math.min(100, Math.round((jugados / ids.length) * 100)) });
+    })();
   }, [playerProfile]);
 
-  const fetchParticipation = async (playerId: string) => {
-    const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
-    const now = new Date().toISOString();
-    const { data: yearMatches } = await supabase.from('matches').select('id').gte('date', yearStart).lt('date', now);
-    const matchIds = (yearMatches || []).map(m => m.id);
-    if (matchIds.length === 0) return;
-    const { data: att } = await supabase.from('attendance').select('id').eq('player_id', playerId).eq('status', 'Voy').in('match_id', matchIds);
-    const played = att?.length || 0;
-    setParticipationStats({ matchesPlayed: played, totalMatches: matchIds.length, pct: Math.round((played / matchIds.length) * 100) });
+  const hayCambios = !!datos && (JSON.stringify(datos) !== original || !!foto);
+  const cambiar = (campo: keyof Datos) => (valor: string) => setDatos(d => (d ? { ...d, [campo]: valor } : d));
+
+  const elegirFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { aviso.info('Solo se permiten imágenes.'); return; }
+    setFoto(f);
+    setVistaFoto(URL.createObjectURL(f));
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { aviso.info('Solo se permiten imágenes.'); return; }
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
-  };
-
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!playerProfile?.id || !formData) return;
-    setSaving(true);
-    setSaved(false);
-
+  const guardar = async () => {
+    if (!playerProfile?.id || !datos || guardando) return;
+    if (!datos.name.trim()) { aviso.info('Tu nombre no puede quedar vacío.'); return; }
+    setGuardando(true);
     try {
-      let finalPhotoUrl = formData.photo_url;
-
-      if (photoFile) {
-        const ext = photoFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('foto jugadores')
-          .upload(fileName, photoFile, { upsert: true });
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('foto jugadores').getPublicUrl(fileName);
-        finalPhotoUrl = urlData.publicUrl;
+      let urlFoto = playerProfile.photo_url || '';
+      if (foto) {
+        const nombre = `${Date.now()}.${foto.name.split('.').pop()}`;
+        const { error: errSubida } = await supabase.storage.from('foto jugadores').upload(nombre, foto, { upsert: true });
+        if (errSubida) throw errSubida;
+        urlFoto = supabase.storage.from('foto jugadores').getPublicUrl(nombre).data.publicUrl;
       }
-
-      const { data: updated, error } = await supabase.from('players').update({
-        name: formData.name,
-        nickname: formData.nickname,
-        position: formData.position,
-        secondary_position: formData.secondary_position,
-        photo_url: finalPhotoUrl,
-        status: formData.status,
-        birth_date: formData.birth_date || null,
+      const { data: actualizado, error } = await supabase.from('players').update({
+        name: datos.name.trim(),
+        nickname: datos.nickname,
+        position: datos.position,
+        secondary_position: datos.secondary_position,
+        photo_url: urlFoto,
+        status: datos.status,
+        birth_date: datos.birth_date || null,
       }).eq('id', playerProfile.id).select();
-
       if (error) throw error;
-      if (!updated || updated.length === 0) {
-        throw new Error('Sin permiso para actualizar. Pedile al admin que vincule tu email en la plantilla, o ejecutá el SQL de políticas RLS.');
+      if (!actualizado || actualizado.length === 0) {
+        throw new Error('No tienes permiso para editar este perfil. Pídele a tu capitán que revise tu correo en la plantilla.');
       }
-
       await refreshProfile();
-      setSaved(true);
-      setPhotoFile(null);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (err: any) {
-      aviso.error('Error al guardar: ' + err.message);
+      setFoto(null);
+      setOriginal(JSON.stringify(datos));
+      aviso.ok('Perfil guardado.');
+    } catch (err) {
+      aviso.error('Error al guardar: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
-      setSaving(false);
+      setGuardando(false);
     }
   };
 
   if (!playerProfile) {
     return (
-      <div className="fade-in flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <UserCircle size={32} className="text-white/20" />
-        </div>
+      <div className="fade-in flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-6">
+        <UserCircle size={44} className="text-white/25" />
         <div>
           <h2 className="font-headline text-xl font-bold text-white mb-1">Sin perfil de jugador</h2>
-          <p className="text-white/40 text-sm max-w-sm">
-            Tu cuenta no está vinculada a ningún perfil. Pídele al administrador que registre tu email en la plantilla de jugadores.
-          </p>
+          <p className="text-white/55 text-sm max-w-sm">Tu cuenta no está vinculada a ningún jugador. Pídele a tu capitán que registre tu correo en la plantilla.</p>
         </div>
       </div>
     );
   }
+  if (!datos) return null;
 
-  if (!formData) return null;
-
-  const st = STATUS_STYLE[playerProfile.status] || STATUS_STYLE.Inactivo;
+  const estado = ESTADOS.find(e => e.valor === playerProfile.status) ?? ESTADOS[0];
+  const rating = Number(playerProfile.rating) || 0;
 
   return (
-    <div className="fade-in pb-20 md:pb-0 space-y-6 max-w-2xl">
-      {/* Header */}
+    <div className="fade-in pb-40 md:pb-24 max-w-2xl mx-auto space-y-6">
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Cuenta</p>
-        <h1 className="font-headline text-3xl font-black text-white tracking-tight">Mi Perfil</h1>
+        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green mb-1">Cuenta</p>
+        <h1 className="font-headline text-3xl font-black text-white tracking-tight">Mi perfil</h1>
       </div>
 
-      {/* Info card (read-only: status + rating) */}
-      <div
-        className="flex items-center gap-5 p-5 rounded-2xl"
-        style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}
-      >
-        {/* Avatar */}
-        <div
-          className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center cursor-pointer transition-all hover:brightness-110"
-          style={{ background: '#262a31', border: '2.5px solid rgba(68,243,169,0.25)' }}
-          onClick={() => fileInputRef.current?.click()}
-          title="Click para cambiar foto"
-        >
-          {photoPreview
-            ? <img src={photoPreview} alt={playerProfile.name} className="w-full h-full object-cover" />
-            : <span className="text-3xl font-black text-white/20">{playerProfile.name?.charAt(0)}</span>
-          }
+      {/* Ficha */}
+      <section className="rounded-[20px] p-5 flex flex-col items-center text-center" style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <button type="button" onClick={() => archivo.current?.click()} aria-label="Cambiar foto de perfil" className="relative cursor-pointer">
+          <span className="block w-24 h-24 rounded-full overflow-hidden" style={{ background: '#262a31', border: '3px solid rgba(68,243,169,0.5)' }}>
+            {vistaFoto
+              ? <img src={vistaFoto} alt="" className="w-full h-full object-cover" />
+              : <span className="w-full h-full flex items-center justify-center font-headline text-3xl font-black text-white/30">{playerProfile.name?.charAt(0)}</span>}
+          </span>
+          <span className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#44f3a9', color: '#003822', border: '3px solid #181c22' }}>
+            <Camera size={15} />
+          </span>
+        </button>
+        <input ref={archivo} type="file" accept="image/*" className="hidden" onChange={elegirFoto} />
+        <h2 className="font-headline text-xl font-bold text-white mt-3">{playerProfile.name}</h2>
+        {playerProfile.nickname && <p className="text-sm italic text-white/55">"{playerProfile.nickname}"</p>}
+        <div className="flex flex-wrap justify-center gap-2 mt-3">
+          <span className="px-3 py-1 rounded-full text-xs font-bold text-white/85" style={{ background: '#262a31' }}>{playerProfile.position || 'Sin posición'}</span>
+          <span className="px-3 py-1 rounded-full text-xs font-bold" style={estado.activo}>{playerProfile.status}</span>
         </div>
+        <div className="flex items-center gap-1 mt-3" aria-label={`Nivel ${rating} de 7`}>
+          {Array.from({ length: 7 }, (_, i) => (
+            <Star key={i} size={15} fill={i < rating ? '#ffd08b' : 'transparent'} color={i < rating ? '#ffd08b' : 'rgba(255,255,255,0.25)'} />
+          ))}
+          <span className="ml-1 text-sm font-bold text-[#ffd08b] tabular-nums">{rating}/7</span>
+        </div>
+        <p className="text-xs text-white/50 mt-1">El nivel lo define tu capitán</p>
+      </section>
 
-        <div className="flex-1 min-w-0">
-          <h2 className="font-headline text-2xl font-black text-white tracking-tight leading-tight truncate">
-            {playerProfile.name}
-          </h2>
-          {playerProfile.nickname && (
-            <p className="text-white/35 text-sm mt-0.5">"{playerProfile.nickname}"</p>
-          )}
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <span className="text-xs font-bold" style={{ color: '#44f3a9' }}>{playerProfile.position}</span>
-            <span
-              className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
-              style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}
-            >
-              {playerProfile.status}
-            </span>
+      {/* Tu año */}
+      <section className="rounded-[20px] p-4" style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-soccer-green mb-3">Tu {new Date().getFullYear()}</h2>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl py-3" style={{ background: '#10141a' }}>
+            <p className="font-headline text-2xl font-black text-white tabular-nums">{anio.jugados}</p>
+            <p className="text-xs text-white/55">jugados</p>
           </div>
-          <div className="mt-2">
-            <span className="text-[11px] text-white/50 font-semibold">Rating {playerProfile.rating}/7</span>
-            <div className="mt-1">
-              <SubStatStars player={playerProfile} size={11} />
-            </div>
+          <div className="rounded-xl py-3" style={{ background: '#10141a' }}>
+            <p className="font-headline text-2xl font-black text-white tabular-nums">{anio.total}</p>
+            <p className="text-xs text-white/55">partidos</p>
+          </div>
+          <div className="rounded-xl py-2 flex flex-col items-center" style={{ background: '#10141a' }}>
+            <AnilloAsistencia porcentaje={anio.pct} />
+            <p className="text-xs text-white/55">asistencia</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Participation stats */}
-      <div
-        className="p-5 rounded-2xl"
-        style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp size={15} style={{ color: '#44f3a9' }} />
-          <p className="text-[11px] font-black uppercase tracking-widest text-white/50">Estadísticas {new Date().getFullYear()}</p>
-        </div>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
-            <p className="font-headline text-2xl font-black text-white">{participationStats.matchesPlayed}</p>
-            <p className="text-[11px] text-white/50 uppercase tracking-wider font-bold mt-0.5">Jugados</p>
-          </div>
-          <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
-            <p className="font-headline text-2xl font-black text-white">{participationStats.totalMatches}</p>
-            <p className="text-[11px] text-white/50 uppercase tracking-wider font-bold mt-0.5">Totales</p>
-          </div>
-          <div className="rounded-xl p-3 text-center" style={{ background: '#0a0e14' }}>
-            <p className="font-headline text-2xl font-black" style={{ color: participationStats.pct >= 70 ? '#44f3a9' : participationStats.pct >= 40 ? '#ffd08b' : '#f87171' }}>
-              {participationStats.pct}%
-            </p>
-            <p className="text-[11px] text-white/50 uppercase tracking-wider font-bold mt-0.5">Asistencia</p>
-          </div>
-        </div>
-        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{
-              width: `${participationStats.pct}%`,
-              background: participationStats.pct >= 70 ? '#44f3a9' : participationStats.pct >= 40 ? '#ffd08b' : '#f87171',
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Edit form */}
-      <form onSubmit={handleSave} className="glass-card space-y-5">
-        <h3 className="font-headline text-base font-bold text-white flex items-center gap-2">
-          Editar información
-        </h3>
-
-        {/* Photo upload */}
+      <Seccion titulo="Mis datos">
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Foto de perfil</label>
-          <div
-            className="flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all"
-            style={{ background: 'rgba(49,53,60,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div
-              className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
-              style={{ background: '#31353c', border: '1.5px solid rgba(68,243,169,0.2)' }}
-            >
-              {photoPreview
-                ? <img src={photoPreview} alt="" className="w-full h-full object-cover" />
-                : <Camera size={18} className="text-white/30" />
-              }
-            </div>
-            <span className="text-sm flex items-center gap-2 font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              <Upload size={14} />
-              {photoPreview ? 'Cambiar foto de perfil' : 'Subir foto de perfil'}
-            </span>
-          </div>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+          <label htmlFor="pf-nombre" className={etiqueta}>Nombre</label>
+          <input id="pf-nombre" type="text" required autoComplete="name" className="input-field" value={datos.name} onChange={e => cambiar('name')(e.target.value)} />
         </div>
+        <div>
+          <label htmlFor="pf-apodo" className={etiqueta}>Apodo (opcional)</label>
+          <input id="pf-apodo" type="text" className="input-field" value={datos.nickname} onChange={e => cambiar('nickname')(e.target.value)} placeholder="Ej. La Pulga" />
+        </div>
+        <div>
+          <label htmlFor="pf-nac" className={etiqueta}>Fecha de nacimiento</label>
+          <input id="pf-nac" type="date" className="input-field" value={datos.birth_date} onChange={e => cambiar('birth_date')(e.target.value)} />
+          <p className="text-xs text-white/50 mt-1.5">Para avisarle al equipo de tu cumpleaños en el calendario.</p>
+        </div>
+        <div>
+          <label htmlFor="pf-pos" className={etiqueta}>Posición principal</label>
+          <SelectorPosicion id="pf-pos" valor={datos.position} cambiar={cambiar('position')} />
+        </div>
+        <div>
+          <label htmlFor="pf-pos2" className={etiqueta}>Posición secundaria</label>
+          <SelectorPosicion id="pf-pos2" valor={datos.secondary_position} cambiar={cambiar('secondary_position')} conNinguna />
+        </div>
+      </Seccion>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Nombre completo</label>
-            <input
-              type="text"
-              required
-              className="input-field"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Apodo (opcional)</label>
-            <input
-              type="text"
-              className="input-field"
-              value={formData.nickname}
-              onChange={e => setFormData({ ...formData, nickname: e.target.value })}
-              placeholder="Ej. La Pulga"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Posición Principal</label>
-            <select
-              className="input-field"
-              style={{ background: 'rgba(49,53,60,0.8)' }}
-              value={formData.position}
-              onChange={e => setFormData({ ...formData, position: e.target.value })}
-            >
-              {POSITION_GROUPS.map(group => (
-                <optgroup key={group.group} label={group.group}>
-                  {group.roles.map(role => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Posición Secundaria</label>
-            <select
-              className="input-field"
-              style={{ background: 'rgba(49,53,60,0.8)' }}
-              value={formData.secondary_position || ''}
-              onChange={e => setFormData({ ...formData, secondary_position: e.target.value })}
-            >
-              <option value="">-- Ninguna --</option>
-              {POSITION_GROUPS.map(group => (
-                <optgroup key={group.group} label={group.group}>
-                  {group.roles.map(role => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Estado</label>
-            <select
-              className="input-field"
-              style={{ background: 'rgba(49,53,60,0.8)' }}
-              value={formData.status}
-              onChange={e => setFormData({ ...formData, status: e.target.value })}
-            >
-              <option value="Activo">Activo</option>
-              <option value="Inactivo">Inactivo</option>
-              <option value="Lesionado">Lesionado</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Fecha de Nacimiento</label>
-            <input
-              type="date"
-              className="input-field"
-              style={{ background: 'rgba(49,53,60,0.8)' }}
-              value={formData.birth_date || ''}
-              onChange={e => setFormData({ ...formData, birth_date: e.target.value })}
-            />
-          </div>
+      <Seccion titulo="Estado">
+        <div className="grid grid-cols-3 gap-1 p-1 rounded-xl" role="radiogroup" aria-label="Estado" style={{ background: '#10141a' }}>
+          {ESTADOS.map(e => (
+            <button key={e.valor} type="button" role="radio" aria-checked={datos.status === e.valor} onClick={() => cambiar('status')(e.valor)}
+              className="h-11 rounded-lg text-sm font-bold transition-colors cursor-pointer"
+              style={datos.status === e.valor ? e.activo : { color: 'rgba(255,255,255,0.6)' }}>
+              {e.valor}
+            </button>
+          ))}
         </div>
+        <p className="text-xs text-white/50">Si estás lesionado o inactivo, el capitán lo verá al armar los equipos.</p>
+      </Seccion>
 
-        <div
-          className="flex items-center justify-between pt-3"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <p className="text-[11px] text-white/50">El rating es gestionado por el administrador.</p>
-          <button type="submit" disabled={saving} className="btn-primary px-6 py-2.5 gap-2">
-            {saving
-              ? 'Guardando...'
-              : saved
-                ? <><CheckCircle2 size={15} /> ¡Guardado!</>
-                : <><Save size={15} /> Guardar Cambios</>
-            }
-          </button>
-        </div>
-      </form>
+      <BarraGuardar visible={hayCambios} guardando={guardando} guardar={guardar} />
     </div>
   );
 }

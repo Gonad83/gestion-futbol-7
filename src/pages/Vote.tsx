@@ -6,9 +6,10 @@ import { Star, CheckCircle2, ArrowLeft, UserCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { aviso } from '../lib/avisos';
+import { Capa } from '../components/Capa';
 
 export default function Vote() {
-  const { playerProfile } = useAuth();
+  const { playerProfile, teamId } = useAuth();
   const [searchParams] = useSearchParams();
   const matchId = searchParams.get('match_id');
 
@@ -24,10 +25,10 @@ export default function Vote() {
   useEffect(() => {
     if (matchId && playerProfile) {
       loadVoteData();
-    } else if (!matchId) {
+    } else if (!matchId && teamId) {
       loadLatestMatch();
     }
-  }, [matchId, playerProfile]);
+  }, [matchId, playerProfile, teamId]);
 
   const loadLatestMatch = async () => {
     setLoading(true);
@@ -43,6 +44,7 @@ export default function Vote() {
       const { data } = await supabase
         .from('matches')
         .select('*')
+        .eq('team_id', teamId)
         .eq('event_type', 'Deportivo')
         .lt('date', now.toISOString())
         .gt('date', sevenDaysAgo.toISOString())
@@ -168,121 +170,98 @@ export default function Vote() {
     );
   }
 
+  const elegido = players.find(p => p.id === selectedPlayer);
+  const iniciales = (n: string) => n.trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase()).join('');
+
   return (
-    <div className="fade-in pb-20 md:pb-0 space-y-6 max-w-lg mx-auto">
-      {/* Header */}
-      <div>
-        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-white/50 hover:text-white/60 text-xs font-semibold mb-4 transition-colors">
-          <ArrowLeft size={13} /> Volver al dashboard
+    <div className="fade-in pb-40 md:pb-24 space-y-5 max-w-2xl mx-auto relative">
+      <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-64 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(255,208,139,0.12), transparent 70%)' }} />
+      <div className="relative">
+        <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-white/60 hover:text-white py-1 mb-2">
+          <ArrowLeft size={15} /> Inicio
         </Link>
-        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Votación</p>
-        <h1 className="font-headline text-3xl font-black text-white tracking-tight">Mejor Jugador</h1>
+        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#ffd08b] mb-1">Votación MVP</p>
+        <h1 className="font-headline text-3xl font-black text-white tracking-tight">¿Quién fue el mejor?</h1>
       </div>
 
-      {/* Match info */}
-      <div
-        className="p-4 rounded-2xl flex items-center gap-4"
-        style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}
-      >
-        <div
-          className="flex flex-col items-center justify-center p-3 rounded-xl flex-shrink-0"
-          style={{ background: '#0a0e14', border: '1px solid rgba(68,243,169,0.15)', minWidth: 72 }}
-        >
-          <p className="font-headline text-xl font-black text-white">{format(new Date(match.date), 'HH:mm')}</p>
-          <p className="text-[11px] text-white/50 uppercase tracking-wider font-bold">{format(new Date(match.date), 'dd MMM', { locale: es })}</p>
-        </div>
-        <div>
-          <p className="text-white font-bold">{match.location}</p>
-          <p className="text-[11px] text-white/50 mt-0.5">{match.match_type || '7vs7'} · {players.length + 1} confirmados</p>
+      <div className="relative flex items-center gap-3 p-3 rounded-2xl" style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <span className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-[#ffd08b]" style={{ background: 'rgba(255,208,139,0.1)' }}>
+          <Star size={18} />
+        </span>
+        <div className="min-w-0">
+          <p className="font-semibold text-white truncate first-letter:uppercase">
+            {format(new Date(match.date), "EEEE d MMM '·' HH:mm", { locale: es })}{match.location ? ` · ${match.location}` : ''}
+          </p>
+          <p className="text-xs text-white/55">{players.length + 1} jugaron · un voto por partido, no puedes votarte</p>
         </div>
       </div>
 
       {submitted ? (
-        /* Already voted */
-        <div
-          className="glass-card text-center space-y-4"
-          style={{ background: 'rgba(68,243,169,0.04)', borderColor: 'rgba(68,243,169,0.15)' }}
-        >
-          <CheckCircle2 size={40} className="mx-auto" style={{ color: '#44f3a9' }} />
+        <div className="relative text-center p-6 rounded-[20px] space-y-4" style={{ background: 'rgba(255,208,139,0.06)', border: '1px solid rgba(255,208,139,0.25)' }}>
+          <span className="mx-auto w-20 h-20 rounded-full overflow-hidden flex items-center justify-center font-headline text-2xl font-black text-white"
+            style={{ background: '#262a31', border: '3px solid #ffd08b', boxShadow: '0 0 30px -6px rgba(255,208,139,0.6)' }}>
+            {votedPlayer?.photo_url ? <img src={votedPlayer.photo_url} alt="" className="w-full h-full object-cover" /> : iniciales(votedPlayer?.name || '?')}
+          </span>
           <div>
-            <h3 className="font-headline text-xl font-black text-white mb-1">¡Voto registrado!</h3>
-            <p className="text-white/40 text-sm">Votaste por</p>
-            <p className="font-bold text-lg mt-1" style={{ color: '#ffd700' }}>
+            <p className="flex items-center justify-center gap-1.5 text-soccer-green font-bold text-sm"><CheckCircle2 size={16} /> Voto registrado</p>
+            <p className="font-headline text-xl font-black text-white mt-1">
               {votedPlayer?.name || '—'}
-              {votedPlayer?.nickname && <span className="text-white/40 text-base font-normal ml-1">"{votedPlayer.nickname}"</span>}
+              {votedPlayer?.nickname && <span className="text-white/50 text-base font-normal"> "{votedPlayer.nickname}"</span>}
             </p>
           </div>
-          <Link to="/dashboard" className="btn-secondary inline-flex px-6 py-2.5 mt-2">
-            Ver podio en el dashboard
+          <Link to="/dashboard" className="inline-flex items-center justify-center h-12 px-6 rounded-full font-bold text-sm text-white" style={{ background: '#262a31' }}>
+            Ver el ranking en el Inicio
           </Link>
         </div>
+      ) : players.length === 0 ? (
+        <div className="text-center py-10 px-6 rounded-[20px]" style={{ background: '#181c22', border: '1px dashed rgba(255,255,255,0.1)' }}>
+          <p className="text-white/60 text-sm">Nadie más confirmó asistencia a este partido, así que no hay a quién votar.</p>
+        </div>
       ) : (
-        /* Voting form */
-        <div className="glass-card space-y-4">
-          <h3 className="font-headline text-base font-bold text-white">
-            ¿Quién fue el mejor jugador del partido?
-          </h3>
-          <p className="text-white/50 text-xs">Selecciona un compañero. Solo puedes votar una vez.</p>
+        <div className="relative grid grid-cols-2 gap-3" role="radiogroup" aria-label="Jugadores">
+          {players.map(player => {
+            const activo = selectedPlayer === player.id;
+            return (
+              <button key={player.id} type="button" role="radio" aria-checked={activo} onClick={() => setSelectedPlayer(player.id)}
+                className="relative flex flex-col items-center text-center p-4 rounded-[20px] transition-all cursor-pointer"
+                style={{
+                  background: activo ? 'rgba(255,208,139,0.08)' : '#181c22',
+                  border: `1.5px solid ${activo ? '#ffd08b' : 'rgba(255,255,255,0.06)'}`,
+                  boxShadow: activo ? '0 0 24px -8px rgba(255,208,139,0.6)' : 'none',
+                }}>
+                {activo && (
+                  <span className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: '#ffd08b', color: '#2b1d00' }}>
+                    <Star size={14} fill="#2b1d00" strokeWidth={0} />
+                  </span>
+                )}
+                <span className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center font-headline text-lg font-bold text-white/70"
+                  style={{ background: '#262a31', border: `2px solid ${activo ? '#ffd08b' : 'rgba(255,255,255,0.08)'}` }}>
+                  {player.photo_url ? <img src={player.photo_url} alt="" className="w-full h-full object-cover" /> : iniciales(player.name)}
+                </span>
+                <span className="mt-2 font-semibold text-sm text-white leading-tight line-clamp-2">{player.name}</span>
+                {player.nickname && <span className="text-xs italic text-white/50 truncate max-w-full">"{player.nickname}"</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-          {players.length === 0 ? (
-            <div className="text-center py-6 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(255,255,255,0.08)' }}>
-              <p className="text-white/30 text-sm">No hay jugadores disponibles para votar.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {players.map(player => {
-                const isSelected = selectedPlayer === player.id;
-                return (
-                  <button
-                    key={player.id}
-                    onClick={() => setSelectedPlayer(player.id)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left"
-                    style={{
-                      background: isSelected ? 'rgba(255,215,0,0.08)' : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${isSelected ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                      boxShadow: isSelected ? '0 0 0 1px rgba(255,215,0,0.1)' : 'none',
-                    }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
-                      style={{ background: '#31353c', border: isSelected ? '2px solid rgba(255,215,0,0.5)' : '1.5px solid rgba(255,255,255,0.08)' }}
-                    >
-                      {player.photo_url
-                        ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                        : <span className="text-base font-black" style={{ color: 'rgba(255,255,255,0.3)' }}>{player.name.charAt(0)}</span>
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white text-sm truncate">{player.name}</p>
-                      {player.nickname && <p className="text-[11px] text-white/50">"{player.nickname}"</p>}
-                    </div>
-                    <div
-                      className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center transition-all"
-                      style={{
-                        background: isSelected ? '#ffd700' : 'transparent',
-                        border: `2px solid ${isSelected ? '#ffd700' : 'rgba(255,255,255,0.2)'}`,
-                      }}
-                    >
-                      {isSelected && <div className="w-2 h-2 rounded-full bg-black" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <button
-              onClick={handleVote}
-              disabled={!selectedPlayer || submitting}
-              className="btn-primary w-full py-3 gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={selectedPlayer ? { background: 'linear-gradient(135deg, #ffd700, #ffb800)', color: '#000', boxShadow: '0 4px 20px rgba(255,215,0,0.25)' } : {}}
-            >
-              <Star size={16} />
-              {submitting ? 'Enviando voto...' : 'Confirmar voto'}
+      {!submitted && players.length > 0 && (
+        <Capa>
+          <div className="fixed inset-x-0 z-30 px-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6 md:left-auto md:right-8 md:w-[26rem]">
+            <button type="button" onClick={handleVote} disabled={!selectedPlayer || submitting}
+              className="w-full h-14 rounded-full flex items-center justify-center gap-2 font-headline font-bold text-[#2b1d00] cursor-pointer disabled:cursor-not-allowed transition-opacity"
+              style={{
+                background: selectedPlayer ? 'linear-gradient(135deg, #ffd08b, #ffb830)' : '#31353c',
+                color: selectedPlayer ? '#2b1d00' : 'rgba(255,255,255,0.5)',
+                boxShadow: selectedPlayer ? '0 10px 30px -8px rgba(255,184,48,0.6)' : 'none',
+              }}>
+              <Star size={18} />
+              {submitting ? 'Enviando voto...' : elegido ? `Votar por ${elegido.name.split(' ')[0]}` : 'Elige a un compañero'}
             </button>
           </div>
-        </div>
+        </Capa>
       )}
     </div>
   );
