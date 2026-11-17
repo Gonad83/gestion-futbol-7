@@ -20,3 +20,6 @@ export function tieneInterGeneraciones(teamId?: number | null) {
 export function esSuperAdmin(email?: string | null) {
   return (email ?? '').toLowerCase() === SUPER_ADMIN_EMAIL;
 }
+
+/** Evento de ventana que Ajustes dispara al guardar, para que el menú relea el nombre y el escudo. */
+export const EQUIPO_ACTUALIZADO = 'miclubpro:equipo-actualizado';

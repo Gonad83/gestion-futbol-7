@@ -6,10 +6,12 @@ interface Props {
   rol: string;
   /** Código para que los jugadores se unan; solo lo ve el capitán. */
   codigo?: string | null;
+  /** Foto de portada del equipo (Ajustes). Si hay, va de fondo detrás del saludo. */
+  portada?: string | null;
 }
 
 /** "Hola, Gonzalo" con el rol y, para el capitán, el código de invitación a mano para copiarlo. */
-export function SaludoInicio({ nombre, rol, codigo }: Props) {
+export function SaludoInicio({ nombre, rol, codigo, portada }: Props) {
   const [copiado, setCopiado] = useState(false);
   const primerNombre = nombre.trim().split(/\s+/)[0] || 'crack';
 
@@ -23,8 +25,15 @@ export function SaludoInicio({ nombre, rol, codigo }: Props) {
   };
 
   return (
-    <div>
-      <p className="text-sm text-white/55">Bienvenido de nuevo</p>
+    <div className={portada ? 'relative rounded-[20px] overflow-hidden p-4 pt-16' : undefined}>
+      {portada && (
+        <>
+          <img src={portada} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(16,20,26,0.15) 0%, rgba(16,20,26,0.92) 75%)' }} />
+        </>
+      )}
+      <div className={portada ? 'relative' : undefined}>
+      <p className="text-sm text-white/70">Bienvenido de nuevo</p>
       <h1 className="font-headline text-3xl font-black text-white tracking-tight truncate">Hola, {primerNombre}</h1>
       <div className="flex flex-wrap items-center gap-2 mt-2">
         <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-bold text-soccer-green"
@@ -39,6 +48,7 @@ export function SaludoInicio({ nombre, rol, codigo }: Props) {
             {copiado ? <Check size={12} className="text-soccer-green" /> : <Copy size={12} />}
           </button>
         )}
+      </div>
       </div>
     </div>
   );

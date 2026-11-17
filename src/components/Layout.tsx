@@ -7,7 +7,7 @@ import {
 import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
-import { esSuperAdmin, tieneInterGeneraciones } from '../lib/config';
+import { EQUIPO_ACTUALIZADO, esSuperAdmin, tieneInterGeneraciones } from '../lib/config';
 import { diasParaVencer, planVigente } from '../lib/plan';
 import { ErrorBoundary } from './ErrorBoundary';
 
@@ -68,6 +68,9 @@ export default function Layout() {
       }
     };
     fetchTeamSettings();
+    // Ajustes avisa cuando cambian el nombre o el escudo: se releen sin recargar la página.
+    window.addEventListener(EQUIPO_ACTUALIZADO, fetchTeamSettings);
+    return () => window.removeEventListener(EQUIPO_ACTUALIZADO, fetchTeamSettings);
   }, [teamId]);
 
   // Renovación: se avisa desde 7 días antes del vencimiento y mientras el plan siga vencido.

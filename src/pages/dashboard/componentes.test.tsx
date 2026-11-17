@@ -56,6 +56,7 @@ describe('bloques del panel de inicio', () => {
     expect(html).not.toContain('Araos');
     expect(html).toContain('ABC123');
     expect(dibujar(<SaludoInicio nombre="" rol="Jugador" />)).not.toContain('ABC123');
+    expect(dibujar(<SaludoInicio nombre="Ana" rol="Jugador" portada="https://x.example/portada.jpg" />)).toContain('portada.jpg');
   });
 
   it.each([['sin datos', STATS_VACIAS], ['con datos', llenas], ['con votación abierta', votando]])('mosaicos, MVP y participaciones %s', (_, stats) => {
