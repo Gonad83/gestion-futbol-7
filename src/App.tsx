@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Avisos } from './components/Avisos';
+import { tieneInterGeneraciones } from './lib/config';
 
 // Cada pantalla se descarga al abrirla: antes la app entera (1 MB) bajaba de
 // una vez, y en el teléfono la primera carga se hacía larga.
@@ -72,6 +73,13 @@ function Inicio() {
   return <Landing />;
 }
 
+/** Inter Generaciones es solo de Real Ebolo: los demás equipos vuelven al inicio. */
+function SoloInterGeneraciones() {
+  const { teamId } = useAuth();
+  if (!tieneInterGeneraciones(teamId)) return <Navigate to="/dashboard" replace />;
+  return <InterGeneraciones />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -104,7 +112,7 @@ function App() {
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/matchmaking" element={<Matchmaking />} />
               <Route path="/finance" element={<Finance />} />
-              <Route path="/inter-generaciones" element={<InterGeneraciones />} />
+              <Route path="/inter-generaciones" element={<SoloInterGeneraciones />} />
               <Route path="/profile" element={<MyProfile />} />
               <Route path="/vote" element={<Vote />} />
               <Route path="/arena" element={<Arena />} />

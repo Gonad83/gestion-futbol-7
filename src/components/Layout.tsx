@@ -7,7 +7,7 @@ import {
 import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
-import { esSuperAdmin } from '../lib/config';
+import { esSuperAdmin, tieneInterGeneraciones } from '../lib/config';
 import { diasParaVencer, planVigente } from '../lib/plan';
 import { ErrorBoundary } from './ErrorBoundary';
 
@@ -105,7 +105,7 @@ export default function Layout() {
     { name: 'Plantilla', path: '/players', icon: Users },
     { name: 'Calendario', path: '/calendar', icon: CalendarDays },
     { name: 'Matchmaking', path: '/matchmaking', icon: ShieldAlert },
-    { name: 'Inter Generaciones', path: '/inter-generaciones', icon: Trophy },
+    ...(tieneInterGeneraciones(teamId) ? [{ name: 'Inter Generaciones', path: '/inter-generaciones', icon: Trophy }] : []),
     ...(isSuperAdmin ? [{ name: 'Arena', path: '/arena', icon: Globe }] : []),
     { name: 'Mi Perfil', path: '/profile', icon: UserCircle },
     ...(isAdmin ? [

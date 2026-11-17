@@ -7,6 +7,16 @@
  */
 export const SUPER_ADMIN_EMAIL = 'garaosd@gmail.com';
 
+/**
+ * Inter Generaciones SSCC es un torneo propio de Real Ebolo FC (equipo 1 en
+ * team_settings): los demás equipos no ven la sección.
+ */
+export const EQUIPO_INTER_GENERACIONES = 1;
+
+export function tieneInterGeneraciones(teamId?: number | null) {
+  return Number(teamId) === EQUIPO_INTER_GENERACIONES;
+}
+
 export function esSuperAdmin(email?: string | null) {
   return (email ?? '').toLowerCase() === SUPER_ADMIN_EMAIL;
 }
