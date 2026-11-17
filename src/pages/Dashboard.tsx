@@ -1,22 +1,23 @@
 import { useAuth } from '../hooks/useAuth';
 import { useDashboard } from './dashboard/useDashboard';
-import { HeroEquipo } from './dashboard/HeroEquipo';
-import { MiPanel } from './dashboard/MiPanel';
-import { BannerPago } from './dashboard/BannerPago';
-import { FilaKpi } from './dashboard/FilaKpi';
-import { ProximoPartido } from './dashboard/ProximoPartido';
+import { SaludoInicio } from './dashboard/SaludoInicio';
+import { PartidoHero } from './dashboard/PartidoHero';
+import { AvisoCuota, MosaicosInicio } from './dashboard/ResumenInicio';
 import { TarjetaMvp } from './dashboard/TarjetaMvp';
-import { TarjetaMorosos } from './dashboard/TarjetaMorosos';
-import { TarjetaPlantilla } from './dashboard/TarjetaPlantilla';
 import { TarjetaParticipaciones } from './dashboard/TarjetaParticipaciones';
 import { ModalAsistencia } from './dashboard/ModalAsistencia';
 
+const ROLES: Record<string, string> = { captain: 'Capitán', subcaptain: 'Subcapitán' };
+
 /**
- * Panel de inicio. Aquí solo se arma la pantalla: los datos y acciones vienen
- * de useDashboard y cada bloque se dibuja en su propio archivo en ./dashboard.
+ * Inicio. Aquí solo se arma la pantalla: los datos y acciones vienen de
+ * useDashboard y cada bloque se dibuja en su propio archivo en ./dashboard.
+ * Diseño para celular basado en el concepto de Stitch (docs/diseno/inicio-movil-stitch.png):
+ * el próximo partido con Voy / No voy manda; después la cuota pendiente, la
+ * caja, el MVP y quiénes más juegan.
  */
 export default function Dashboard() {
-  const { isAdmin, isMatchmaker, teamId } = useAuth();
+  const { isAdmin, isMatchmaker, teamId, user } = useAuth();
   const d = useDashboard(teamId);
 
   if (d.loading) {
@@ -27,53 +28,43 @@ export default function Dashboard() {
     );
   }
 
+  const nombre = d.myPlayer?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+  const rol = isAdmin ? 'Capitán' : ROLES[d.myPlayer?.match_role ?? ''] ?? 'Jugador';
+
   return (
-    <div className="fade-in pb-20 md:pb-0 space-y-6 relative overflow-x-hidden">
-      <HeroEquipo teamSettings={d.teamSettings} isAdmin={isAdmin} />
+    <div className="fade-in pb-20 md:pb-0 max-w-5xl mx-auto space-y-5">
+      <SaludoInicio nombre={nombre} rol={rol} codigo={isAdmin ? d.teamSettings.join_code : null} />
 
-      {d.myPlayer && (
-        <MiPanel
-          stats={d.stats}
-          myPlayer={d.myPlayer}
-          myConfirmStatus={d.myConfirmStatus}
-          confirmingMyStatus={d.confirmingMyStatus}
-          handleMyConfirm={d.handleMyConfirm}
-        />
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
+        <div className="lg:col-span-3 space-y-5">
+          <PartidoHero
+            stats={d.stats}
+            myPlayer={d.myPlayer}
+            myConfirmStatus={d.myConfirmStatus}
+            confirmingMyStatus={d.confirmingMyStatus}
+            handleMyConfirm={d.handleMyConfirm}
+            confirmedPlayers={d.confirmedPlayers}
+            guestsDash={d.guestsDash}
+            isMatchmaker={isMatchmaker}
+            openAttendanceModal={d.openAttendanceModal}
+            copyForWhatsApp={d.copyForWhatsApp}
+            copied={d.copied}
+          />
+          <AvisoCuota stats={d.stats} myPlayer={d.myPlayer} teamSettings={d.teamSettings} />
+          <MosaicosInicio stats={d.stats} isAdmin={isAdmin} myPlayer={d.myPlayer} />
+        </div>
 
-      {d.teamSettings.payment_button_enabled && d.teamSettings.payment_link && <BannerPago teamSettings={d.teamSettings} />}
-
-      <FilaKpi stats={d.stats} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <ProximoPartido
-          stats={d.stats}
-          isMatchmaker={isMatchmaker}
-          confirmedPlayers={d.confirmedPlayers}
-          guestsDash={d.guestsDash}
-          guestInputDash={d.guestInputDash}
-          setGuestInputDash={d.setGuestInputDash}
-          addingGuestDash={d.addingGuestDash}
-          addGuestDash={d.addGuestDash}
-          removeGuestDash={d.removeGuestDash}
-          openAttendanceModal={d.openAttendanceModal}
-          copyForWhatsApp={d.copyForWhatsApp}
-          copied={d.copied}
-        />
-        <TarjetaMvp
-          stats={d.stats}
-          isAdmin={isAdmin}
-          copiedVote={d.copiedVote}
-          shareVoteWhatsApp={d.shareVoteWhatsApp}
-          closeVoting={d.closeVoting}
-          notifyVoting={d.notifyVoting}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <TarjetaMorosos stats={d.stats} isAdmin={isAdmin} />
-        <TarjetaPlantilla stats={d.stats} />
-        <TarjetaParticipaciones stats={d.stats} />
+        <div className="lg:col-span-2 space-y-5">
+          <TarjetaMvp
+            stats={d.stats}
+            isAdmin={isAdmin}
+            copiedVote={d.copiedVote}
+            shareVoteWhatsApp={d.shareVoteWhatsApp}
+            closeVoting={d.closeVoting}
+            notifyVoting={d.notifyVoting}
+          />
+          <TarjetaParticipaciones stats={d.stats} />
+        </div>
       </div>
 
       {d.showAttendanceModal && d.stats.nextMatch && (

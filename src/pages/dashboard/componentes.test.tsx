@@ -6,16 +6,12 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('../../lib/supabase', () => ({ supabase: {}, withTimeout: (p: Promise<unknown>) => p }));
 
 import { STATS_VACIAS, type DashboardStats, type JugadorDash } from '../../lib/api/dashboard';
-import { BannerPago } from './BannerPago';
-import { FilaKpi } from './FilaKpi';
-import { HeroEquipo } from './HeroEquipo';
-import { MiPanel } from './MiPanel';
 import { ModalAsistencia } from './ModalAsistencia';
-import { ProximoPartido } from './ProximoPartido';
-import { TarjetaMorosos } from './TarjetaMorosos';
+import { PartidoHero } from './PartidoHero';
+import { AvisoCuota, MosaicosInicio } from './ResumenInicio';
+import { SaludoInicio } from './SaludoInicio';
 import { TarjetaMvp } from './TarjetaMvp';
 import { TarjetaParticipaciones } from './TarjetaParticipaciones';
-import { TarjetaPlantilla } from './TarjetaPlantilla';
 
 /**
  * Pruebas de humo: cada bloque del panel se dibuja sin romperse, tanto con el
@@ -54,47 +50,51 @@ const llenas: DashboardStats = {
 const votando: DashboardStats = { ...llenas, votingIsOpen: true, openVoteMatchId: 'm0', openVoteMatchDate: '2026-12-13T20:00:00Z', topMvp: [top(ana, 3), top(beto, 2)] };
 
 describe('bloques del panel de inicio', () => {
-  it('encabezado con el nombre del equipo y el código de invitación solo para el capitán', () => {
-    expect(dibujar(<HeroEquipo teamSettings={ajustes} isAdmin />)).toContain('ABC123');
-    expect(dibujar(<HeroEquipo teamSettings={ajustes} isAdmin={false} />)).not.toContain('ABC123');
-    expect(dibujar(<HeroEquipo teamSettings={{ ...ajustes, team_name: '' }} isAdmin={false} />)).toBeTruthy();
+  it('saludo con el primer nombre y el código de invitación solo si se pasa', () => {
+    const html = dibujar(<SaludoInicio nombre="Gonzalo Araos" rol="Capitán" codigo="ABC123" />);
+    expect(html).toContain('Gonzalo');
+    expect(html).not.toContain('Araos');
+    expect(html).toContain('ABC123');
+    expect(dibujar(<SaludoInicio nombre="" rol="Jugador" />)).not.toContain('ABC123');
   });
 
-  it('botón de pago con su enlace', () => {
-    expect(dibujar(<BannerPago teamSettings={ajustes} />)).toContain('https://pago.example/x');
-  });
-
-  it.each([['sin datos', STATS_VACIAS], ['con datos', llenas], ['con votación abierta', votando]])('tarjetas de resumen %s', (_, stats) => {
-    expect(dibujar(<FilaKpi stats={stats} />)).toBeTruthy();
-    expect(dibujar(<TarjetaMorosos stats={stats} isAdmin />)).toBeTruthy();
-    expect(dibujar(<TarjetaMorosos stats={stats} isAdmin={false} />)).toBeTruthy();
-    expect(dibujar(<TarjetaPlantilla stats={stats} />)).toBeTruthy();
-    expect(dibujar(<TarjetaParticipaciones stats={stats} />)).toBeTruthy();
+  it.each([['sin datos', STATS_VACIAS], ['con datos', llenas], ['con votación abierta', votando]])('mosaicos, MVP y participaciones %s', (_, stats) => {
     for (const isAdmin of [true, false]) {
+      expect(dibujar(<MosaicosInicio stats={stats} isAdmin={isAdmin} myPlayer={isAdmin ? null : beto} />)).toBeTruthy();
       expect(dibujar(<TarjetaMvp stats={stats} isAdmin={isAdmin} copiedVote={false} shareVoteWhatsApp={nada} closeVoting={nada} notifyVoting={nada} />)).toBeTruthy();
     }
+    expect(dibujar(<TarjetaParticipaciones stats={stats} />)).toBeTruthy();
   });
 
-  it('los morosos muestran al jugador que debe', () => {
-    expect(dibujar(<TarjetaMorosos stats={llenas} isAdmin />)).toContain('Beto Díaz');
+  it('el capitán ve cuántos deben; el jugador, su asistencia', () => {
+    expect(dibujar(<MosaicosInicio stats={llenas} isAdmin myPlayer={null} />)).toContain('Morosos');
+    // Ana jugó 8 de 10 partidos.
+    expect(dibujar(<MosaicosInicio stats={llenas} isAdmin={false} myPlayer={ana} />)).toContain('80');
+  });
+
+  it('aviso de cuota solo para quien debe, con el botón de pago si está activo', () => {
+    expect(dibujar(<AvisoCuota stats={llenas} myPlayer={beto} teamSettings={ajustes} />)).toContain('https://pago.example/x');
+    expect(dibujar(<AvisoCuota stats={llenas} myPlayer={beto} teamSettings={{ ...ajustes, payment_button_enabled: false }} />)).toContain('/finance');
+    expect(dibujar(<AvisoCuota stats={llenas} myPlayer={ana} teamSettings={ajustes} />)).toBe('');
+    expect(dibujar(<AvisoCuota stats={llenas} myPlayer={null} teamSettings={ajustes} />)).toBe('');
   });
 
   it.each([['sin partido', STATS_VACIAS], ['con partido', llenas]])('próximo partido %s', (_, stats) => {
     for (const isMatchmaker of [true, false]) {
-      const html = dibujar(
-        <ProximoPartido
-          stats={stats} isMatchmaker={isMatchmaker} confirmedPlayers={stats.nextMatch ? [ana] : []}
-          guestsDash={stats.nextMatch ? [{ id: 'g1', name: 'Invitado Uno' }] : []} guestInputDash="" setGuestInputDash={nada}
-          addingGuestDash={false} addGuestDash={nada} removeGuestDash={nada} openAttendanceModal={nada} copyForWhatsApp={nada} copied={false}
-        />,
-      );
-      expect(html).toContain(stats.nextMatch ? 'Cancha 3' : 'Sin eventos próximos');
-    }
-  });
-
-  it.each([['Pendiente'], ['Voy'], ['No voy']])('mi panel con respuesta %s', (estado) => {
-    for (const stats of [STATS_VACIAS, llenas]) {
-      expect(dibujar(<MiPanel stats={stats} myPlayer={beto} myConfirmStatus={estado} confirmingMyStatus={false} handleMyConfirm={nada} />)).toContain('Tu Panel');
+      for (const [myPlayer, estado] of [[beto, 'Voy'], [beto, 'No voy'], [null, 'Pendiente']] as const) {
+        const html = dibujar(
+          <PartidoHero
+            stats={stats} myPlayer={myPlayer} myConfirmStatus={estado} confirmingMyStatus={false} handleMyConfirm={nada}
+            confirmedPlayers={stats.nextMatch ? [ana] : []} guestsDash={stats.nextMatch ? [{ id: 'g1', name: 'Invitado Uno' }] : []}
+            isMatchmaker={isMatchmaker} openAttendanceModal={nada} copyForWhatsApp={nada} copied={false} ahora={new Date('2026-12-18T12:00:00Z')}
+          />,
+        );
+        expect(html).toContain(stats.nextMatch ? 'Cancha 3' : 'Sin partidos próximos');
+        if (stats.nextMatch) {
+          expect(html).toContain('Faltan 2 días');
+          expect(html.includes('No voy')).toBe(myPlayer !== null);
+        }
+      }
     }
   });
 
