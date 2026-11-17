@@ -2,7 +2,7 @@ import { MessageCircle, Mail, Clock } from 'lucide-react';
 import StaticLayout from '../components/StaticLayout';
 
 export default function Contacto() {
-  const whatsapp = 'https://wa.me/56900000000?text=Hola%2C%20necesito%20ayuda%20con%20MiClubPro';
+  const whatsapp = 'https://wa.me/56957561136?text=Hola%2C%20necesito%20ayuda%20con%20MiClubPro';
 
   return (
     <StaticLayout>
@@ -23,7 +23,7 @@ export default function Contacto() {
           style={{ background: 'rgba(68,243,169,0.08)', border: '1px solid rgba(68,243,169,0.2)' }}>
           <MessageCircle size={28} style={{ color: '#44f3a9' }} />
           <div>
-            <p className="font-bold text-white text-base mb-1">WhatsApp</p>
+            <p className="font-bold text-white text-base mb-1">WhatsApp · +56 9 5756 1136</p>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Respuesta en menos de 2 horas en horario hábil.</p>
           </div>
           <span className="text-sm font-bold" style={{ color: '#44f3a9' }}>Chatear ahora →</span>

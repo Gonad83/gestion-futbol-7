@@ -66,7 +66,7 @@ export const PAGINAS: PaginaPublica[] = [
   {
     ruta: '/contacto',
     titulo: 'Contacto · MiClubPro',
-    descripcion: 'Escríbenos a hola@miclubpro.cl o por WhatsApp. Respondemos dudas sobre planes, pagos y uso de MiClubPro.',
+    descripcion: 'Escríbenos a hola@miclubpro.cl o por WhatsApp al +56 9 5756 1136. Respondemos dudas sobre planes, pagos y uso de MiClubPro.',
     miga: 'Contacto',
     prioridad: 0.5,
     frecuencia: 'yearly',
@@ -108,6 +108,15 @@ const ORGANIZACION = {
   url: `${SITIO}/`,
   logo: `${SITIO}/logo.png`,
   email: 'hola@miclubpro.cl',
+  telephone: '+56957561136',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    telephone: '+56957561136',
+    email: 'hola@miclubpro.cl',
+    availableLanguage: 'es',
+    areaServed: 'CL',
+  },
   areaServed: { '@type': 'Country', name: 'Chile' },
 };
 

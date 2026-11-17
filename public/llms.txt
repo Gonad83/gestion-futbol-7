@@ -25,7 +25,7 @@
 - [Centro de ayuda](https://miclubpro.cl/centro-de-ayuda): plantilla, calendario, armado, caja, MVP y configuración.
 - [Sobre nosotros](https://miclubpro.cl/sobre-nosotros): quiénes somos y por qué existe MiClubPro.
 - [Seguridad](https://miclubpro.cl/seguridad): cifrado, accesos por rol y respaldos.
-- [Contacto](https://miclubpro.cl/contacto): hola@miclubpro.cl.
+- [Contacto](https://miclubpro.cl/contacto): hola@miclubpro.cl o WhatsApp +56 9 5756 1136.
 
 ## Opcional
 
