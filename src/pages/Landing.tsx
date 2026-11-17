@@ -68,7 +68,7 @@ function armarEquipos(): [Jugador[], Jugador[]] {
 
 const PRECIOS = {
   pro: { mensual: '$9.990', anual: '$7.990', notaAnual: '$95.880 al año, en un pago' },
-  elite: { mensual: '$24.990', anual: '$19.990', notaAnual: '$239.880 al año, en un pago' },
+  elite: { mensual: '$19.990', anual: '$15.990', notaAnual: '$191.880 al año, en un pago' },
 };
 const NOTA_MENSUAL = 'Pago mes a mes, sin permanencia';
 

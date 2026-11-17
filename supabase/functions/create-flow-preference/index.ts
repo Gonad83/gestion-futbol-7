@@ -13,8 +13,8 @@ const PLANES: Record<string, Record<string, { monto: number; titulo: string }>> 
     anual: { monto: 95880, titulo: 'MiClubPro: Plan Pro Anual' },
   },
   elite: {
-    mensual: { monto: 24990, titulo: 'MiClubPro: Plan Elite Mensual' },
-    anual: { monto: 239880, titulo: 'MiClubPro: Plan Elite Anual' },
+    mensual: { monto: 19990, titulo: 'MiClubPro: Plan Elite Mensual' },
+    anual: { monto: 191880, titulo: 'MiClubPro: Plan Elite Anual' },
   },
 };
 

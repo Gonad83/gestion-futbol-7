@@ -53,10 +53,10 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
   elite: {
     mensual: {
       label: 'Plan Elite Mensual',
-      price: '$24.990',
+      price: '$19.990',
       period: '/mes',
       subtext: 'Facturación mensual · Cancela cuando quieras',
-      amount: 24990,
+      amount: 19990,
       color: '#44f3a9',
       features: [
         'Todo lo del plan Pro incluido',
@@ -70,10 +70,10 @@ const PLAN_INFO: Record<PlanId, Record<Cycle, {
     },
     anual: {
       label: 'Plan Elite Anual',
-      price: '$239.880',
+      price: '$191.880',
       period: '/año',
-      subtext: '$19.990/mes · Ahorras $60.000 vs mensual',
-      amount: 239880,
+      subtext: '$15.990/mes · Ahorras $48.000 vs mensual',
+      amount: 191880,
       color: '#44f3a9',
       features: [
         'Todo lo del plan Pro incluido',
