@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Eye, EyeOff, ArrowLeft, ArrowRight } from 'lucide-react';
+import { BotonGoogle } from '../components/BotonGoogle';
 
 type Tab = 'captain' | 'player';
 type PlayerMode = 'choose' | 'new' | 'returning';
@@ -26,10 +27,11 @@ async function pedirRestablecimiento(email: string) {
 export default function Login() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [tab, setTab] = useState<Tab>('captain');
 
   // Captain login
-  const [email, setEmail] = useState(localStorage.getItem('remember_email') || '');
+  const [email, setEmail] = useState(params.get('email') || localStorage.getItem('remember_email') || '');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('remember_email'));
   const [showPassword, setShowPassword] = useState(false);
@@ -55,7 +57,10 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  // Al crear la cuenta con correo, RegisterCaptain manda aquí con ?registered=1: hay que confirmar el correo.
+  const [success, setSuccess] = useState(params.get('registered') === '1'
+    ? `¡Tu equipo está creado! Te enviamos un correo a ${params.get('email') || 'tu casilla'} para confirmar la cuenta. Ábrelo, toca el link y luego entra aquí. Si no llega, revisa el spam.`
+    : '');
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [playerForgotMode, setPlayerForgotMode] = useState(false);
@@ -247,9 +252,9 @@ export default function Login() {
             <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="font-headline text-4xl font-black text-white mb-1 uppercase italic tracking-tight">
-            Club <span className="text-soccer-green">Pro</span>
+            MiClub<span className="text-soccer-green">Pro</span>
           </h1>
-          <p className="text-white/30 text-sm">Plataforma de Gestión Deportiva</p>
+          <p className="text-white/50 text-sm">Organiza tu equipo de fútbol 7</p>
         </div>
 
         {/* Tabs */}
@@ -292,6 +297,7 @@ export default function Login() {
         {/* ─── CAPITÁN TAB ─────────────────────────────────────────────────────── */}
         {tab === 'captain' && !forgotMode && (
           <form onSubmit={handleCaptainLogin} className="space-y-4">
+            <BotonGoogle destino="/dashboard" onError={setError} />
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-white/50 mb-1.5">Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -324,7 +330,7 @@ export default function Login() {
             </button>
             <div className="pt-3 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <p className="text-xs text-white/50 mb-2">¿No tienes equipo aún?</p>
-              <Link to="/landing"
+              <Link to="/register-captain"
                 className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl text-xs font-bold transition-all"
                 style={{ background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.15)' }}>
                 Crear mi equipo <ArrowRight size={13} />
@@ -398,6 +404,7 @@ export default function Login() {
               className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/60 transition-colors mb-2">
               <ArrowLeft size={13} /> Volver
             </button>
+            <BotonGoogle destino="/dashboard" onError={setError} />
 
             <div className="flex items-center gap-3 p-3 rounded-xl mb-2"
               style={{ background: 'rgba(68,243,169,0.06)', border: '1px solid rgba(68,243,169,0.15)' }}>

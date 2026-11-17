@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import { esSuperAdmin } from '../lib/config';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +10,8 @@ interface AuthContextType {
   isMatchmaker: boolean;
   playerProfile: any | null;
   teamId: number | null;
+  /** Tiene sesión pero no es dueño ni jugador de ningún equipo (p. ej. recién entró con Google). */
+  sinEquipo: boolean;
   setIsAdmin: (isAdmin: boolean) => void;
   refreshProfile: () => Promise<void>;
 }
@@ -20,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   isMatchmaker: false,
   playerProfile: null,
   teamId: null,
+  sinEquipo: false,
   setIsAdmin: () => {},
   refreshProfile: async () => {}
 });
@@ -31,6 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isMatchmaker, setIsMatchmaker] = useState(false);
   const [playerProfile, setPlayerProfile] = useState<any | null>(null);
   const [teamId, setTeamId] = useState<number | null>(null);
+  const [sinEquipo, setSinEquipo] = useState(false);
 
   useEffect(() => {
     // Definimos una función para orquestar la carga de la sesión
@@ -67,6 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAdmin(false);
         setPlayerProfile(null);
         setTeamId(null);
+        setSinEquipo(false);
         setLoading(false);
       }
     });
@@ -136,13 +142,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         )) as any;
         if (ownedTeam?.id) {
           setTeamId(ownedTeam.id);
+          setSinEquipo(false);
         } else if (result.player?.team_id) {
           setTeamId(result.player.team_id);
+          setSinEquipo(false);
         } else {
-          setTeamId(1);
+          // Antes se le asignaba el equipo 1 (de otro club) a quien no tenía equipo.
+          // Ahora queda sin equipo y ProtectedRoute lo manda a crear o unirse a uno.
+          setTeamId(null);
+          setSinEquipo(!esSuperAdmin(authUser.email));
         }
       } catch {
-        setTeamId(result.player?.team_id ?? 1);
+        // Si la consulta no respondió no sabemos si tiene equipo: no se le manda a registrarse.
+        setTeamId(result.player?.team_id ?? null);
       }
     } catch (e: any) {
       console.error('Role check error or timeout:', e);
@@ -157,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, isMatchmaker, playerProfile, teamId, setIsAdmin, refreshProfile }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, isMatchmaker, playerProfile, teamId, sinEquipo, setIsAdmin, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolean }) {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, sinEquipo } = useAuth();
 
   const [showSlowMessage, setShowSlowMessage] = React.useState(false);
 
@@ -32,6 +32,11 @@ export function ProtectedRoute({ requireAdmin = false }: { requireAdmin?: boolea
   // quien abre la app instalada quiere entrar, no leer la publicidad.
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Con sesión pero sin equipo (p. ej. recién entró con Google): primero crea o se une a uno.
+  if (sinEquipo) {
+    return <Navigate to="/register-captain" replace />;
   }
 
   if (requireAdmin && !isAdmin) {
