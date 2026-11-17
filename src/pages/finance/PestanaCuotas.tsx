@@ -1,7 +1,9 @@
-import type { Dispatch, SetStateAction } from 'react';
-import { ChevronLeft, ChevronRight, Pencil, Check, X, Search } from 'lucide-react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { Check, CheckCircle2, Search, X } from 'lucide-react';
 import type { FilaCuota, FiltroEstado } from '../../lib/api/finanzas';
 import { MONTHS, clp } from '../../lib/formato';
+import { Capa } from '../../components/Capa';
+import { METODOS_PAGO, esMesSinCuota, iniciales } from './cuotasMes';
 
 interface Props {
   isAdmin: boolean;
@@ -11,10 +13,6 @@ interface Props {
   setCustomAmounts: Dispatch<SetStateAction<Record<string, number>>>;
   paymentMethods: Record<string, string>;
   setPaymentMethods: Dispatch<SetStateAction<Record<string, string>>>;
-  editingQuota: boolean;
-  setEditingQuota: Dispatch<SetStateAction<boolean>>;
-  quotaInput: string;
-  setQuotaInput: Dispatch<SetStateAction<string>>;
   search: string;
   setSearch: Dispatch<SetStateAction<string>>;
   statusFilter: FiltroEstado;
@@ -22,253 +20,275 @@ interface Props {
   selectedMonth: number;
   selectedYear: number;
   filteredPayments: FilaCuota[];
-  prevMonth: () => void;
-  nextMonth: () => void;
-  handleSaveQuota: () => void;
-  handleSetExempt: (fila: FilaCuota) => void;
-  handleUnsetExempt: (fila: FilaCuota) => void;
-  handleCancelPayment: (fila: FilaCuota) => void;
-  handlePaymentToggle: (fila: FilaCuota) => void;
+  handleSetExempt: (fila: FilaCuota) => void | Promise<void>;
+  handleUnsetExempt: (fila: FilaCuota) => void | Promise<void>;
+  handleCancelPayment: (fila: FilaCuota) => void | Promise<void>;
+  handlePaymentToggle: (fila: FilaCuota) => void | Promise<void>;
 }
 
-export function PestanaCuotas({ isAdmin, payments, quotaAmount, customAmounts, setCustomAmounts, paymentMethods, setPaymentMethods, editingQuota, setEditingQuota, quotaInput, setQuotaInput, search, setSearch, statusFilter, setStatusFilter, selectedMonth, selectedYear, filteredPayments, prevMonth, nextMonth, handleSaveQuota, handleSetExempt, handleUnsetExempt, handleCancelPayment, handlePaymentToggle }: Props) {
-  return (
-    <div className="fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        {/* Month Navigator */}
-        <div className="flex items-center gap-3">
-          <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-slate-700/40 border border-glass-border text-slate-300 hover:bg-white/10 flex items-center justify-center transition-colors">
-            <ChevronLeft size={16} />
-          </button>
-          <div>
-            <h3 className="text-lg font-bold text-white capitalize">{MONTHS[selectedMonth - 1]} {selectedYear}</h3>
-            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-              <span className="w-2 h-2 bg-soccer-green rounded-full animate-pulse"></span>
-              Los cobros se generan el día 1 de cada mes.
-            </p>
-          </div>
-          <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-slate-700/40 border border-glass-border text-slate-300 hover:bg-white/10 flex items-center justify-center transition-colors">
-            <ChevronRight size={16} />
-          </button>
-        </div>
+type Estado = 'pagado' | 'abonado' | 'pendiente' | 'exento' | 'sin-cuota';
 
-        <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Buscar jugador..."
-              className="pl-8 pr-3 py-2 bg-black/40 border border-glass-border rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-soccer-green/50 w-48"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-          {/* Status filter */}
-          <div className="flex rounded-xl overflow-hidden border border-glass-border text-xs font-bold">
-            {(['todos', 'pagado', 'pendiente'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setStatusFilter(f)}
-                className={`px-3 py-2 transition-colors capitalize ${
-                  statusFilter === f
-                    ? f === 'pagado'
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : f === 'pendiente'
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-soccer-green/20 text-soccer-green'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {f === 'todos' ? 'Todos' : f === 'pagado' ? 'Pagado' : 'Pendiente'}
-              </button>
-            ))}
-          </div>
-          {/* Quota setting */}
-          {isAdmin && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-black/40 rounded-xl border border-glass-border">
-              <span className="text-xs text-slate-400 font-semibold">Cuota:</span>
-              {editingQuota ? (
-                <>
-                  <input
-                    type="number"
-                    className="w-24 bg-slate-800 border border-soccer-green/50 rounded px-2 py-0.5 text-white text-sm focus:outline-none"
-                    value={quotaInput}
-                    onChange={e => setQuotaInput(e.target.value)}
-                    autoFocus
-                  />
-                  <button onClick={handleSaveQuota} className="text-soccer-green hover:text-emerald-400 transition-colors"><Check size={14} /></button>
-                  <button onClick={() => setEditingQuota(false)} className="text-slate-400 hover:text-red-400 transition-colors"><X size={14} /></button>
-                </>
-              ) : (
-                <>
-                  <span className="text-sm font-bold text-white">{clp(quotaAmount)}</span>
-                  <button
-                    onClick={() => { setQuotaInput(String(quotaAmount)); setEditingQuota(true); }}
-                    className="text-slate-400 hover:text-soccer-green transition-colors"
-                  >
-                    <Pencil size={12} />
+function estadoDe(p: FilaCuota, mes: number): Estado {
+  if (p.isExempt) return 'exento';
+  if (esMesSinCuota(mes)) return 'sin-cuota';
+  if (p.status === 'Pagado') return 'pagado';
+  return p.amount > 0 ? 'abonado' : 'pendiente';
+}
+
+function detalle(p: FilaCuota, estado: Estado, cuota: number): { texto: string; color: string } {
+  switch (estado) {
+    case 'pagado': return { texto: ['Pagado', p.payment_method, clp(p.amount)].filter(Boolean).join(' · '), color: 'rgba(255,255,255,0.6)' };
+    case 'abonado': return { texto: `Abonó ${clp(p.amount)} · falta ${clp(Math.max(0, cuota - p.amount))}`, color: '#9acbff' };
+    case 'pendiente': return {
+      texto: `Pendiente · ${p.notified_at ? `aviso enviado ${new Date(p.notified_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}` : 'sin aviso'}`,
+      color: '#fca5a5',
+    };
+    case 'exento': return { texto: p.isManualExempt ? 'No aplica este mes' : 'Aún no era parte del equipo', color: 'rgba(255,255,255,0.5)' };
+    default: return { texto: 'Mes sin cuota', color: 'rgba(255,255,255,0.5)' };
+  }
+}
+
+/**
+ * Lista de cuotas del mes en tarjetas (antes una tabla de 5 columnas que en el
+ * celular había que deslizar de lado). Cada fila tiene una sola acción visible;
+ * el monto, el medio de pago y las demás acciones van en una hoja inferior.
+ */
+export function PestanaCuotas({ isAdmin, payments, quotaAmount, customAmounts, setCustomAmounts, paymentMethods, setPaymentMethods, search, setSearch, statusFilter, setStatusFilter, selectedMonth, selectedYear, filteredPayments, handleSetExempt, handleUnsetExempt, handleCancelPayment, handlePaymentToggle }: Props) {
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const fila = payments.find(p => p.player_id === abierta) ?? null;
+
+  const cuenta = {
+    todos: payments.length,
+    pendiente: payments.filter(p => p.status !== 'Pagado' && p.status !== 'Exento').length,
+    pagado: payments.filter(p => p.status === 'Pagado').length,
+  };
+
+  return (
+    <div>
+      <div className="relative mb-3">
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+        <input
+          type="search"
+          aria-label="Buscar jugador"
+          placeholder="Buscar jugador..."
+          className="w-full h-12 pl-11 pr-4 rounded-2xl text-[15px] text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-soccer-green/50"
+          style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.07)' }}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="flex gap-2 mb-4 overflow-x-auto -mx-1 px-1 pb-1" role="group" aria-label="Filtrar por estado">
+        {(['todos', 'pendiente', 'pagado'] as const).map(f => (
+          <button key={f} type="button" onClick={() => setStatusFilter(f)} aria-pressed={statusFilter === f}
+            className="shrink-0 h-9 px-4 rounded-full text-sm font-bold transition-colors cursor-pointer tabular-nums"
+            style={statusFilter === f
+              ? { background: '#44f3a9', color: '#003822' }
+              : { background: '#262a31', color: 'rgba(255,255,255,0.7)' }}>
+            {f === 'todos' ? 'Todos' : f === 'pendiente' ? 'Pendiente' : 'Pagado'} ({cuenta[f]})
+          </button>
+        ))}
+      </div>
+
+      {filteredPayments.length === 0 ? (
+        <p className="text-center text-sm text-white/50 py-10">
+          {payments.length === 0 ? 'Todavía no hay jugadores activos.' : 'Nadie coincide con la búsqueda.'}
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {filteredPayments.map(p => {
+            const estado = estadoDe(p, selectedMonth);
+            const { texto, color } = detalle(p, estado, quotaAmount);
+            const sePuedeAbrir = isAdmin && (estado === 'pendiente' || estado === 'abonado' || estado === 'pagado' || (estado === 'exento' && p.isManualExempt));
+            return (
+              <li key={p.player_id} className="flex items-center gap-3 p-3 pr-3 rounded-2xl min-h-[72px]"
+                style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.05)', opacity: estado === 'exento' || estado === 'sin-cuota' ? 0.75 : 1 }}>
+                <span className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center font-headline font-bold text-sm text-[#9acbff]"
+                  style={{ background: '#10141a', border: '1px solid #262a31' }} aria-hidden="true">
+                  {iniciales(p.name)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-white truncate">
+                    {p.name}{p.nickname && <span className="text-white/45 font-normal"> "{p.nickname}"</span>}
+                  </p>
+                  <p className="text-[13px] truncate" style={{ color }}>
+                    {(estado === 'pendiente' || estado === 'abonado') && <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style={{ background: color }} />}
+                    {texto}
+                  </p>
+                </div>
+
+                {isAdmin && (estado === 'pendiente' || estado === 'abonado') ? (
+                  <button type="button" onClick={() => setAbierta(p.player_id)} aria-label={`Registrar pago de ${p.name}`}
+                    className="shrink-0 h-11 px-3.5 rounded-full flex items-center gap-1.5 text-sm font-bold text-soccer-green cursor-pointer hover:bg-soccer-green/10 transition-colors"
+                    style={{ border: '1.5px solid rgba(68,243,169,0.6)' }}>
+                    <Check size={15} /> Cobrar
                   </button>
-                </>
-              )}
+                ) : estado === 'pagado' ? (
+                  <button type="button" disabled={!sePuedeAbrir} onClick={() => setAbierta(p.player_id)}
+                    className="shrink-0 h-9 px-3 rounded-full flex items-center gap-1.5 text-xs font-bold enabled:cursor-pointer"
+                    style={{ background: '#44f3a9', color: '#003822' }}
+                    aria-label={sePuedeAbrir ? `Pago de ${p.name}: ver o anular` : 'Pagado'}>
+                    <CheckCircle2 size={14} /> Pagado
+                  </button>
+                ) : estado === 'exento' ? (
+                  <button type="button" disabled={!sePuedeAbrir} onClick={() => setAbierta(p.player_id)}
+                    className="shrink-0 h-9 px-3 rounded-full text-xs font-bold text-white/60 enabled:cursor-pointer"
+                    style={{ background: '#262a31' }}>
+                    Exento
+                  </button>
+                ) : estado !== 'sin-cuota' && (
+                  <span className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold" style={{ background: 'rgba(248,113,113,0.12)', color: '#fca5a5' }}>
+                    {estado === 'abonado' ? 'Abonado' : 'Pendiente'}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {fila && (
+        <HojaPago
+          fila={fila}
+          estado={estadoDe(fila, selectedMonth)}
+          mes={`${MONTHS[selectedMonth - 1]} ${selectedYear}`}
+          quotaAmount={quotaAmount}
+          monto={customAmounts[fila.player_id] ?? Math.max(0, quotaAmount - Number(fila.amount || 0))}
+          setMonto={n => setCustomAmounts(prev => ({ ...prev, [fila.player_id]: n }))}
+          metodo={paymentMethods[fila.player_id] || 'Transferencia'}
+          setMetodo={m => setPaymentMethods(prev => ({ ...prev, [fila.player_id]: m }))}
+          cerrar={() => setAbierta(null)}
+          pagar={() => handlePaymentToggle(fila)}
+          noAplica={() => handleSetExempt(fila)}
+          quitarExencion={() => handleUnsetExempt(fila)}
+          anular={() => handleCancelPayment(fila)}
+        />
+      )}
+    </div>
+  );
+}
+
+interface HojaProps {
+  fila: FilaCuota;
+  estado: Estado;
+  mes: string;
+  quotaAmount: number;
+  monto: number;
+  setMonto: (n: number) => void;
+  metodo: string;
+  setMetodo: (m: string) => void;
+  cerrar: () => void;
+  pagar: () => void | Promise<void>;
+  noAplica: () => void | Promise<void>;
+  quitarExencion: () => void | Promise<void>;
+  anular: () => void | Promise<void>;
+}
+
+/** Hoja inferior para registrar o corregir el pago de un jugador. */
+function HojaPago({ fila, estado, mes, quotaAmount, monto, setMonto, metodo, setMetodo, cerrar, pagar, noAplica, quitarExencion, anular }: HojaProps) {
+  const [ocupado, setOcupado] = useState(false);
+
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') cerrar(); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [cerrar]);
+
+  const hacer = (accion: () => void | Promise<void>) => async () => {
+    setOcupado(true);
+    try { await accion(); } finally { setOcupado(false); cerrar(); }
+  };
+
+  const debe = estado === 'pendiente' || estado === 'abonado';
+
+  return (
+    <Capa>
+      <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="hoja-pago-titulo">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm fade-in" onClick={cerrar} />
+        <div className="relative w-full sm:max-w-md rounded-t-[24px] sm:rounded-[24px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] scale-in"
+          style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="w-10 h-1 rounded-full bg-white/15 mx-auto mb-4 sm:hidden" aria-hidden="true" />
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="min-w-0">
+              <h2 id="hoja-pago-titulo" className="font-headline font-bold text-lg text-white truncate">{fila.name}</h2>
+              <p className="text-sm text-white/55">Cuota de {mes}</p>
+            </div>
+            <button type="button" onClick={cerrar} aria-label="Cerrar" className="w-10 h-10 -mr-2 -mt-1 rounded-full flex items-center justify-center text-white/50 hover:text-white cursor-pointer">
+              <X size={18} />
+            </button>
+          </div>
+
+          {debe && (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="hoja-monto" className="block text-[11px] font-bold uppercase tracking-wider text-white/55 mb-1.5">Monto recibido</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-bold">$</span>
+                  <input id="hoja-monto" type="number" inputMode="numeric" min={1}
+                    className="w-full h-12 pl-8 pr-4 rounded-xl text-lg font-headline font-bold text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-soccer-green/60"
+                    style={{ background: '#10141a', border: '1.5px solid #262a31' }}
+                    value={Number.isFinite(monto) ? monto : ''} onChange={e => setMonto(Number(e.target.value))} />
+                </div>
+                <p className="text-xs text-white/50 mt-1.5">
+                  Cuota {clp(quotaAmount)}{fila.amount > 0 && ` · ya abonó ${clp(fila.amount)}`}. Si pone menos, queda como abono.
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-white/55 mb-1.5">Cómo pagó</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {METODOS_PAGO.map(m => (
+                    <button key={m} type="button" onClick={() => setMetodo(m)} aria-pressed={metodo === m}
+                      className="h-11 rounded-xl text-sm font-bold cursor-pointer transition-colors"
+                      style={metodo === m
+                        ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9', border: '1.5px solid rgba(68,243,169,0.6)' }
+                        : { background: '#10141a', color: 'rgba(255,255,255,0.7)', border: '1.5px solid #262a31' }}>
+                      {m === 'Link de Pago' ? 'Link' : m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button type="button" disabled={ocupado || !(monto > 0)} onClick={hacer(pagar)}
+                className="btn-primary w-full h-12 flex items-center justify-center gap-2 disabled:opacity-50">
+                <Check size={17} /> Registrar pago de {clp(monto > 0 ? monto : 0)}
+              </button>
+              <div className="flex gap-2">
+                <button type="button" disabled={ocupado} onClick={hacer(noAplica)}
+                  className="flex-1 h-11 rounded-xl text-sm font-semibold text-white/70 cursor-pointer" style={{ background: '#262a31' }}>
+                  No aplica este mes
+                </button>
+                {fila.amount > 0 && (
+                  <button type="button" disabled={ocupado} onClick={hacer(anular)}
+                    className="flex-1 h-11 rounded-xl text-sm font-semibold text-red-300 cursor-pointer" style={{ background: 'rgba(248,113,113,0.1)' }}>
+                    Anular abono
+                  </button>
+                )}
+              </div>
             </div>
           )}
-          <div className="text-sm px-4 py-2 bg-black/40 rounded-full border border-glass-border flex gap-4">
-            {selectedMonth <= 2 ? (
-              <span className="text-slate-400 font-bold italic">Temporada libre de cuotas</span>
-            ) : (
-              <>
-                <span><span className="text-emerald-400 font-bold">{payments.filter(p => p.status === 'Pagado').length}</span> al día</span>
-                <span className="w-px h-5 bg-glass-border"></span>
-                <span><span className="text-red-400 font-bold">{payments.filter(p => p.status !== 'Pagado' && p.status !== 'Exento').length}</span> pendientes</span>
-              </>
-            )}
-          </div>
+
+          {estado === 'pagado' && (
+            <div className="space-y-4">
+              <p className="text-sm text-white/70">
+                Pagó <span className="font-bold text-white">{clp(fila.amount)}</span>{fila.payment_method && <> con {fila.payment_method.toLowerCase()}</>}.
+              </p>
+              <button type="button" disabled={ocupado} onClick={hacer(anular)}
+                className="w-full h-12 rounded-xl text-sm font-bold text-red-300 cursor-pointer" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)' }}>
+                Anular este pago
+              </button>
+            </div>
+          )}
+
+          {estado === 'exento' && (
+            <div className="space-y-4">
+              <p className="text-sm text-white/70">Este mes está marcado como «no aplica» para este jugador.</p>
+              <button type="button" disabled={ocupado} onClick={hacer(quitarExencion)}
+                className="w-full h-12 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: '#262a31' }}>
+                Volver a cobrarle este mes
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      <div className="overflow-x-auto rounded-xl border border-glass-border">
-        <table className="w-full text-left text-sm text-slate-300">
-          <thead className="bg-black/40 text-xs uppercase font-semibold text-slate-400 border-b border-glass-border">
-            <tr>
-              <th className="px-5 py-4">Jugador</th>
-              <th className="px-5 py-4 text-center">Estado</th>
-              <th className="px-5 py-4 text-center">Notificado</th>
-              <th className="px-5 py-4 text-right">Monto</th>
-              {isAdmin && <th className="px-5 py-4 text-right">Acción</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-glass-border bg-black/20">
-            {filteredPayments.map(p => {
-              return (
-                <tr key={p.player_id} className="hover:bg-white/5 transition-colors">
-                  <td className="px-5 py-4 font-medium text-white">
-                    {p.name} {p.nickname && <span className="text-slate-500 font-normal">"{p.nickname}"</span>}
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                      p.isExempt
-                        ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-                        : selectedMonth <= 2
-                          ? 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
-                          : p.status === 'Pagado'
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : p.amount > 0
-                              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                    }`}>
-                      {p.isExempt ? 'No aplica' : selectedMonth <= 2 ? 'Sin Cuota' : (p.status === 'Pendiente' && p.amount > 0 ? 'Abonado' : p.status)}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    {p.isExempt ? (
-                      <span className="text-slate-400 text-xs italic">—</span>
-                    ) : p.notified_at ? (
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-emerald-400">✅ Enviado</span>
-                        <span className="text-[11px] text-slate-400">{new Date(p.notified_at).toLocaleDateString()}</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 italic text-xs">No enviado</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-right font-medium">
-                    {p.isExempt ? (
-                      <span className="text-slate-600">—</span>
-                    ) : isAdmin && p.status !== 'Pagado' ? (
-                      <div className="flex flex-col items-end gap-1">
-                        <input
-                          type="number"
-                          className="w-28 bg-slate-800 border border-glass-border rounded-lg px-2 py-1 text-right text-white text-sm focus:outline-none focus:border-soccer-green"
-                          value={customAmounts[p.player_id] !== undefined ? customAmounts[p.player_id] : (quotaAmount - p.amount)}
-                          onChange={e => setCustomAmounts(prev => ({ ...prev, [p.player_id]: Number(e.target.value) }))}
-                        />
-                        {p.amount > 0 && (
-                          <span className="text-[11px] text-blue-400 font-semibold">
-                            Abonado: {clp(p.amount)}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-end gap-1">
-                        <span>{clp(p.amount)}</span>
-                        {p.status === 'Pagado' && p.payment_method && (
-                          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{
-                            background: p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.1)' : p.payment_method === 'Flow' ? 'rgba(154,203,255,0.1)' : 'rgba(255,208,139,0.1)',
-                            color: p.payment_method === 'Efectivo' ? '#44f3a9' : p.payment_method === 'Link de Pago' ? '#9acbff' : '#ffd08b',
-                            border: `1px solid ${p.payment_method === 'Efectivo' ? 'rgba(68,243,169,0.25)' : p.payment_method === 'Link de Pago' ? 'rgba(154,203,255,0.25)' : 'rgba(255,208,139,0.25)'}`,
-                          }}>
-                            {p.payment_method === 'Efectivo' ? '💵' : p.payment_method === 'Link de Pago' ? '💳' : '🏦'} {p.payment_method}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  {isAdmin && (
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex justify-end items-center gap-2">
-                        {/* Quitar exención manual */}
-                        {p.isManualExempt && (
-                          <button
-                            onClick={() => handleUnsetExempt(p)}
-                            className="text-[11px] font-bold px-2 py-1.5 rounded transition-colors border border-slate-500/30 text-slate-400 hover:bg-slate-500/10"
-                            title="Quitar exención"
-                          >
-                            Quitar
-                          </button>
-                        )}
-                        {!p.isExempt && (
-                          <>
-                            {p.amount > 0 && (
-                              <button
-                                onClick={() => handleCancelPayment(p)}
-                                className="text-[11px] font-bold px-2 py-1.5 rounded transition-colors border border-red-500/30 text-red-500 hover:bg-red-500/10"
-                                title="Anular pago"
-                              >
-                                Anular
-                              </button>
-                            )}
-                            {p.status !== 'Pagado' && selectedMonth > 2 && (
-                              <>
-                                <button
-                                  onClick={() => handleSetExempt(p)}
-                                  className="text-[11px] font-bold px-2 py-1.5 rounded-lg transition-all whitespace-nowrap"
-                                  style={{ background: 'rgba(148,163,184,0.08)', color: 'rgba(148,163,184,0.6)', border: '1px solid rgba(148,163,184,0.15)' }}
-                                  title="Marcar como no aplica este mes"
-                                >
-                                  No aplica
-                                </button>
-                                <div className="flex items-center gap-1.5">
-                                  <select
-                                    value={paymentMethods[p.player_id] || 'Transferencia'}
-                                    onChange={e => setPaymentMethods(prev => ({ ...prev, [p.player_id]: e.target.value }))}
-                                    className="text-[11px] font-bold rounded-lg px-1.5 py-1.5 border focus:outline-none"
-                                    style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
-                                  >
-                                    <option value="Transferencia">🏦 Transferencia</option>
-                                    <option value="Efectivo">💵 Efectivo</option>
-                                    <option value="Link de Pago">💳 Link de Pago</option>
-                                  </select>
-                                  <button
-                                    onClick={() => handlePaymentToggle(p)}
-                                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-soccer-green/50 text-soccer-green hover:bg-soccer-green/10 bg-soccer-green/5 transition-all whitespace-nowrap"
-                                  >
-                                    Pagar
-                                  </button>
-                                </div>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </Capa>
   );
 }

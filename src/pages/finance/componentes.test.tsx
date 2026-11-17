@@ -6,12 +6,13 @@ vi.mock('../../lib/supabase', () => ({ supabase: {}, withTimeout: (p: Promise<un
 import type { FilaCuota, MorosoCaja, Movimiento } from '../../lib/api/finanzas';
 import { clp } from '../../lib/formato';
 import { EncabezadoCaja } from './EncabezadoCaja';
-import { IndicadoresCaja } from './IndicadoresCaja';
 import { PestanaCuotas } from './PestanaCuotas';
 import { PestanaGastos } from './PestanaGastos';
 import { PestanaIngresos } from './PestanaIngresos';
 import { PestanaMorosidad } from './PestanaMorosidad';
-import { TarjetasResumen } from './TarjetasResumen';
+import { ResumenCaja } from './ResumenCaja';
+import { ResumenMes } from './ResumenMes';
+import { iniciales, pendientesDelMes } from './cuotasMes';
 
 /**
  * Pruebas de humo: cada bloque de Caja se dibuja sin romperse, vacío y con
@@ -38,33 +39,54 @@ const formulario = { concept: '', amount: '', date: '2026-05-15' };
 
 describe('bloques de Caja', () => {
   it('encabezado: exportar solo para el capitán', () => {
-    expect(renderToString(<EncabezadoCaja isAdmin exportToPDF={nada} exportToCSV={nada} />)).toContain('Exportar como PDF');
-    expect(renderToString(<EncabezadoCaja isAdmin={false} exportToPDF={nada} exportToCSV={nada} />)).not.toContain('Exportar como PDF');
+    expect(renderToString(<EncabezadoCaja isAdmin exportToPDF={nada} exportToCSV={nada} />)).toContain('Exportar la caja');
+    expect(renderToString(<EncabezadoCaja isAdmin={false} exportToPDF={nada} exportToCSV={nada} />)).not.toContain('Exportar la caja');
   });
 
-  it.each([['mes' as const], ['total' as const]])('tarjetas de resumen (cuotas por %s) e indicadores', (quotaFilter) => {
+  it.each([['mes' as const], ['total' as const]])('resumen de la caja (cuotas por %s)', (quotaFilter) => {
     const html = renderToString(
-      <TarjetasResumen payments={cuotas} quotaFilter={quotaFilter} setQuotaFilter={nada} selectedMonth={5} totalExpenses={30000} balance={-1500} monthlyIncome={5000} allPaidAmount={45000} />,
+      <ResumenCaja quotaFilter={quotaFilter} setQuotaFilter={nada} selectedMonth={5} totalExpenses={30000} balance={-1500} monthlyIncome={5000} allPaidAmount={45000} mesesRespaldo={1.4} />,
     );
     expect(html).toContain(clp(-1500));
-    expect(renderToString(<IndicadoresCaja balance={120000} mesesRespaldo={2} tasaMora={33} />)).toContain('33');
-    expect(renderToString(<IndicadoresCaja balance={0} mesesRespaldo={0} tasaMora={0} />)).toBeTruthy();
+    expect(html).toContain(clp(30000));
+    expect(html).toContain(quotaFilter === 'mes' ? clp(5000) : clp(45000));
+    expect(html).toContain('1,4');
+  });
+
+  it.each([[true], [false]])('mes, avance y valor de la cuota (capitán: %s)', (isAdmin) => {
+    const base = { isAdmin, quotaAmount: 5000, selectedYear: 2026, prevMonth: nada, nextMonth: nada, setEditingQuota: nada, quotaInput: '5000', setQuotaInput: nada, handleSaveQuota: nada };
+    const html = renderToString(<ResumenMes {...base} payments={cuotas} selectedMonth={5} editingQuota={false} />);
+    expect(html).toContain('Mayo');
+    expect(html).toContain('1 de 3 jugadores al día');
+    expect(html.includes('Valor de la cuota')).toBe(isAdmin);
+    expect(renderToString(<ResumenMes {...base} payments={cuotas} selectedMonth={1} editingQuota />)).toContain('Temporada libre');
+    expect(renderToString(<ResumenMes {...base} payments={[]} selectedMonth={5} editingQuota={false} />)).toBeTruthy();
+  });
+
+  it('cuenta lo que falta por cobrar y arma iniciales', () => {
+    // b abonó 2000 (le faltan 3000) y e no ha pagado (5000); a pagó y c, d están exentos.
+    expect(pendientesDelMes(cuotas, 5000)).toEqual({ cantidad: 2, monto: 8000 });
+    expect(iniciales('Matías Bravo Soto')).toBe('MB');
+    expect(iniciales('  ')).toBe('?');
   });
 
   it.each([[true], [false]])('pestaña de cuotas (capitán: %s)', (isAdmin) => {
-    for (const [lista, editingQuota] of [[cuotas, false], [cuotas, true], [[], false]] as const) {
+    for (const lista of [cuotas, []]) {
       const html = renderToString(
         <PestanaCuotas
           isAdmin={isAdmin} payments={[...lista]} filteredPayments={[...lista]} quotaAmount={5000}
           customAmounts={{ b: 1000 }} setCustomAmounts={nada} paymentMethods={{ b: 'Efectivo' }} setPaymentMethods={nada}
-          editingQuota={editingQuota} setEditingQuota={nada} quotaInput="5000" setQuotaInput={nada}
           search="" setSearch={nada} statusFilter="todos" setStatusFilter={nada} selectedMonth={5} selectedYear={2026}
-          prevMonth={nada} nextMonth={nada} handleSaveQuota={nada} handleSetExempt={nada} handleUnsetExempt={nada}
-          handleCancelPayment={nada} handlePaymentToggle={nada}
+          handleSetExempt={nada} handleUnsetExempt={nada} handleCancelPayment={nada} handlePaymentToggle={nada}
         />,
       );
-      expect(html).toContain('Mayo');
-      if (lista.length > 0) expect(html).toContain('Tanque');
+      if (lista.length > 0) {
+        expect(html).toContain('Tanque');
+        expect(html).toContain('Abonó');
+        expect(html.includes('Registrar pago de')).toBe(isAdmin); // botón «Cobrar» solo para el capitán
+      } else {
+        expect(html).toContain('Todavía no hay jugadores');
+      }
     }
   });
 
