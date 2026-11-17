@@ -90,7 +90,7 @@ export const FREE_PLAYER_LIMIT = 10;
 export const MINIMO_PARA_ARMAR = 10;
 
 const nombreDeColor = (color: string) => JERSEY_COLORS.find((c) => c.value === color)?.name || color;
-const sinMarcaDeInvitado = (nombre: string) => nombre.replace(/\s*\(I\)\s*$/i, '').trim();
+export const sinMarcaDeInvitado =(nombre: string) => nombre.replace(/\s*\(I\)\s*$/i, '').trim();
 
 /** Un invitado se reconoce por su marca o por el "(I)" al final del nombre. */
 export const esInvitado = (p: JugadorMM) => Boolean(p.isGuest || p.name?.includes('(I)'));

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { aviso, confirmar } from '../../lib/avisos';
+import { sinMarcaDeInvitado } from '../../lib/matchmaking';
 import {
   STATS_VACIAS,
   agregarInvitado,
@@ -154,7 +155,12 @@ export function useDashboard(teamId: number | null) {
     const match = stats.nextMatch;
     if (!match) return;
 
-    const list = attendanceList.length > 0 ? attendanceList : unirAsistencia(stats.allPlayers, await asistenciaDelPartido(match.id));
+    // Los invitados se leen de nuevo: se pueden agregar desde la tarjeta o desde
+    // la ventana de asistencia, y cada una guarda su propia lista.
+    const [list, invitados] = await Promise.all([
+      attendanceList.length > 0 ? attendanceList : asistenciaDelPartido(match.id).then((a) => unirAsistencia(stats.allPlayers, a)),
+      invitadosDelPartido(match.id),
+    ]);
     const van = list.filter((p) => p.attendanceStatus === 'Voy');
     const noVan = list.filter((p) => p.attendanceStatus === 'No voy');
     const sinResp = list.filter((p) => p.attendanceStatus === 'Pendiente');
@@ -164,8 +170,9 @@ export function useDashboard(teamId: number | null) {
     lines.push(`📅 ${format(new Date(match.date), "EEEE dd 'de' MMMM • HH:mm", { locale: es })}`);
     if (match.location) lines.push(`📍 ${match.location}`);
     lines.push('');
-    lines.push(`✅ *Van (${van.length}):*`);
+    lines.push(`✅ *Van (${van.length + invitados.length}):*`);
     van.forEach((p, i) => lines.push(`${i + 1}. ${p.name}`));
+    invitados.forEach((g, i) => lines.push(`${van.length + i + 1}. ${sinMarcaDeInvitado(g.name)} (Invitado)`));
     if (noVan.length > 0) {
       lines.push('');
       lines.push(`❌ *No van (${noVan.length}):*`);
