@@ -4,7 +4,7 @@ const SECTIONS = [
   { title: '1. Aceptación de los términos', text: 'Al registrarte y usar MiClubPro, aceptas estos Términos de Servicio. Si no estás de acuerdo con alguna de las condiciones, no debes usar el servicio.' },
   { title: '2. Descripción del servicio', text: 'MiClubPro es una plataforma SaaS de gestión para equipos deportivos que incluye administración de plantilla, calendario, control de asistencia, matchmaking, caja y votación MVP. El servicio se presta a través de internet y no requiere instalación.' },
   { title: '3. Registro y cuenta', text: 'Debes proporcionar información veraz al crear tu cuenta. Eres responsable de mantener la confidencialidad de tu contraseña y de todas las actividades que ocurran bajo tu cuenta.' },
-  { title: '4. Planes y pagos', text: 'MiClubPro ofrece un plan gratuito por 1 mes y planes de pago mensual y anual. Los pagos se procesan a través de Mercado Pago. No realizamos reembolsos por períodos ya utilizados.' },
+  { title: '4. Planes y pagos', text: 'MiClubPro ofrece un plan gratuito por 1 mes y planes de pago mensual y anual. Los pagos se procesan a través de Flow (Webpay, tarjetas de crédito y débito, Mach y otros medios) o de Mercado Pago, a elección del cliente. MiClubPro no recibe ni guarda los datos de tu tarjeta. No realizamos reembolsos por períodos ya utilizados.' },
   { title: '5. Uso aceptable', text: 'Te comprometes a no usar MiClubPro para actividades ilegales, enviar spam, suplantar identidades, ni intentar acceder a cuentas de otros usuarios. Nos reservamos el derecho de suspender cuentas que violen estas normas.' },
   { title: '6. Propiedad intelectual', text: 'MiClubPro y sus contenidos originales son propiedad de sus desarrolladores. No puedes reproducir, distribuir ni crear trabajos derivados sin autorización expresa.' },
   { title: '7. Limitación de responsabilidad', text: 'MiClubPro se provee "tal cual". No garantizamos disponibilidad continua. No somos responsables por pérdidas derivadas de interrupciones del servicio o errores en los datos.' },
@@ -22,7 +22,7 @@ export default function TerminosDeServicio() {
       <h1 className="font-headline font-black text-4xl sm:text-5xl text-white mb-3 leading-tight">
         Términos de servicio
       </h1>
-      <p className="text-sm mb-12" style={{ color: 'rgba(255,255,255,0.35)' }}>Última actualización: mayo 2025</p>
+      <p className="text-sm mb-12" style={{ color: 'rgba(255,255,255,0.35)' }}>Última actualización: noviembre 2026</p>
 
       <div className="space-y-6">
         {SECTIONS.map(s => (

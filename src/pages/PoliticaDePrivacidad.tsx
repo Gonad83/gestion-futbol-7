@@ -3,6 +3,7 @@ import StaticLayout from '../components/StaticLayout';
 const SECTIONS = [
   { title: '¿Qué datos recopilamos?', text: 'Recopilamos el nombre, email y nombre del equipo al registrarte. Durante el uso, almacenamos datos de jugadores (nombre, posición, rating), eventos del calendario, registros de asistencia y transacciones de caja que tú mismo ingresas.' },
   { title: '¿Para qué usamos tus datos?', text: 'Tus datos se usan exclusivamente para operar el servicio: enviar emails de confirmación de asistencia, procesar pagos, generar estadísticas de tu equipo y mejorar la plataforma. Nunca vendemos ni compartimos datos con terceros con fines comerciales.' },
+  { title: 'Pagos', text: 'Los pagos de los planes los procesan Flow o Mercado Pago, según el medio que elijas. Les enviamos solo lo necesario para el cobro (plan, monto y tu email). MiClubPro nunca recibe ni guarda los datos de tu tarjeta.' },
   { title: 'Emails automáticos', text: 'MiClubPro envía emails transaccionales a los jugadores de tu equipo (confirmaciones de asistencia, recordatorios de partido). Estos emails solo se envían cuando el capitán crea un evento. Los jugadores pueden solicitar ser removidos contactando a hola@miclubpro.cl.' },
   { title: 'Almacenamiento y seguridad', text: 'Los datos se almacenan en Supabase (infraestructura en AWS) con cifrado TLS en tránsito y AES-256 en reposo. Aplicamos control de acceso por roles para que cada usuario solo vea los datos de su equipo.' },
   { title: 'Cookies', text: 'Usamos únicamente cookies esenciales para mantener tu sesión activa. No utilizamos cookies de seguimiento ni publicidad.' },
@@ -21,7 +22,7 @@ export default function PoliticaDePrivacidad() {
       <h1 className="font-headline font-black text-4xl sm:text-5xl text-white mb-3 leading-tight">
         Política de privacidad
       </h1>
-      <p className="text-sm mb-12" style={{ color: 'rgba(255,255,255,0.35)' }}>Última actualización: mayo 2025</p>
+      <p className="text-sm mb-12" style={{ color: 'rgba(255,255,255,0.35)' }}>Última actualización: noviembre 2026</p>
 
       <div className="space-y-6">
         {SECTIONS.map(s => (
