@@ -5,7 +5,7 @@ import { PRECIOS, PREGUNTAS_PORTADA as PREGUNTAS } from '../lib/contenidoPublico
 
 // Los jugadores, el rival y los montos de la caja son de ejemplo: solo muestran
 // cómo se ve la app. Los precios de los planes sí son los reales y deben
-// coincidir con PLAN_INFO en Checkout.tsx.
+// salir de contenidoPublico.ts, igual que en Checkout.tsx.
 
 type Estado = 'va' | 'falta' | 'no';
 type Posicion = 'ARQ' | 'DEF' | 'MED' | 'DEL';
