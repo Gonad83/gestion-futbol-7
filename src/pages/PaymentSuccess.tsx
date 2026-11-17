@@ -1,5 +1,5 @@
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle2, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Clock, ArrowRight } from 'lucide-react';
 
 // Aquí llega el comprador después de pagar con Flow (pasando por la función flow-return).
 // Pagar no crea la cuenta: falta registrarse con el mismo correo del pago, y el plan se
@@ -9,6 +9,10 @@ export default function PaymentSuccess() {
   const tier = params.get('plan') === 'elite' ? 'elite' : 'pro';
   const cycle = params.get('cycle') === 'anual' ? 'anual' : 'mensual';
   const nombrePlan = `${tier === 'elite' ? 'Elite' : 'Pro'} ${cycle === 'anual' ? 'Anual' : 'Mensual'}`;
+  // flow-return manda estado=pendiente cuando Flow aún no confirma el pago (o no pudo consultarlo).
+  const pendiente = params.get('estado') === 'pendiente';
+  const color = pendiente ? '#ffd08b' : '#44f3a9';
+  const Icono = pendiente ? Clock : CheckCircle2;
 
   const registro = new URLSearchParams({ plan: tier, cycle, status: 'approved' });
   for (const campo of ['email', 'name', 'team']) {
@@ -24,14 +28,14 @@ export default function PaymentSuccess() {
       <div className="max-w-md w-full text-center space-y-6">
         <div
           className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
-          style={{ background: 'rgba(68,243,169,0.1)', border: '2px solid rgba(68,243,169,0.3)' }}
+          style={{ background: `${color}1a`, border: `2px solid ${color}4d` }}
         >
-          <CheckCircle2 size={40} style={{ color: '#44f3a9' }} />
+          <Icono size={40} style={{ color }} />
         </div>
 
         <div>
           <h1 className="font-headline font-black text-4xl text-white tracking-tight mb-3">
-            ¡Pago recibido!
+            {pendiente ? 'Pago en proceso' : '¡Pago recibido!'}
           </h1>
           <p className="text-white/50 text-base leading-relaxed">
             Falta un paso: crea tu cuenta para activar el <strong className="text-white">plan {nombrePlan}</strong>.
@@ -43,7 +47,9 @@ export default function PaymentSuccess() {
           style={{ background: '#1c2026', border: '1px solid rgba(68,243,169,0.15)' }}
         >
           <p className="text-white/60 text-sm leading-relaxed">
-            Regístrate con el mismo correo que usaste para pagar. Flow puede tardar unos minutos en confirmarnos el pago; si entras antes, tu plan se activa solo cuando llegue la confirmación.
+            {pendiente
+              ? 'Flow todavía no nos confirma el pago. Regístrate con el mismo correo que usaste para pagar: tu plan se activa solo cuando llegue la confirmación. Si no se completó, no se te cobra nada.'
+              : 'Regístrate con el mismo correo que usaste para pagar. Flow puede tardar unos minutos en confirmarnos el pago; si entras antes, tu plan se activa solo cuando llegue la confirmación.'}
           </p>
         </div>
 

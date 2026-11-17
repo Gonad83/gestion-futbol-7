@@ -99,7 +99,13 @@ export default function Checkout() {
   const [form, setForm] = useState({ name: params.get('name') || '', email: params.get('email') || '', teamName: params.get('team') || '' });
   const [loadingMP, setLoadingMP] = useState(false);
   const [loadingFlow, setLoadingFlow] = useState(false);
-  const [error, setError] = useState('');
+  // Al volver de Flow sin pagar (ver la función flow-return) se avisa aquí, con el formulario lleno.
+  const [error, setError] = useState(() => {
+    const pago = params.get('pago');
+    if (pago === 'rechazado') return 'El pago fue rechazado y no se te cobró nada. Puedes intentarlo de nuevo con otro medio de pago.';
+    if (pago === 'cancelado') return 'No se completó el pago y no se te cobró nada. Cuando quieras, vuelve a intentarlo.';
+    return '';
+  });
 
   const isValid = form.name.trim() && form.email.trim() && form.teamName.trim();
 
