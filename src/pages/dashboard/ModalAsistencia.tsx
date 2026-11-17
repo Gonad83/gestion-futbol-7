@@ -2,6 +2,7 @@ import { X, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { DashboardStats, Invitado, JugadorConAsistencia, EstadoAsistencia } from '../../lib/api/dashboard';
+import { Capa } from '../../components/Capa';
 
 interface Props {
   stats: DashboardStats;
@@ -19,6 +20,7 @@ interface Props {
 
 export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanceLoading, guestList, guestInput, setGuestInput, addGuest, removeGuest, handleAttendanceChange, setShowAttendanceModal }: Props) {
   return (
+    <Capa>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
       <div className="glass-card w-full max-w-md max-h-[80vh] flex flex-col" style={{ background: '#1c2026' }}>
         <div className="flex items-center justify-between mb-5">
@@ -126,5 +128,6 @@ export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanc
         </div>
       </div>
     </div>
+    </Capa>
   );
 }

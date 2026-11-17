@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale';
 import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2 } from 'lucide-react';
 import { sendNewMatchEmail, sendMatchReminder } from '../lib/sendEmail';
 import { aviso, confirmar } from '../lib/avisos';
+import { Capa } from './Capa';
 
 interface MatchDetailsModalProps {
   isOpen: boolean;
@@ -254,6 +255,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
   const matchDate = match?.date ? new Date(match.date) : new Date();
 
   return (
+    <Capa>
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
       <div className="glass-card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         <div className="flex justify-between items-center mb-6 flex-shrink-0">
@@ -596,5 +598,6 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         )}
       </div>
     </div>
+    </Capa>
   );
 }

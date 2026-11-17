@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { X } from 'lucide-react';
 import { type Equipo } from '../../lib/matchmaking';
+import { Capa } from '../../components/Capa';
 
 interface Props {
   showGuestModal: { team: Equipo };
@@ -14,6 +15,7 @@ interface Props {
 
 export function ModalInvitado({ showGuestModal, setShowGuestModal, guestModalName, setGuestModalName, guestModalRating, setGuestModalRating, addGuestToTeam }: Props) {
   return (
+    <Capa>
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)' }}>
       <div className="glass-card w-full max-w-sm border-2 border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)] p-8">
         <div className="flex justify-between items-center mb-8">
@@ -44,5 +46,6 @@ export function ModalInvitado({ showGuestModal, setShowGuestModal, guestModalNam
         </div>
       </div>
     </div>
+    </Capa>
   );
 }
