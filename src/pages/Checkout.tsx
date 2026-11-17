@@ -181,7 +181,7 @@ export default function Checkout() {
       <div className="max-w-4xl mx-auto px-4 py-12 grid md:grid-cols-2 gap-8 items-start">
 
         {/* Left — Plan summary */}
-        <div className="rounded-2xl p-6 sticky top-8" style={{ background: 'rgba(28,32,38,0.7)', border: `1px solid ${info.color}30` }}>
+        <div className="rounded-2xl p-6 md:sticky md:top-8" style={{ background: 'rgba(28,32,38,0.7)', border: `1px solid ${info.color}30` }}>
           <p className="text-xs font-black uppercase tracking-[0.2em] mb-1" style={{ color: info.color }}>Resumen del pedido</p>
           <h2 className="font-headline font-black text-2xl text-white mb-1">{info.label}</h2>
           <div className="flex items-end gap-1 mb-1">
@@ -239,40 +239,33 @@ export default function Checkout() {
             Elige tu método de pago
           </p>
 
-          {/* Botón Mercado Pago */}
-          <button
-            onClick={handleMP}
-            disabled={loadingMP || loadingFlow}
-            className="w-full flex items-center justify-center py-3 rounded-xl mb-3 transition-all hover:brightness-95 disabled:opacity-60"
-            style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)' }}
-          >
-            {loadingMP ? (
-              <Loader2 size={20} className="animate-spin" style={{ color: '#009ee3' }} />
-            ) : (
-              <img src="/logo-mp.png" alt="Mercado Pago" style={{ height: 64, objectFit: 'contain' }} />
-            )}
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>o también</span>
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-          </div>
-
-          {/* Botón Flow */}
-          <button
-            onClick={handleFlow}
-            disabled={loadingMP || loadingFlow}
-            className="w-full flex items-center justify-center py-3 rounded-xl transition-all hover:brightness-110 disabled:opacity-60"
-            style={{ background: '#4a5c0a' }}
-          >
-            {loadingFlow ? (
-              <Loader2 size={20} className="animate-spin" style={{ color: '#c8e800' }} />
-            ) : (
-              <img src="/logo-flow.png" alt="Flow" style={{ height: 64, objectFit: 'contain' }} />
-            )}
-          </button>
+          {/* Botones de pago: mismo formato para las dos pasarelas, logo oficial a la izquierda */}
+          {[
+            { id: 'flow', onClick: handleFlow, loading: loadingFlow, logo: '/pagos/flow.svg', alt: 'Flow', w: 64, h: 28,
+              titulo: 'Pagar con Flow', detalle: 'Webpay, tarjetas de crédito y débito, Mach y más' },
+            { id: 'mp', onClick: handleMP, loading: loadingMP, logo: '/pagos/mercado-pago.png', alt: 'Mercado Pago', w: 96, h: 25,
+              titulo: 'Pagar con Mercado Pago', detalle: 'Tarjetas o saldo de tu cuenta Mercado Pago' },
+          ].map(p => (
+            <button
+              key={p.id}
+              onClick={p.onClick}
+              disabled={loadingMP || loadingFlow}
+              aria-busy={p.loading}
+              className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 rounded-xl mb-3 text-left transition-all hover:-translate-y-px active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0"
+              style={{ background: '#fff', minHeight: 72, boxShadow: '0 1px 0 rgba(255,255,255,0.06), 0 6px 18px rgba(0,0,0,0.25)' }}
+            >
+              <span className="flex items-center justify-center shrink-0 w-[84px] sm:w-[104px]">
+                <img src={p.logo} alt={p.alt} width={p.w} height={p.h} style={{ width: p.w, maxWidth: '100%', height: 'auto', objectFit: 'contain' }} />
+              </span>
+              <span className="flex-1 min-w-0 pl-3 sm:pl-4" style={{ borderLeft: '1px solid #e6e8eb' }}>
+                <span className="block text-sm font-bold" style={{ color: '#101923' }}>{p.titulo}</span>
+                <span className="block text-xs mt-0.5" style={{ color: '#5b6573' }}>{p.detalle}</span>
+              </span>
+              {p.loading
+                ? <Loader2 size={18} className="animate-spin shrink-0" style={{ color: '#101923' }} />
+                : <Lock size={15} className="shrink-0" style={{ color: '#8a939f' }} />}
+            </button>
+          ))}
 
           <p className="text-xs text-center mt-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Al pagar aceptas los{' '}
