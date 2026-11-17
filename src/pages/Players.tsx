@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Plus, Edit2, X, LayoutGrid, List } from 'lucide-react';
+import { Plus, Edit2, X, LayoutGrid, List, Search } from 'lucide-react';
 import SubStatStars from '../components/SubStatStars';
 import PlayerModal from '../components/PlayerModal';
+import { Capa } from '../components/Capa';
+import { ListaPlantilla, ResumenPlantilla } from './players/ListaPlantilla';
+import { GRUPOS, filtrarPlantilla, grupoDe, type GrupoId, type JugadorPlantilla } from './players/plantilla';
 
 const getPositionWeight = (pos: string) => {
   if (!pos) return 5;
@@ -14,23 +17,11 @@ const getPositionWeight = (pos: string) => {
   return 5;
 };
 
-const getPositionGroup = (pos: string) => {
-  if (!pos) return 'Otro';
-  if (pos.includes('Portero') || pos.includes('Arco')) return 'Portero';
-  if (pos.includes('Defensa') || pos.includes('Lateral') || pos.includes('Central')) return 'Defensa';
-  if (pos.includes('Medio') || pos.includes('Volante') || pos.includes('Enganche') || pos.includes('Interior')) return 'Medio';
-  if (pos.includes('Delantero') || pos.includes('Extremo') || pos.includes('Punta')) return 'Delantero';
-  return 'Otro';
-};
-
 const STATUS_STYLE: Record<string, { bg: string; color: string; border: string }> = {
   Activo:   { bg: 'rgba(4,20,12,0.88)',  color: '#44f3a9', border: 'rgba(68,243,169,0.35)' },
   Lesionado:{ bg: 'rgba(20,4,4,0.88)', color: '#f87171', border: 'rgba(248,113,113,0.35)' },
   Inactivo: { bg: 'rgba(10,14,20,0.88)', color: 'rgba(255,255,255,0.45)', border: 'rgba(255,255,255,0.15)' },
 };
-
-const POS_FILTERS = ['Todos', 'Portero', 'Defensa', 'Medio', 'Delantero'] as const;
-type PosFilter = typeof POS_FILTERS[number];
 
 const getInitials = (name: string) => name
   .split(' ')
@@ -39,16 +30,25 @@ const getInitials = (name: string) => name
   .map(part => part.charAt(0).toUpperCase())
   .join('');
 
+const getPositionGroup = (pos?: string | null) => grupoDe(pos);
+
+/**
+ * Plantilla. Diseño para celular basado en el concepto de Stitch
+ * (docs/diseno/plantilla-movil-stitch.png): resumen, buscador, filtros por
+ * posición y una lista compacta agrupada por puesto. En pantallas grandes se
+ * puede cambiar a las tarjetas con foto grande.
+ */
 export default function Players() {
   const { isAdmin, teamId } = useAuth();
-  const [players, setPlayers] = useState<any[]>([]);
+  const [players, setPlayers] = useState<JugadorPlantilla[]>([]);
   const [totalMatchesYear, setTotalMatchesYear] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<JugadorPlantilla | null>(null);
   const [zoomPhoto, setZoomPhoto] = useState<string | null>(null);
-  const [filterPos, setFilterPos] = useState<PosFilter>('Todos');
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
+  const [filterPos, setFilterPos] = useState<GrupoId | 'Todos'>('Todos');
+  const [busqueda, setBusqueda] = useState('');
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('list');
 
   useEffect(() => { if (teamId) fetchPlayers(); }, [teamId]);
 
@@ -99,89 +99,53 @@ export default function Players() {
     }
   };
 
-  const handleEdit = (player: any) => { setSelectedPlayer(player); setIsModalOpen(true); };
+  const handleEdit = (player: JugadorPlantilla) => { setSelectedPlayer(player); setIsModalOpen(true); };
   const handleNew = () => { setSelectedPlayer(null); setIsModalOpen(true); };
 
-  const filtered = filterPos === 'Todos'
-    ? players
-    : players.filter(p => getPositionGroup(p.position) === filterPos);
-
-  const countFor = (f: PosFilter) => f === 'Todos' ? players.length : players.filter(p => getPositionGroup(p.position) === f).length;
+  const filtered = filtrarPlantilla(players, filterPos, busqueda);
+  const countFor = (f: GrupoId | 'Todos') => (f === 'Todos' ? players.length : players.filter(p => grupoDe(p.position) === f).length);
+  const filtros: (GrupoId | 'Todos')[] = ['Todos', ...GRUPOS.map(g => g.id).filter(id => id !== 'Otro' || countFor('Otro') > 0)];
+  const etiqueta = (f: GrupoId | 'Todos') => (f === 'Todos' ? 'Todos' : GRUPOS.find(g => g.id === f)!.plural);
 
   return (
-    <div className="fade-in pb-20 md:pb-0 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-end">
+    <div className="fade-in pb-24 md:pb-0 space-y-5 max-w-6xl mx-auto">
+      <div className="flex justify-between items-end gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green/70 mb-1">Equipo</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-soccer-green mb-1">Equipo</p>
           <h1 className="font-headline text-3xl font-black text-white tracking-tight">Plantilla</h1>
-          <p className="text-white/35 text-sm mt-1">Perfiles del equipo, posiciones y asistencia del año.</p>
+          <p className="text-white/55 text-sm mt-0.5">{players.length} {players.length === 1 ? 'jugador' : 'jugadores'}</p>
         </div>
-        {isAdmin && (
-          <button onClick={handleNew} className="btn-primary">
-            <Plus size={16} />
-            <span className="hidden sm:inline">Nuevo Jugador</span>
-          </button>
-        )}
+        <div className="hidden sm:flex gap-1 p-1 rounded-xl" style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.07)' }}>
+          {([['list', List, 'Vista lista'], ['cards', LayoutGrid, 'Vista tarjetas']] as const).map(([modo, Icono, titulo]) => (
+            <button key={modo} type="button" onClick={() => setViewMode(modo)} title={titulo} aria-label={titulo} aria-pressed={viewMode === modo}
+              className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+              style={viewMode === modo ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9' } : { color: 'rgba(255,255,255,0.45)' }}>
+              <Icono size={16} />
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Filters + View Toggle */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Position filters */}
-        <div className="flex flex-wrap gap-2">
-          {POS_FILTERS.map(f => {
-            const count = countFor(f);
-            const active = filterPos === f;
-            return (
-              <button
-                key={f}
-                onClick={() => setFilterPos(f)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-                style={active
-                  ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.35)' }
-                  : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.07)' }
-                }
-              >
-                {f}
-                <span
-                  className="text-[11px] font-black px-1.5 py-0.5 rounded-lg"
-                  style={active
-                    ? { background: 'rgba(68,243,169,0.2)', color: '#44f3a9' }
-                    : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }
-                  }
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      {!loading && players.length > 0 && <ResumenPlantilla jugadores={players} />}
 
-        {/* View mode toggle */}
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <button
-            onClick={() => setViewMode('cards')}
-            className="p-2 rounded-lg transition-all"
-            style={viewMode === 'cards'
-              ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9' }
-              : { color: 'rgba(255,255,255,0.3)' }
-            }
-            title="Vista tarjetas"
-          >
-            <LayoutGrid size={16} />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className="p-2 rounded-lg transition-all"
-            style={viewMode === 'list'
-              ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9' }
-              : { color: 'rgba(255,255,255,0.3)' }
-            }
-            title="Vista lista"
-          >
-            <List size={16} />
-          </button>
-        </div>
+      <div className="relative">
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+        <input type="search" aria-label="Buscar jugador" placeholder="Buscar jugador..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
+          className="w-full h-12 pl-11 pr-4 rounded-2xl text-[15px] text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-soccer-green/50"
+          style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.07)' }} />
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1" role="group" aria-label="Filtrar por posición">
+        {filtros.map(f => {
+          const activo = filterPos === f;
+          return (
+            <button key={f} type="button" onClick={() => setFilterPos(f)} aria-pressed={activo}
+              className="shrink-0 h-10 px-4 rounded-full text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer"
+              style={activo ? { background: '#44f3a9', color: '#003822' } : { background: '#262a31', color: 'rgba(255,255,255,0.75)' }}>
+              {etiqueta(f)} <span className="tabular-nums opacity-70">{countFor(f)}</span>
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -189,18 +153,19 @@ export default function Players() {
           <div className="w-9 h-9 rounded-full border-2 border-t-soccer-green border-r-soccer-green/20 border-b-soccer-green/10 border-l-soccer-green/5 animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 rounded-2xl" style={{ background: '#1c2026', border: '1px dashed rgba(255,255,255,0.08)' }}>
-          <span className="text-4xl mb-4 block">👤</span>
+        <div className="text-center py-14 rounded-2xl" style={{ background: '#181c22', border: '1px dashed rgba(255,255,255,0.1)' }}>
           <h3 className="font-headline text-lg font-bold text-white mb-2">
-            {filterPos === 'Todos' ? 'Sin jugadores' : `Sin ${filterPos}s registrados`}
+            {players.length === 0 ? 'Sin jugadores' : 'Nadie coincide'}
           </h3>
-          <p className="text-white/40 text-sm mb-5">
-            {filterPos === 'Todos' ? 'Aún no hay jugadores registrados en el equipo.' : `No hay jugadores en la posición ${filterPos}.`}
+          <p className="text-white/55 text-sm mb-5 px-6">
+            {players.length === 0 ? 'Aún no hay jugadores registrados en el equipo.' : 'Prueba con otro nombre o cambia el filtro de posición.'}
           </p>
-          {isAdmin && filterPos === 'Todos' && <button onClick={handleNew} className="btn-primary">Crear primer jugador</button>}
+          {isAdmin && players.length === 0 && <button onClick={handleNew} className="btn-primary">Crear primer jugador</button>}
         </div>
-      ) : viewMode === 'cards' ? (
-        /* ── CARD VIEW ── */
+      ) : viewMode === 'list' ? (
+        <ListaPlantilla jugadores={filtered} isAdmin={isAdmin} totalPartidos={totalMatchesYear} onAbrir={handleEdit} onFoto={setZoomPhoto} />
+      ) : (
+        /* ── VISTA TARJETAS (pantallas grandes) ── */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filtered.map(player => {
             const st = STATUS_STYLE[player.status] || STATUS_STYLE.Inactivo;
@@ -300,120 +265,34 @@ export default function Players() {
             );
           })}
         </div>
-      ) : (
-        /* ── LIST VIEW ── */
-        <div className="rounded-2xl overflow-hidden" style={{ background: '#1c2026', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-[11px] font-black uppercase tracking-[0.2em] text-white/50" style={{ background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <th className="px-5 py-4 text-left">Jugador</th>
-                <th className="px-4 py-4 text-left hidden md:table-cell">Posición</th>
-                <th className="px-4 py-4 text-center hidden sm:table-cell">Calidad</th>
-                <th className="px-4 py-4 text-center">Estado</th>
-                <th className="px-4 py-4 text-center hidden sm:table-cell">Asistencia</th>
-                {isAdmin && <th className="px-4 py-4 text-right">Editar</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(player => {
-                const st = STATUS_STYLE[player.status] || STATUS_STYLE.Inactivo;
-                return (
-                  <tr
-                    key={player.id}
-                    className="transition-colors hover:bg-white/3"
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                  >
-                    {/* Avatar + name */}
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center ${player.photo_url ? 'cursor-zoom-in' : ''}`}
-                          style={{ background: '#262a31', border: '1px solid rgba(255,255,255,0.07)' }}
-                          onClick={() => player.photo_url && setZoomPhoto(player.photo_url)}
-                        >
-                          {player.photo_url
-                            ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                            : <span className="text-sm font-black text-white/20">{player.name.charAt(0)}</span>
-                          }
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-white text-sm truncate max-w-[150px]">{player.name}</p>
-                          {player.nickname && <p className="text-[11px] text-white/50 truncate">"{player.nickname}"</p>}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Position */}
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      <p className="text-xs font-bold" style={{ color: '#44f3a9' }}>{player.position}</p>
-                      {player.secondary_position && <p className="text-[11px] text-white/50">{player.secondary_position}</p>}
-                    </td>
-
-                    {/* Rating */}
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      <div className="flex justify-center">
-                        <SubStatStars player={player} size={8} compact />
-                      </div>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-[11px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap"
-                        style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
-                        {player.status}
-                      </span>
-                    </td>
-
-                    {/* Participation */}
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                          <div className="h-full rounded-full"
-                            style={{ width: `${player.participationPct}%`, background: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }} />
-                        </div>
-                        <span className="text-[11px] font-black w-8 text-right"
-                          style={{ color: player.participationPct >= 70 ? '#44f3a9' : player.participationPct >= 40 ? '#ffd08b' : '#f87171' }}>
-                          {player.participationPct}%
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Edit */}
-                    {isAdmin && (
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => handleEdit(player)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center ml-auto transition-all hover:text-soccer-green"
-                          style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div className="px-5 py-3 text-[11px] text-white/50 text-right" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            {filtered.length} jugadores{filterPos !== 'Todos' ? ` · ${filterPos}` : ''}
-          </div>
-        </div>
       )}
 
       <PlayerModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={fetchPlayers} player={selectedPlayer} teamId={teamId} />
 
-      {zoomPhoto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in"
-          style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(16px)' }}
-          onClick={() => setZoomPhoto(null)}
-        >
-          <button className="absolute top-5 right-5 text-white/30 hover:text-white transition-colors" onClick={() => setZoomPhoto(null)}>
-            <X size={28} strokeWidth={1.5} />
+      {isAdmin && (
+        <Capa>
+          <button type="button" onClick={handleNew}
+            className="fixed right-4 z-30 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] md:bottom-8 md:right-8 h-14 pl-4 pr-5 rounded-full flex items-center gap-2 font-headline font-bold text-[#003822] cursor-pointer"
+            style={{ background: 'linear-gradient(135deg, #44f3a9, #00d68f)', boxShadow: '0 10px 30px -6px rgba(68,243,169,0.5)' }}>
+            <Plus size={22} /> Jugador
           </button>
-          <img src={zoomPhoto} alt="Foto" className="max-w-sm w-full max-h-[80vh] object-contain rounded-2xl scale-in" style={{ border: '1px solid rgba(255,255,255,0.08)' }} />
-        </div>
+        </Capa>
+      )}
+
+      {zoomPhoto && (
+        <Capa>
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4 fade-in"
+            style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(16px)' }}
+            onClick={() => setZoomPhoto(null)}
+            role="dialog" aria-modal="true" aria-label="Foto del jugador"
+          >
+            <button type="button" aria-label="Cerrar" className="absolute top-5 right-5 w-12 h-12 flex items-center justify-center text-white/50 hover:text-white transition-colors" onClick={() => setZoomPhoto(null)}>
+              <X size={28} strokeWidth={1.5} />
+            </button>
+            <img src={zoomPhoto} alt="Foto" className="max-w-sm w-full max-h-[80vh] object-contain rounded-2xl scale-in" style={{ border: '1px solid rgba(255,255,255,0.08)' }} />
+          </div>
+        </Capa>
       )}
     </div>
   );
