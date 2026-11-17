@@ -1,8 +1,9 @@
 {
+  "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/((?!robots.txt|sitemap.xml|og-image.png|favicon.svg|logo.png).*)",
-      "destination": "/index.html"
+      "source": "/((?!assets/|robots.txt|sitemap.xml|llms.txt|og-image.png|favicon.svg|logo.png|sw.js|manifest.json).*)",
+      "destination": "/app.html"
     }
   ],
   "headers": [
@@ -12,6 +13,14 @@
         { "key": "Cache-Control", "value": "public, max-age=86400" },
         { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
+    },
+    {
+      "source": "/app.html",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
+    },
+    {
+      "source": "/llms.txt",
+      "headers": [{ "key": "Content-Type", "value": "text/plain; charset=utf-8" }]
     }
   ]
 }

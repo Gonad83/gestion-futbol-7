@@ -6,7 +6,12 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Avisos } from './components/Avisos';
+import { Seo } from './components/Seo';
 import { tieneInterGeneraciones } from './lib/config';
+import {
+  Landing, SobreNosotros, CentroDeAyuda, Tutoriales, PreguntasFrecuentes,
+  Contacto, TerminosDeServicio, PoliticaDePrivacidad, Seguridad,
+} from './paginasPublicas';
 
 // Cada pantalla se descarga al abrirla: antes la app entera (1 MB) bajaba de
 // una vez, y en el teléfono la primera carga se hacía larga.
@@ -26,14 +31,6 @@ const Arena = lazy(() => import('./pages/Arena'));
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const ConfirmarAsistencia = lazy(() => import('./pages/ConfirmarAsistencia'));
-const SobreNosotros = lazy(() => import('./pages/SobreNosotros'));
-const CentroDeAyuda = lazy(() => import('./pages/CentroDeAyuda'));
-const Tutoriales = lazy(() => import('./pages/Tutoriales'));
-const PreguntasFrecuentes = lazy(() => import('./pages/PreguntasFrecuentes'));
-const Contacto = lazy(() => import('./pages/Contacto'));
-const TerminosDeServicio = lazy(() => import('./pages/TerminosDeServicio'));
-const PoliticaDePrivacidad = lazy(() => import('./pages/PoliticaDePrivacidad'));
-const Seguridad = lazy(() => import('./pages/Seguridad'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const InterGeneraciones = lazy(() => import('./pages/InterGeneraciones'));
 
@@ -64,8 +61,7 @@ function haySesionGuardada() {
 // La portada (con sus animaciones) pesa bastante y quien ya tiene sesión nunca
 // la ve: se descarga aparte. A quien llega sin sesión se le empieza a bajar de
 // inmediato, en paralelo con el resto, para que no note la diferencia.
-const portadaAnticipada = haySesionGuardada() ? null : import('./pages/Landing');
-const Landing = lazy(() => portadaAnticipada ?? import('./pages/Landing'));
+if (!haySesionGuardada()) Landing.precargar().catch(() => {});
 
 function Inicio() {
   const { user } = useAuth();
@@ -85,6 +81,7 @@ function App() {
     <AuthProvider>
       <Avisos />
       <Router>
+        <Seo />
         <ErrorBoundary fullScreen>
         <Suspense fallback={<Cargando />}>
         <Routes>

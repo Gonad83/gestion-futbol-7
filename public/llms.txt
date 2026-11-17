@@ -1,0 +1,33 @@
+# MiClubPro
+
+> MiClubPro (https://miclubpro.cl) es una aplicación web chilena para organizar equipos de fútbol 7 y fútbol amateur. El capitán confirma la asistencia de los jugadores por correo, arma dos equipos parejos por nivel y posición en un clic, lleva la caja del equipo (cuotas, gastos y morosos) y el equipo vota al MVP de cada partido. Funciona desde el navegador del celular, sin instalar nada.
+
+## Qué resuelve
+
+- Coordinar quién va al partido sin perseguir a nadie por WhatsApp: cada jugador confirma o rechaza con un clic desde un correo con link único.
+- Armar equipos equilibrados: el sistema reparte a los confirmados por nivel (1 a 5 estrellas) y posición, con un arquero por lado, y exporta la lista a WhatsApp.
+- Llevar las cuotas: registra pagos, ingresos y gastos, y muestra quién está al día y quién debe.
+- Votación MVP después de cada partido, con ranking de la temporada.
+- Calendario de partidos y cumpleaños, estadísticas de asistencia por jugador y roles (capitán, armador, jugador).
+
+## Planes y precios (pesos chilenos, por equipo, no por jugador)
+
+- Starter: gratis por 1 mes, sin tarjeta. 1 equipo, 10 jugadores y 4 invitados.
+- Pro: $9.990 al mes, o $95.880 al año ($7.990 al mes). 1 equipo, hasta 14 jugadores.
+- Elite: $19.990 al mes, o $191.880 al año ($15.990 al mes). Jugadores ilimitados, gestión de liga, ranking MVP histórico, fixtures automáticos y soporte prioritario.
+- Sin contrato: se cambia de plan o se cancela cuando se quiera. Pagos con Flow (Webpay, tarjetas, Mach) o Mercado Pago.
+
+## Páginas
+
+- [Inicio](https://miclubpro.cl/): qué hace la app, demostración del armado de equipos, precios y preguntas.
+- [Preguntas frecuentes](https://miclubpro.cl/preguntas-frecuentes): prueba gratis, precios, asistencia, armado de equipos, cancelación y datos.
+- [Tutoriales](https://miclubpro.cl/tutoriales): pasos para crear el equipo, sumar jugadores, agendar partidos y armar equipos.
+- [Centro de ayuda](https://miclubpro.cl/centro-de-ayuda): plantilla, calendario, armado, caja, MVP y configuración.
+- [Sobre nosotros](https://miclubpro.cl/sobre-nosotros): quiénes somos y por qué existe MiClubPro.
+- [Seguridad](https://miclubpro.cl/seguridad): cifrado, accesos por rol y respaldos.
+- [Contacto](https://miclubpro.cl/contacto): hola@miclubpro.cl.
+
+## Opcional
+
+- [Términos de servicio](https://miclubpro.cl/terminos-de-servicio)
+- [Política de privacidad](https://miclubpro.cl/politica-de-privacidad)

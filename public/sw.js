@@ -1,7 +1,7 @@
-// v2: la app instalada ahora abre en /dashboard. Cambiar el nombre descarta la
-// copia vieja de la portada que guardaba la v1.
-const CACHE = 'miclubpro-v2';
-const PRECACHE = ['/', '/index.html'];
+// v3: index.html ahora trae la portada ya dibujada; sin conexión se usa
+// app.html, la cáscara de la app. Cambiar el nombre descarta la copia vieja.
+const CACHE = 'miclubpro-v3';
+const PRECACHE = ['/app.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)));
@@ -24,7 +24,7 @@ self.addEventListener('fetch', e => {
   // Network first — fallback to cache for navigation
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match('/index.html'))
+      fetch(e.request).catch(() => caches.match('/app.html'))
     );
     return;
   }

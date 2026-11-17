@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './landing.css';
+import { PRECIOS, PREGUNTAS_PORTADA as PREGUNTAS } from '../lib/contenidoPublico';
 
 // Los jugadores, el rival y los montos de la caja son de ejemplo: solo muestran
 // cómo se ve la app. Los precios de los planes sí son los reales y deben
@@ -66,20 +67,7 @@ function armarEquipos(): [Jugador[], Jugador[]] {
   return [a, b];
 }
 
-const PRECIOS = {
-  pro: { mensual: '$9.990', anual: '$7.990', notaAnual: '$95.880 al año, en un pago' },
-  elite: { mensual: '$19.990', anual: '$15.990', notaAnual: '$191.880 al año, en un pago' },
-};
 const NOTA_MENSUAL = 'Pago mes a mes, sin permanencia';
-
-const PREGUNTAS = [
-  ['¿Necesito instalar algo?', 'No. MiClubPro funciona desde el navegador de tu celular o computador. Creas una cuenta y empiezas.'],
-  ['¿Cómo funciona el mes de prueba?', 'Al registrarte tienes un mes completo gratis, sin tarjeta de crédito.'],
-  ['¿Cómo confirman asistencia los jugadores?', 'Reciben un correo con un link único y confirman o rechazan con un clic. El capitán también puede confirmar a mano desde su panel.'],
-  ['¿Cómo se arman los equipos?', 'El sistema toma a los confirmados, mira su nivel y posición, y los divide en dos equipos lo más parejos posible. El resultado se exporta a WhatsApp.'],
-  ['¿Puedo cancelar cuando quiera?', 'Sí, sin preguntas ni multas. Tu equipo y sus datos quedan guardados 90 días después de cancelar.'],
-  ['¿Mis datos están seguros?', 'Sí. Los datos viajan y se guardan cifrados, y no se venden ni se comparten con terceros.'],
-];
 
 const FOTO = (id: string, ancho: number) => `https://images.unsplash.com/photo-${id}?w=${ancho}&q=72&auto=format&fit=crop`;
 
@@ -170,7 +158,7 @@ export default function Landing() {
     <div className="lp" ref={raiz}>
       <header className="nav" id="inicio">
         <a className="marca" href="#inicio" aria-label="MiClubPro, inicio">
-          <img src="/logo.png" alt="" width={30} height={30} />
+          <img src="/logo.png" alt="Logo de MiClubPro" width={30} height={30} />
           <span>MiClub<b>Pro</b></span>
         </a>
         <button className="nav-btn" type="button" aria-expanded={menuAbierto} aria-controls="menu" aria-label="Abrir menú" onClick={() => setMenuAbierto(v => !v)}><i /><i /><i /></button>
@@ -190,7 +178,7 @@ export default function Landing() {
           <h1>Deja de perseguir a tu equipo <em>por WhatsApp.</em></h1>
           <div className="hero-pie">
             <div className="hero-txt">
-              <p className="bajada">Asistencia confirmada, equipos parejos y cuotas al día antes de cada partido. Desde el celular, sin instalar nada.</p>
+              <p className="bajada">MiClubPro es la app para organizar tu equipo de fútbol 7: asistencia confirmada, equipos parejos y cuotas al día antes de cada partido. Desde el celular, sin instalar nada.</p>
               <div className="acciones">
                 <BotonGratis />
                 <a className="btn btn-linea" href="#armado">Probar el armado</a>

@@ -23,7 +23,7 @@ export default function StaticLayout({ children }: { children: React.ReactNode }
       </main>
 
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} className="px-6 py-6 text-center">
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>© 2025 MiClubPro.cl · Todos los derechos reservados.</p>
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>© 2026 MiClubPro.cl · Todos los derechos reservados.</p>
       </footer>
     </div>
   );

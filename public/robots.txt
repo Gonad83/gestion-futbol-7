@@ -1,18 +1,65 @@
+# MiClubPro — https://miclubpro.cl
+# Las páginas públicas están abiertas a buscadores y asistentes con IA.
+# Las pantallas con sesión no tienen nada que indexar.
+
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /players
+Disallow: /calendar
+Disallow: /matchmaking
+Disallow: /finance
+Disallow: /profile
+Disallow: /vote
+Disallow: /arena
+Disallow: /admin
+Disallow: /settings
+Disallow: /superadmin
+Disallow: /teams
+Disallow: /inter-generaciones
+Disallow: /confirmar
+Disallow: /reset-password
+Disallow: /register-captain
+Disallow: /payment-success
+Disallow: /checkout
 
+# Buscadores con IA: pueden leer y citar el sitio.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: anthropic-ai
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Bingbot
+Allow: /
+Disallow: /dashboard
+Disallow: /players
+Disallow: /calendar
+Disallow: /matchmaking
+Disallow: /finance
+Disallow: /profile
+Disallow: /vote
+Disallow: /arena
+Disallow: /admin
+Disallow: /settings
+Disallow: /superadmin
+Disallow: /teams
+Disallow: /inter-generaciones
+Disallow: /confirmar
+Disallow: /reset-password
+Disallow: /register-captain
+Disallow: /payment-success
+Disallow: /checkout
+
+# Vista previa de enlaces en redes y WhatsApp.
 User-agent: facebookexternalhit
-Allow: /
-
-User-agent: facebookexternalhit/1.1
-Allow: /
-
 User-agent: Facebot
-Allow: /
-
 User-agent: Twitterbot
-Allow: /
-
 User-agent: WhatsApp
 Allow: /
 
