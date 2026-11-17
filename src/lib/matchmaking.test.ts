@@ -9,6 +9,7 @@ import {
   formacionesPara,
   getAvg,
   getPosition,
+  posicionVertical,
   intercambiar,
   nombreDeInvitado,
   textoAsistencia,
@@ -104,6 +105,26 @@ describe('formaciones y posiciones', () => {
   it('promedio con un decimal y 0.0 para un equipo vacío', () => {
     expect(getAvg([j('a', 5), j('b', 6)])).toBe('5.5');
     expect(getAvg([])).toBe('0.0');
+  });
+});
+
+describe('cancha vertical del celular', () => {
+  it('arqueros en los extremos: B arriba, A abajo', () => {
+    expect(posicionVertical(0, 'A', '3-2-1')).toEqual({ left: '50%', top: '91%' });
+    expect(posicionVertical(0, 'B', '3-2-1')).toEqual({ left: '50%', top: '9%' });
+  });
+
+  it('cada equipo en su mitad, con espacio libre al medio', () => {
+    for (let i = 0; i < 7; i++) {
+      expect(parseFloat(posicionVertical(i, 'A', '3-2-1')!.top)).toBeGreaterThanOrEqual(58);
+      expect(parseFloat(posicionVertical(i, 'B', '2-3-1')!.top)).toBeLessThanOrEqual(42);
+    }
+  });
+
+  it('nadie encima de otro y los de más van a la banca', () => {
+    const puestos = Array.from({ length: 7 }, (_, i) => posicionVertical(i, 'A', '3-2-1')).map((p) => `${p!.left}/${p!.top}`);
+    expect(new Set(puestos).size).toBe(7);
+    expect(posicionVertical(7, 'A', '3-2-1')).toBeNull();
   });
 });
 

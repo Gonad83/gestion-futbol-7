@@ -168,12 +168,13 @@ export function Convocados({ confirmedPlayers, declinedPlayers, editingGuestId, 
                         setEditingGuestId(player.id);
                         setEditingGuestName(player.name.replace(/\(I\)$/i, '').trim());
                       }}
-                      className="opacity-0 group-hover:opacity-100 text-soccer-green/50 hover:text-soccer-green transition-all"
+                      aria-label="Cambiar nombre del invitado"
+                      className="md:opacity-0 md:group-hover:opacity-100 text-soccer-green/70 hover:text-soccer-green transition-all w-9 h-9 flex items-center justify-center"
                     >
                       <Edit2 size={12} />
                     </button>
                   )}
-                  <button onClick={() => removeFromPool(player)} className="opacity-0 group-hover:opacity-100 text-red-500/50 hover:text-red-500 transition-all">
+                  <button onClick={() => removeFromPool(player)} aria-label={`Sacar a ${player.name}`} className="md:opacity-0 md:group-hover:opacity-100 text-red-400/70 hover:text-red-400 transition-all w-9 h-9 flex items-center justify-center">
                     <X size={14} />
                   </button>
                 </div>

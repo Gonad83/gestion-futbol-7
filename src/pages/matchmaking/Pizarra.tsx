@@ -1,7 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { X, Edit2, Check, Copy } from 'lucide-react';
 import FifaCard from '../../components/FifaCard';
-import { JERSEY_COLORS, getPosition, getAvg, type JugadorMM, type SeleccionCambio, type Equipo, type Formacion } from '../../lib/matchmaking';
+import { CanchaMovil } from './CanchaMovil';
+import { JERSEY_COLORS, getPosition, getAvg, hexCamiseta, type JugadorMM, type SeleccionCambio, type Equipo, type Formacion } from '../../lib/matchmaking';
 
 interface Props {
   teamA: JugadorMM[];
@@ -36,57 +37,44 @@ interface Props {
 export function Pizarra({ teamA, teamB, formationA, setFormationA, formationB, setFormationB, colorA, setColorA, colorB, setColorB, swapSelection, setSaved, editingGuestId, setEditingGuestId, editingGuestName, setEditingGuestName, copied, setShowGuestModal, setGuestModalName, setGuestModalRating, isPastMatch, canEdit, getMatchFormations, removeFromPool, saveGuestName, handleSwap, copyTeamsForWhatsApp }: Props) {
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 items-center py-4 px-8 rounded-[2.5rem] mx-auto max-w-fit bg-black/40 border border-white/5 backdrop-blur-3xl shadow-2xl">
-        <div className="flex items-center gap-6 flex-wrap justify-center">
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-black text-white/50 uppercase tracking-widest italic">Táctica</span>
-            <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl">
-              {(['A', 'B'] as const).map((t) => (
-                <div key={t} className="flex items-center gap-2 px-3">
-                  <span className={`text-[11px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
-                  <div className="flex gap-1">
-                    {getMatchFormations().map((f) => (
-                      <button key={f.value} disabled={isPastMatch} onClick={() => { if (isPastMatch) return; if (t === 'A') setFormationA(f.value); else setFormationB(f.value); setSaved(false); }}
-                        className={`text-[11px] px-2.5 py-1 rounded-xl font-bold transition-all border ${
-                          (t === 'A' ? formationA : formationB) === f.value
-                            ? (t === 'A' ? 'bg-soccer-green text-black border-soccer-green shadow-[0_0_15px_rgba(68,243,169,0.3)]' : 'bg-blue-600 text-white border-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]')
-                            : 'bg-white/5 text-white/40 border-transparent hover:bg-white/10'
-                        }`}>
-                        {f.value}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+      {/* Táctica y camiseta de cada equipo: compacto para que entre en el celular. */}
+      <div className="grid grid-cols-2 gap-3 max-w-xl mx-auto">
+        {(['A', 'B'] as const).map((t) => {
+          const formacion = t === 'A' ? formationA : formationB;
+          const color = t === 'A' ? colorA : colorB;
+          return (
+            <div key={t} className="p-3 rounded-2xl space-y-2.5" style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <label className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ background: hexCamiseta(color) }} />
+                <span className="font-headline font-bold text-white text-sm">{t}</span>
+                <select value={formacion} disabled={isPastMatch} aria-label={`Formación del equipo ${t}`}
+                  onChange={e => { if (t === 'A') setFormationA(e.target.value); else setFormationB(e.target.value); setSaved(false); }}
+                  className="flex-1 min-w-0 h-10 px-2 rounded-xl text-sm font-bold text-white cursor-pointer disabled:opacity-60"
+                  style={{ background: '#10141a', border: '1px solid #262a31' }}>
+                  {getMatchFormations().map(f => <option key={f.value} value={f.value}>{f.value}</option>)}
+                </select>
+              </label>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label={`Camiseta del equipo ${t}`}>
+                {JERSEY_COLORS.map(c => (
+                  <button key={c.value} type="button" disabled={isPastMatch} title={c.name} aria-label={c.name} aria-pressed={color === c.value}
+                    onClick={() => { if (t === 'A') setColorA(c.value); else setColorB(c.value); setSaved(false); }}
+                    className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer disabled:cursor-default"
+                    style={{ border: color === c.value ? '2px solid #fff' : '2px solid transparent' }}>
+                    <span className={`w-5 h-5 rounded-full border ${c.class}`} />
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="w-full h-px bg-white/5" />
-
-        <div className="flex items-center gap-6 flex-wrap justify-center">
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-black text-white/50 uppercase tracking-widest italic">Identidad</span>
-            <div className="flex gap-4">
-              {(['A', 'B'] as const).map((t) => (
-                <div key={t} className="flex items-center gap-3 px-3 py-1.5 bg-white/5 rounded-2xl">
-                  <span className={`text-[11px] font-black ${t === 'A' ? 'text-soccer-green' : 'text-blue-400'}`}>{t}:</span>
-                  <div className="flex gap-2">
-                    {JERSEY_COLORS.map(c => (
-                      <button key={c.value} disabled={isPastMatch} onClick={() => { if (isPastMatch) return; if (t === 'A') setColorA(c.value); else setColorB(c.value); setSaved(false); }}
-                        className={`w-5 h-5 rounded-lg border-2 transition-all ${c.class} shadow-lg ${
-                          (t === 'A' ? colorA : colorB) === c.value ? 'scale-125 border-white ring-2 ring-white/20' : 'border-transparent opacity-30 hover:opacity-100'
-                        }`} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      <div className="relative w-full aspect-[16/10] md:aspect-[16/8] rounded-[3rem] overflow-hidden border-[6px] p-6 group shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)]"
+      <div className="md:hidden">
+        <CanchaMovil teamA={teamA} teamB={teamB} formationA={formationA} formationB={formationB} colorA={colorA} colorB={colorB}
+          swapSelection={swapSelection} canEdit={canEdit && !isPastMatch} handleSwap={handleSwap} />
+      </div>
+
+      <div className="hidden md:block relative w-full aspect-[16/8] rounded-[3rem] overflow-hidden border-[6px] p-6 group shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)]"
         style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)', borderColor: '#0f172a' }}>
         <div className="absolute inset-0 opacity-20 pointer-events-none"
           style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10%, rgba(255,255,255,0.05) 10%, rgba(255,255,255,0.05) 20%)', backgroundSize: '200% 100%' }} />
@@ -131,7 +119,7 @@ export function Pizarra({ teamA, teamB, formationA, setFormationA, formationB, s
         {(['A', 'B'] as const).map(team => {
           const players = team === 'A' ? teamA : teamB;
           const color = team === 'A' ? colorA : colorB;
-          const colorHex = color === 'emerald' ? '#10b981' : color === 'blue' ? '#3b82f6' : color === 'white' ? '#fff' : color === 'yellow' ? '#eab308' : color === 'red' ? '#ef4444' : color === 'purple' ? '#a855f7' : color === 'lightblue' ? '#38bdf8' : '#1e293b';
+          const colorHex = hexCamiseta(color);
           return (
             <div key={team} className="glass-card overflow-hidden group/card shadow-2xl transition-all hover:bg-white/[0.03]" style={{ borderTop: `4px solid ${colorHex}` }}>
               <div className="flex justify-between items-center mb-6 px-2">
@@ -194,7 +182,8 @@ export function Pizarra({ teamA, teamB, formationA, setFormationA, formationB, s
                             {canEdit && (
                               <button
                                 onClick={() => removeFromPool(p)}
-                                className="opacity-0 group-hover/item:opacity-100 text-red-500/40 hover:text-red-500 flex-shrink-0 transition-all ml-1"
+                                aria-label={`Sacar a ${p.name}`}
+                                className="md:opacity-0 md:group-hover/item:opacity-100 text-red-400/70 hover:text-red-400 flex-shrink-0 transition-all ml-1 p-1.5 -m-1"
                               >
                                 <X size={11} />
                               </button>

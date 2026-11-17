@@ -27,13 +27,13 @@ export default function Matchmaking() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-20 fade-in">
+    <div className="space-y-5 max-w-7xl mx-auto pb-36 md:pb-20 fade-in">
       <EncabezadoPartido {...m} />
 
       {!m.selectedMatch ? (
         <SinPartido />
       ) : (
-        <div className="grid grid-cols-1 gap-8 animate-in fade-in duration-700">
+        <div className="grid grid-cols-1 gap-6">
           <BarraControles {...m} />
           {!m.teamsGenerated ? <Convocados {...m} /> : <Pizarra {...m} />}
         </div>

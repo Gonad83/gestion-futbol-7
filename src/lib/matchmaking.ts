@@ -73,6 +73,13 @@ export const JERSEY_COLORS = [
   { name: 'Celeste', value: 'lightblue', class: 'bg-sky-400' },
 ];
 
+/** Color de cada camiseta en hexadecimal (anillos de las fichas, bordes de las tarjetas). */
+const HEX_CAMISETA: Record<string, string> = {
+  black: '#64748b', white: '#f1f5f9', blue: '#3b82f6', emerald: '#10b981',
+  yellow: '#eab308', red: '#ef4444', purple: '#a855f7', lightblue: '#38bdf8',
+};
+export const hexCamiseta = (color: string) => HEX_CAMISETA[color] ?? '#9acbff';
+
 const JERSEY_EMOJI: Record<string, string> = {
   black: '⬛', white: '⬜', blue: '🟦', emerald: '🟩', yellow: '🟨', red: '🟥', purple: '🟪', lightblue: '🔵',
 };
@@ -179,6 +186,30 @@ export function getPosition(index: number, team: Equipo, _count: number, formati
   const xBase = team === 'A' ? (linea / lines.length) * 44 + 5 : 95 - (linea / lines.length) * 44;
   const espacio = 90 / (lines[linea] + 1);
   return { left: `${xBase}%`, top: `${5 + espacio * (enLinea + 1)}%`, zIndex: 10 + linea };
+}
+
+/**
+ * Posición en la cancha VERTICAL del celular: el equipo B arriba, el A abajo y
+ * los arqueros en los extremos. Usa las mismas líneas que getPosition, pero cada
+ * equipo se queda en su mitad con un espacio libre al medio para que las fichas
+ * de ambos equipos no se encimen. Devuelve null para los que van a la banca.
+ */
+export function posicionVertical(index: number, team: Equipo, formation: string): { left: string; top: string } | null {
+  const lines = [1, ...formation.split('-').map(Number)];
+  const enCancha = lines.reduce((a, b) => a + b, 0);
+  if (index >= enCancha) return null;
+  let acumulado = 0;
+  let linea = 0;
+  let enLinea = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (index < acumulado + lines[i]) { linea = i; enLinea = index - acumulado; break; }
+    acumulado += lines[i];
+  }
+  // 0 en el arco propio, cerca de 1 en la línea más adelantada.
+  const avance = lines.length > 1 ? linea / (lines.length - 1) : 0;
+  const top = team === 'A' ? 91 - avance * 33 : 9 + avance * 33;
+  const espacio = 100 / (lines[linea] + 1);
+  return { left: `${espacio * (enLinea + 1)}%`, top: `${top}%` };
 }
 
 /** Rating promedio de un equipo con un decimal. */
