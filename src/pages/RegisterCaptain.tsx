@@ -61,8 +61,9 @@ export default function RegisterCaptain() {
   const [teamName, setTeamName] = useState(params.get('team') || '');
   const [password, setPassword] = useState('');
   const [verClave, setVerClave] = useState(false);
-  const [modo, setModo] = useState<'crear' | 'unirme'>('crear');
-  const [codigo, setCodigo] = useState('');
+  // Si viene del login con el código de un equipo (?codigo=), parte en «Tengo un código» con el código puesto.
+  const [modo, setModo] = useState<'crear' | 'unirme'>(params.get('codigo') ? 'unirme' : 'crear');
+  const [codigo, setCodigo] = useState((params.get('codigo') || '').toUpperCase());
   const [posicion, setPosicion] = useState('Medio Mixto (MC)');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');

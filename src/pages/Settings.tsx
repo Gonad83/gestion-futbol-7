@@ -259,7 +259,7 @@ export default function Settings() {
     }
   };
 
-  const textoInvitacion = `Únete a ${teamName || 'nuestro equipo'} en MiClubPro: entra a https://miclubpro.cl/login, elige "Jugador" y usa el código ${joinCode}.`;
+  const textoInvitacion = `Únete a ${teamName || 'nuestro equipo'} en MiClubPro: entra a https://miclubpro.cl/login, toca "Soy jugador nuevo" y usa el código ${joinCode}.`;
   const copiarCodigo = async () => {
     try { await navigator.clipboard.writeText(joinCode); setCopiado(true); setTimeout(() => setCopiado(false), 2000); }
     catch { aviso.info(`Tu código es ${joinCode}`); }
