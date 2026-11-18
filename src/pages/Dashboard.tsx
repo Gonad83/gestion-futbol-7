@@ -6,6 +6,7 @@ import { AvisoCuota, MosaicosInicio } from './dashboard/ResumenInicio';
 import { TarjetaMvp } from './dashboard/TarjetaMvp';
 import { TarjetaParticipaciones } from './dashboard/TarjetaParticipaciones';
 import { ModalAsistencia } from './dashboard/ModalAsistencia';
+import { TarjetaTitular } from './dashboard/TarjetaTitular';
 
 const ROLES: Record<string, string> = { captain: 'Capitán', subcaptain: 'Subcapitán' };
 
@@ -52,6 +53,7 @@ export default function Dashboard() {
           />
           <AvisoCuota stats={d.stats} myPlayer={d.myPlayer} teamSettings={d.teamSettings} />
           <MosaicosInicio stats={d.stats} isAdmin={isAdmin} myPlayer={d.myPlayer} />
+          <TarjetaTitular stats={d.stats} />
         </div>
 
         <div className="lg:col-span-2 space-y-5">

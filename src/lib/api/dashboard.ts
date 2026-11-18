@@ -18,6 +18,12 @@ export interface JugadorDash {
   user_id: string | null;
   position: string | null;
   match_role: string | null;
+  /** Estrellas y sub-estrellas (1-7), para armar el equipo titular. */
+  secondary_position?: string | null;
+  rating?: number | null;
+  vision?: number | null;
+  ataque?: number | null;
+  defensa?: number | null;
 }
 
 export interface PagoDash {
@@ -263,7 +269,7 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
   const [settingsRes, allPlayers] = await Promise.all([
     supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle(),
     filas<JugadorDash>(
-      supabase.from('players').select('id, name, nickname, status, photo_url, user_id, position, match_role').eq('team_id', teamId),
+      supabase.from('players').select('id, name, nickname, status, photo_url, user_id, position, match_role, secondary_position, rating, vision, ataque, defensa').eq('team_id', teamId),
       8000,
     ),
   ]);
