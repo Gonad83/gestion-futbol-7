@@ -54,8 +54,10 @@ export function TarjetaTitular({ stats }: { stats: DashboardStats }) {
   const [formacion, setFormacion] = useState(formacionGuardada);
   const titular = useMemo(() => {
     const partidos = Object.fromEntries(stats.topParticipations.map((p) => [p.id, p.count]));
-    return armarTitular(stats.allPlayers, formacion, partidos);
-  }, [stats.allPlayers, stats.topParticipations, formacion]);
+    const noVan = new Set(stats.declinedIds);
+    return armarTitular(stats.allPlayers.filter((j) => !noVan.has(j.id)), formacion, partidos);
+  }, [stats.allPlayers, stats.topParticipations, stats.declinedIds, formacion]);
+  const bajas = stats.allPlayers.filter((j) => j.status === 'Activo' && stats.declinedIds.includes(j.id));
 
   const filas = LINEAS.map((l) => titular.lineas[l]).filter((f) => f.length > 0);
   if (filas.length === 0) return null;
@@ -73,7 +75,9 @@ export function TarjetaTitular({ stats }: { stats: DashboardStats }) {
         </div>
         <div className="min-w-0">
           <h2 className="font-headline font-bold text-white leading-tight">Equipo titular</h2>
-          <p className="text-[11px] text-white/50">Los mejores por estrellas en su puesto</p>
+          <p className="text-[11px] text-white/50">
+            {stats.nextMatch ? 'Los mejores disponibles para el próximo partido' : 'Los mejores por estrellas en su puesto'}
+          </p>
         </div>
         <span className="ml-auto flex items-center gap-1 text-sm font-headline font-black tabular-nums shrink-0" style={{ color: '#ffd08b' }}>
           <Star size={13} fill="#ffd08b" strokeWidth={0} /> {titular.promedio}
@@ -114,6 +118,12 @@ export function TarjetaTitular({ stats }: { stats: DashboardStats }) {
         <p className="mt-3 text-xs text-white/60 leading-snug">
           <span className="font-bold text-white/80">Banca ({titular.banca.length}):</span>{' '}
           {titular.banca.map((j) => nombreCorto(j.name)).join(', ')}
+        </p>
+      )}
+      {bajas.length > 0 && (
+        <p className="mt-1.5 text-xs text-white/45 leading-snug">
+          <span className="font-bold text-red-300/80">No van ({bajas.length}):</span>{' '}
+          {bajas.map((j) => nombreCorto(j.name)).join(', ')}
         </p>
       )}
     </section>

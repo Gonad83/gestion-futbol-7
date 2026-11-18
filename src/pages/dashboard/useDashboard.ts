@@ -145,6 +145,7 @@ export function useDashboard(teamId: number | null) {
         ...s,
         confirmedCount: updated.filter((p) => p.attendanceStatus === 'Voy').length,
         declinedCount: updated.filter((p) => p.attendanceStatus === 'No voy').length,
+        declinedIds: updated.filter((p) => p.attendanceStatus === 'No voy').map((p) => p.id),
         pendingCount: updated.filter((p) => p.attendanceStatus === 'Pendiente').length,
       }));
       return updated;
@@ -268,7 +269,9 @@ export function useDashboard(teamId: number | null) {
         else if (prevStatus === 'No voy') declined = Math.max(0, declined - 1);
         if (newStatus === 'Voy') confirmed++;
         else declined++;
-        return { ...s, confirmedCount: confirmed, declinedCount: declined, pendingCount: Math.max(0, s.activePlayers - confirmed - declined) };
+        const sinMi = s.declinedIds.filter((id) => id !== myPlayer.id);
+        const declinedIds = newStatus === 'No voy' ? [...sinMi, myPlayer.id] : sinMi;
+        return { ...s, confirmedCount: confirmed, declinedCount: declined, declinedIds, pendingCount: Math.max(0, s.activePlayers - confirmed - declined) };
       });
       if (newStatus === 'Voy') {
         setConfirmedPlayers((prev) => (prev.some((p) => p.id === myPlayer.id) ? prev : [...prev, myPlayer]));

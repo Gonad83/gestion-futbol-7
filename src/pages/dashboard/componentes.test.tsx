@@ -12,6 +12,7 @@ import { AvisoCuota, MosaicosInicio } from './ResumenInicio';
 import { SaludoInicio } from './SaludoInicio';
 import { TarjetaMvp } from './TarjetaMvp';
 import { TarjetaParticipaciones } from './TarjetaParticipaciones';
+import { TarjetaTitular } from './TarjetaTitular';
 
 /**
  * Pruebas de humo: cada bloque del panel se dibuja sin romperse, tanto con el
@@ -65,6 +66,14 @@ describe('bloques del panel de inicio', () => {
       expect(dibujar(<TarjetaMvp stats={stats} isAdmin={isAdmin} copiedVote={false} shareVoteWhatsApp={nada} closeVoting={nada} notifyVoting={nada} />)).toBeTruthy();
     }
     expect(dibujar(<TarjetaParticipaciones stats={stats} />)).toBeTruthy();
+  });
+
+  it('equipo titular: sin plantel no se dibuja y quien dijo "No voy" queda fuera', () => {
+    expect(dibujar(<TarjetaTitular stats={STATS_VACIAS} />)).toBe('');
+    const html = dibujar(<TarjetaTitular stats={{ ...llenas, declinedIds: ['b'] }} />);
+    expect(html).toContain('A. Rojas');
+    expect(html).toContain('No van (');
+    expect(dibujar(<TarjetaTitular stats={llenas} />)).not.toContain('No van (');
   });
 
   it('el capitán ve cuántos deben; el jugador, su asistencia', () => {

@@ -87,6 +87,8 @@ export interface DashboardStats {
   nextMatch: PartidoDash | null;
   confirmedCount: number;
   declinedCount: number;
+  /** Quiénes dijeron "No voy" al próximo partido (no entran al equipo titular). */
+  declinedIds: string[];
   pendingCount: number;
   morosos: Moroso[];
   balance: number;
@@ -118,6 +120,7 @@ export const STATS_VACIAS: DashboardStats = {
   nextMatch: null,
   confirmedCount: 0,
   declinedCount: 0,
+  declinedIds: [],
   pendingCount: 0,
   morosos: [],
   balance: 0,
@@ -316,6 +319,7 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
   const nextMatch = proximos[0] || null;
   let confirmedCount = 0;
   let declinedCount = 0;
+  let declinedIds: string[] = [];
   let confirmedPlayers: JugadorDash[] = [];
   let guests: Invitado[] = [];
   let myConfirmStatus: EstadoAsistencia = 'Pendiente';
@@ -327,7 +331,8 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
     ]);
     const van = respuestas.filter((a) => a.status === 'Voy');
     confirmedCount = van.length;
-    declinedCount = respuestas.filter((a) => a.status === 'No voy').length;
+    declinedIds = respuestas.filter((a) => a.status === 'No voy').map((a) => a.player_id);
+    declinedCount = declinedIds.length;
     const idsQueVan = new Set(van.map((a) => a.player_id));
     confirmedPlayers = allPlayers.filter((p) => idsQueVan.has(p.id));
     guests = invitados;
@@ -350,6 +355,7 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
       nextMatch,
       confirmedCount,
       declinedCount,
+      declinedIds,
       pendingCount: nextMatch ? Math.max(0, activos.length - confirmedCount - declinedCount) : 0,
       morosos: calcularMorosos(activos, pagos),
       balance: suma(pagados) + suma(ingresos) - suma(gastos),
