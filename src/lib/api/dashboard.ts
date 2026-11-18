@@ -6,6 +6,7 @@
  * reciben datos y devuelven datos, así se pueden probar sin base de datos.
  */
 import { supabase, withTimeout } from '../supabase';
+import type { TitularGuardado } from '../../pages/dashboard/titular';
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,8 @@ export interface AjustesEquipoDash {
   payment_link: string;
   payment_button_enabled: boolean;
   banner_url: string;
+  /** Equipo titular que el capitán dejó armado a mano; sin él, se arma solo. */
+  titular?: TitularGuardado | null;
 }
 
 export interface DashboardStats {
@@ -240,6 +243,13 @@ export function unirAsistencia(
     .map((p) => ({ ...p, attendanceStatus: (statusMap[p.id] || 'Pendiente') as EstadoAsistencia }));
 }
 
+/** Valida lo guardado en team_settings.titular; cualquier otra cosa cuenta como "sin armar". */
+export function leerTitular(valor: unknown): TitularGuardado | null {
+  const t = valor as Partial<TitularGuardado> | null;
+  if (!t || typeof t.formacion !== 'string' || !Array.isArray(t.puestos)) return null;
+  return { formacion: t.formacion, puestos: t.puestos.map((id) => (typeof id === 'string' ? id : null)) };
+}
+
 const suma = (filas: { amount: number | string | null }[]) => filas.reduce((acc, f) => acc + Number(f.amount), 0);
 
 // ── Lecturas ─────────────────────────────────────────────────────────────────
@@ -285,6 +295,7 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
         payment_link: s.payment_link || '',
         payment_button_enabled: s.payment_button_enabled || false,
         banner_url: s.banner_url || '',
+        titular: leerTitular(s.titular),
       }
     : null;
 
@@ -464,6 +475,11 @@ export async function guardarAsistencia(matchId: string, playerId: string, estad
   } else {
     await supabase.from('attendance').insert({ match_id: matchId, player_id: playerId, status: estado });
   }
+}
+
+/** Guarda el equipo titular armado a mano para que lo vea todo el equipo (solo el capitán puede). */
+export function guardarTitular(teamId: number, titular: TitularGuardado) {
+  return supabase.from('team_settings').update({ titular }).eq('id', teamId);
 }
 
 export function guardarGanadorMvp(matchId: string, jugador: JugadorDash, votos: number) {

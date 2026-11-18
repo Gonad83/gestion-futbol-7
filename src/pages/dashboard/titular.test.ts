@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { armarTitular, cuposPorLinea, type JugadorTitular } from './titular';
+import { armarTitular, cuposPorLinea, intercambiarPuestos, type JugadorTitular } from './titular';
 
 const j = (id: string, position: string, rating: number, extra: Partial<JugadorTitular> = {}): JugadorTitular => ({
   id, name: id, position, rating, status: 'Activo', ...extra,
@@ -50,6 +50,30 @@ describe('equipo titular', () => {
     expect(ids(t.lineas.Medio)).toEqual(['med1', 'med3']);
     expect(ids(t.lineas.Delantero)).toEqual(['del1']);
     expect(t.banca.map((p) => p.id)).toEqual(['arq']);
+  });
+
+  it('respeta los puestos fijados a mano y rellena los que quedan libres', () => {
+    const plantel = [
+      j('arq', 'Portero', 5), j('def1', 'Defensa Central', 6), j('def2', 'Defensa Central', 5), j('def3', 'Defensa Central', 4),
+      j('med1', 'Medio Mixto (MC)', 6), j('med2', 'Medio Mixto (MC)', 5), j('del1', 'Delantero Centro (9)', 6), j('del2', 'Delantero Centro (9)', 3),
+    ];
+    const auto = armarTitular(plantel, '3-2-1');
+    expect(auto.banca.map((p) => p.id)).toEqual(['del2']);
+
+    // Banca por titular: del2 entra en el puesto de del1.
+    const conCambio = intercambiarPuestos(auto, '3-2-1', 'del2', 'del1');
+    const t = armarTitular(plantel, '3-2-1', {}, conCambio);
+    expect(ids(t.lineas.Delantero)).toEqual(['del2']);
+    expect(t.banca.map((p) => p.id)).toEqual(['del1']);
+
+    // Rotar dos titulares: el arquero sale a jugar y un defensa va al arco.
+    const rotado = armarTitular(plantel, '3-2-1', {}, intercambiarPuestos(t, '3-2-1', 'arq', 'def2'));
+    expect(ids(rotado.lineas.Portero)).toEqual(['def2']);
+    expect(rotado.lineas.Defensa.map((p) => [p.jugador.id, p.fueraDePuesto])).toEqual([['def1', false], ['arq', true], ['def3', false]]);
+
+    // Si un fijado ya no está disponible, su puesto se rellena solo.
+    const sinDel2 = armarTitular(plantel.filter((p) => p.id !== 'del2'), '3-2-1', {}, conCambio);
+    expect(ids(sinDel2.lineas.Delantero)).toEqual(['del1']);
   });
 
   it('sin jugadores no arma nada', () => {

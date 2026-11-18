@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { aviso, confirmar } from '../../lib/avisos';
 import { sinMarcaDeInvitado } from '../../lib/matchmaking';
+import type { TitularGuardado } from './titular';
 import {
   STATS_VACIAS,
   agregarInvitado,
@@ -10,6 +11,7 @@ import {
   cargarDashboard,
   contarVotos,
   guardarAsistencia,
+  guardarTitular,
   guardarGanadorMvp,
   invitadosDelPartido,
   quitarInvitado,
@@ -285,8 +287,20 @@ export function useDashboard(teamId: number | null) {
     }
   };
 
+  /** Guarda el titular armado a mano; si falla, vuelve a mostrar el anterior. */
+  const cambiarTitular = async (titular: TitularGuardado) => {
+    if (!teamId) return;
+    const anterior = teamSettings.titular ?? null;
+    setTeamSettings((s) => ({ ...s, titular }));
+    const { error } = await guardarTitular(teamId, titular);
+    if (error) {
+      setTeamSettings((s) => ({ ...s, titular: anterior }));
+      aviso.error('No se pudo guardar el equipo titular: ' + error.message);
+    }
+  };
+
   return {
-    loading, teamSettings, stats, myPlayer, myConfirmStatus, confirmingMyStatus, confirmedPlayers,
+    loading, teamSettings, cambiarTitular, stats, myPlayer, myConfirmStatus, confirmingMyStatus, confirmedPlayers,
     guestsDash, guestInputDash, setGuestInputDash, addingGuestDash, addGuestDash, removeGuestDash,
     showAttendanceModal, setShowAttendanceModal, attendanceList, attendanceLoading,
     guestList, guestInput, setGuestInput, addGuest, removeGuest, handleAttendanceChange, openAttendanceModal,

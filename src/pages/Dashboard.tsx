@@ -53,7 +53,7 @@ export default function Dashboard() {
           />
           <AvisoCuota stats={d.stats} myPlayer={d.myPlayer} teamSettings={d.teamSettings} />
           <MosaicosInicio stats={d.stats} isAdmin={isAdmin} myPlayer={d.myPlayer} />
-          <TarjetaTitular stats={d.stats} />
+          <TarjetaTitular stats={d.stats} guardado={d.teamSettings.titular ?? null} puedeEditar={isAdmin} onGuardar={d.cambiarTitular} />
         </div>
 
         <div className="lg:col-span-2 space-y-5">
