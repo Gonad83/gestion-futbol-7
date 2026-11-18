@@ -226,6 +226,6 @@ export function useCaja(teamId: number | null, isAdmin: boolean) {
     search, setSearch, statusFilter, setStatusFilter, quotaFilter, setQuotaFilter,
     selectedMonth, selectedYear, prevMonth, nextMonth,
     handleSaveQuota, handleSetExempt, handleUnsetExempt, handleCancelPayment, handlePaymentToggle,
-    handleAddExpense, handleAddIncome, handleDeleteIncome, handleDeleteExpense, exportToPDF, exportToCSV,
+    handleAddExpense, handleAddIncome, handleDeleteIncome, handleDeleteExpense, exportToPDF, exportToCSV, fetchData,
   };
 }

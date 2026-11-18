@@ -10,6 +10,7 @@ import { PestanaCuotas } from './finance/PestanaCuotas';
 import { PestanaMorosidad } from './finance/PestanaMorosidad';
 import { PestanaIngresos } from './finance/PestanaIngresos';
 import { PestanaGastos } from './finance/PestanaGastos';
+import { ComprobantesPorRevisar } from './finance/ComprobantesPorRevisar';
 
 type Pestana = 'cuotas' | 'morosidad' | 'ingresos' | 'gastos';
 
@@ -42,6 +43,8 @@ export default function Finance() {
   return (
     <div className="fade-in pb-24 md:pb-0 max-w-3xl mx-auto">
       <EncabezadoCaja isAdmin={isAdmin} exportToPDF={c.exportToPDF} exportToCSV={c.exportToCSV} />
+
+      {isAdmin && teamId && <ComprobantesPorRevisar teamId={teamId} cuota={c.quotaAmount} alCambiar={c.fetchData} />}
 
       <ResumenCaja
         quotaFilter={c.quotaFilter}
