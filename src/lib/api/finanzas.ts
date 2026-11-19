@@ -47,6 +47,9 @@ export interface MorosoCaja {
   name: string;
   nickname: string | null;
   pendingMonths: MesPendiente[];
+  /** Lo ya pagado a cuenta de los meses pendientes (abonos). */
+  abonado: number;
+  /** Saldo que queda: meses pendientes por la cuota, menos lo abonado. */
   totalDebt: number;
 }
 
@@ -161,7 +164,17 @@ export function morososDeCaja(jugadores: JugadorCaja[], historial: PaymentRow[],
         m++;
         if (m > 12) { m = 1; y++; }
       }
-      return { id: p.id, name: p.name, nickname: p.nickname, pendingMonths, totalDebt: pendingMonths.length * quota };
+      // Abonos: filas sin pagar con un monto menor a la cuota, en meses que aún debe.
+      // (Una fila pendiente con el monto completo de la cuota es solo la deuda anotada.)
+      const debe = new Set(pendingMonths.map((mes) => `${mes.year}-${mes.month}`));
+      const abonado = historial.reduce((suma, h) => {
+        const monto = Number(h.amount ?? 0);
+        const esAbono = h.player_id === p.id && (h.status === 'Pendiente' || h.status === 'Atrasado')
+          && monto > 0 && monto < quota && debe.has(`${h.year}-${h.month}`);
+        return esAbono ? suma + monto : suma;
+      }, 0);
+      const totalDebt = Math.max(0, pendingMonths.length * quota - abonado);
+      return { id: p.id, name: p.name, nickname: p.nickname, pendingMonths, abonado, totalDebt };
     })
     .filter((p) => p.pendingMonths.length > 0)
     .sort((a, b) => b.pendingMonths.length - a.pendingMonths.length);

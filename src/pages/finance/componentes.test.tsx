@@ -31,8 +31,8 @@ const cuotas = [
   fila('e', { nickname: 'Tanque' }),
 ];
 const morosos: MorosoCaja[] = [
-  { id: 'b', name: 'Jugador b', nickname: null, pendingMonths: [{ year: 2026, month: 3 }, { year: 2026, month: 5 }], totalDebt: 10000 },
-  { id: 'e', name: 'Jugador e', nickname: 'Tanque', pendingMonths: [{ year: 2026, month: 5 }], totalDebt: 5000 },
+  { id: 'b', name: 'Jugador b', nickname: null, pendingMonths: [{ year: 2026, month: 3 }, { year: 2026, month: 5 }], abonado: 0, totalDebt: 10000 },
+  { id: 'e', name: 'Jugador e', nickname: 'Tanque', pendingMonths: [{ year: 2026, month: 5 }], abonado: 2000, totalDebt: 5000 },
 ];
 const movimientos: Movimiento[] = [{ id: 'm1', concept: 'Arriendo cancha', amount: 30000, date: '2026-05-02' }];
 const formulario = { concept: '', amount: '', date: '2026-05-15' };

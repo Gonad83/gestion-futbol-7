@@ -69,6 +69,18 @@ describe('morososDeCaja', () => {
     expect(m.totalDebt).toBe(CUOTA * 2);
   });
 
+  it('descuenta los abonos de los meses pendientes, pero no la deuda anotada ni abonos de meses futuros', () => {
+    const historial = [
+      pago('a', 3, 'Pendiente', 2000),   // abono a marzo
+      pago('a', 4, 'Pendiente', CUOTA),  // deuda anotada, no es dinero recibido
+      pago('a', 6, 'Pendiente', 1000),   // abono a un mes que aún no se cobra
+    ];
+    const [m] = morososDeCaja([jugador('a')], historial, CUOTA, HOY);
+    expect(m.pendingMonths).toHaveLength(3);
+    expect(m.abonado).toBe(2000);
+    expect(m.totalDebt).toBe(CUOTA * 3 - 2000);
+  });
+
   it('salta enero y febrero y los meses exentos', () => {
     const [m] = morososDeCaja([jugador('a', '2025-11-15T12:00:00Z')], [pago('a', 4, 'Exento', 0)], CUOTA, HOY);
     expect(m.pendingMonths.map((p) => `${p.year}-${p.month}`)).toEqual(['2025-11', '2025-12', '2026-3', '2026-5']);
@@ -107,8 +119,8 @@ describe('resumenDeCaja', () => {
   it('tasa de morosidad: quienes deben el mes en curso sobre los que no están exentos por ingreso', () => {
     const payments = [fila({ player_id: 'a', status: 'Pagado', amount: CUOTA }), fila({ player_id: 'b' }), fila({ player_id: 'c' }), fila({ player_id: 'd', isAutoExempt: true })];
     const morosos = [
-      { id: 'b', name: 'B', nickname: null, pendingMonths: [{ year: 2026, month: 5 }], totalDebt: CUOTA },
-      { id: 'c', name: 'C', nickname: null, pendingMonths: [{ year: 2026, month: 4 }], totalDebt: CUOTA },
+      { id: 'b', name: 'B', nickname: null, pendingMonths: [{ year: 2026, month: 5 }], abonado: 0, totalDebt: CUOTA },
+      { id: 'c', name: 'C', nickname: null, pendingMonths: [{ year: 2026, month: 4 }], abonado: 0, totalDebt: CUOTA },
     ];
     const r = resumenDeCaja({ payments, morosos, allPaidAmount: 0, cashIncomes: [], expenses: [] }, HOY);
     expect(r).toMatchObject({ morososThisMonth: 1, totalActivePlayers: 3, tasaMora: 33, monthlyIncome: CUOTA });

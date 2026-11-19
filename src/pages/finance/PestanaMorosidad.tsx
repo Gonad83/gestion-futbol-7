@@ -39,7 +39,7 @@ export function PestanaMorosidad({ morosos, copiedAll, setCopiedAll, copiedPlaye
           <button
             onClick={() => {
               const lines = morosos.map((p, i) =>
-                `${i + 1}. ${p.name}${p.nickname ? ` "${p.nickname}"` : ''} — ${p.pendingMonths.length} mes${p.pendingMonths.length > 1 ? 'es' : ''} (${clp(p.totalDebt)})\n   ${p.pendingMonths.map((m) => `${MONTHS[m.month - 1]} ${m.year}`).join(', ')}`
+                `${i + 1}. ${p.name}${p.nickname ? ` "${p.nickname}"` : ''} — ${p.pendingMonths.length} mes${p.pendingMonths.length > 1 ? 'es' : ''} (${clp(p.totalDebt)}${p.abonado > 0 ? `, ya abonó ${clp(p.abonado)}` : ''})\n   ${p.pendingMonths.map((m) => `${MONTHS[m.month - 1]} ${m.year}`).join(', ')}`
               ).join('\n\n');
               const total = morosos.reduce((acc, p) => acc + p.totalDebt, 0);
               const msg = `⚠️ *Cuotas pendientes*\n\n${lines}\n\n💰 *Total adeudado: ${clp(total)}*`;
@@ -84,11 +84,14 @@ export function PestanaMorosidad({ morosos, copiedAll, setCopiedAll, copiedPlaye
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <p className="font-black text-white text-sm">{clp(p.totalDebt)}</p>
+                    <div className="text-right">
+                      <p className="font-black text-white text-sm">{clp(p.totalDebt)}</p>
+                      {p.abonado > 0 && <p className="text-[11px] font-bold text-soccer-green">abonó {clp(p.abonado)}</p>}
+                    </div>
                     <button
                       onClick={() => {
                         const months = p.pendingMonths.map((m) => `• ${MONTHS[m.month - 1]} ${m.year}`).join('\n');
-                        const msg = `Hola ${p.name.split(' ')[0]}! 👋\nTienes ${p.pendingMonths.length} cuota${p.pendingMonths.length > 1 ? 's' : ''} pendiente${p.pendingMonths.length > 1 ? 's' : ''}:\n${months}\n\n💰 Total: ${clp(p.totalDebt)}`;
+                        const msg = `Hola ${p.name.split(' ')[0]}! 👋\nTienes ${p.pendingMonths.length} cuota${p.pendingMonths.length > 1 ? 's' : ''} pendiente${p.pendingMonths.length > 1 ? 's' : ''}:\n${months}\n\n${p.abonado > 0 ? `✅ Ya abonaste: ${clp(p.abonado)}\n` : ''}💰 ${p.abonado > 0 ? 'Saldo' : 'Total'}: ${clp(p.totalDebt)}${p.pendingMonths.length > 1 ? '\n\nNo tienes que pagar todo de una vez: puedes ir abonando.' : ''}`;
                         navigator.clipboard.writeText(msg);
                         setCopiedPlayer(p.id);
                         setTimeout(() => setCopiedPlayer(null), 2500);
