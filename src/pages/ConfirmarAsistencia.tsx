@@ -24,7 +24,8 @@ export default function ConfirmarAsistencia() {
   useEffect(() => {
     const confirm = async () => {
       if (!player_id || !match_id || !status || !t) {
-        setErrorMsg('Enlace inválido. Faltan parámetros.');
+        // Los correos anteriores a noviembre de 2026 no traen la clave.
+        setErrorMsg('Este enlace ya no es válido. Entra a la app y responde desde el inicio.');
         setState('error');
         return;
       }
@@ -38,7 +39,9 @@ export default function ConfirmarAsistencia() {
         ]);
 
         if (error || !data?.ok) {
-          throw new Error(data?.error || error?.message || 'Error al registrar');
+          // Ante un rechazo, el motivo viene en el cuerpo de la respuesta.
+          const cuerpo = await (error as { context?: Response } | null)?.context?.json?.().catch(() => null);
+          throw new Error(data?.error || cuerpo?.error || 'No se pudo registrar tu respuesta. Inténtalo desde la app.');
         }
 
         setIsLoggedIn(!!sessionData.session);
