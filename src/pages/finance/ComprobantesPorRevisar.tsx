@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Receipt, ChevronRight, X, Loader2, ExternalLink, Check, Ban, FileText } from 'lucide-react';
+import { Receipt, ChevronRight, X, Loader2, ExternalLink, Check, Ban, FileText, ScanText } from 'lucide-react';
 import { Capa } from '../../components/Capa';
 import { useAuth } from '../../hooks/useAuth';
 import { aviso } from '../../lib/avisos';
@@ -163,6 +163,14 @@ function HojaRevision({ lista, cuota, cerrar, revisado }: { lista: Comprobante[]
                 className="w-full h-14 pl-8 pr-4 rounded-2xl text-lg font-bold text-white tabular-nums outline-none focus:ring-2 focus:ring-soccer-green/50"
                 style={{ background: '#10141a', border: '1.5px solid #262a31' }} />
             </div>
+            {c.monto_leido != null && (Number(c.monto_leido) === valor ? (
+              <p className="text-xs text-soccer-green mt-1.5 flex items-center gap-1.5"><ScanText size={13} /> La lectura automática del comprobante también dice {clp(Number(c.monto_leido))}.</p>
+            ) : (
+              <button type="button" onClick={() => setMonto(String(Number(c.monto_leido)))}
+                className="mt-1.5 min-h-9 text-left text-xs text-[#ffd08b] flex items-center gap-1.5 cursor-pointer">
+                <ScanText size={13} className="shrink-0" /> Ojo: en la imagen se lee {clp(Number(c.monto_leido))}. Toca para usar ese monto.
+              </button>
+            ))}
             <p className="text-xs text-white/50 mt-1.5">Corrígelo si no coincide con la transferencia. Se aplica primero al mes pendiente más antiguo.</p>
           </div>
 

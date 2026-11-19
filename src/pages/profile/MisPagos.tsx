@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Receipt, Upload, X, Loader2, FileText, CheckCircle2, Clock, XCircle, Trash2 } from 'lucide-react';
+import { Receipt, Upload, X, Loader2, FileText, CheckCircle2, Clock, XCircle, Trash2, ScanText } from 'lucide-react';
+import { leerMonto, sePuedeLeer } from '../../lib/leerComprobante';
 import { supabase } from '../../lib/supabase';
 import { Capa } from '../../components/Capa';
 import { aviso, confirmar } from '../../lib/avisos';
@@ -100,6 +101,10 @@ function HojaSubir({ playerId, teamId, cuota, cerrar, listo }: { playerId: strin
   const [nota, setNota] = useState('');
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [lectura, setLectura] = useState<'' | 'leyendo' | 'lista' | 'no'>('');
+  const [leido, setLeido] = useState<number | null>(null);
+  const montoEscrito = useRef(false);
+  const lecturaActual = useRef(0);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -115,7 +120,23 @@ function HojaSubir({ playerId, teamId, cuota, cerrar, listo }: { playerId: strin
     if (problema) { setError(problema); return; }
     setError('');
     setArchivo(f);
-    setVista(f.type.startsWith('image/') && !/hei[cf]/.test(f.type) ? URL.createObjectURL(f) : '');
+    setVista(sePuedeLeer(f) ? URL.createObjectURL(f) : '');
+
+    // Lectura automática: propone el monto que aparece en la imagen. Si el
+    // jugador ya escribió uno a mano, no se lo cambia: solo se lo muestra.
+    setLeido(null);
+    if (!sePuedeLeer(f)) { setLectura('no'); return; }
+    const turno = ++lecturaActual.current;
+    setLectura('leyendo');
+    leerMonto(f).then(
+      (encontrado) => {
+        if (turno !== lecturaActual.current) return; // eligió otro archivo mientras tanto
+        setLeido(encontrado);
+        setLectura(encontrado ? 'lista' : 'no');
+        if (encontrado && !montoEscrito.current) setMonto(String(encontrado));
+      },
+      () => { if (turno === lecturaActual.current) setLectura('no'); },
+    );
   };
 
   const valor = Number(monto.replace(/\D/g, ''));
@@ -125,7 +146,7 @@ function HojaSubir({ playerId, teamId, cuota, cerrar, listo }: { playerId: strin
     setEnviando(true);
     setError('');
     try {
-      await subirComprobante({ teamId, playerId, monto: valor, nota, archivo });
+      await subirComprobante({ teamId, playerId, monto: valor, montoLeido: leido, nota, archivo });
       listo();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo enviar.');
@@ -168,9 +189,25 @@ function HojaSubir({ playerId, teamId, cuota, cerrar, listo }: { playerId: strin
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-bold">$</span>
               <input id="cp-monto" inputMode="numeric" autoComplete="off" value={valor ? valor.toLocaleString('es-CL') : ''}
-                onChange={e => setMonto(e.target.value)} placeholder="8.000"
+                onChange={e => { montoEscrito.current = true; setMonto(e.target.value); }} placeholder="8.000"
                 className="w-full h-14 pl-8 pr-4 rounded-2xl text-lg font-bold text-white tabular-nums outline-none focus:ring-2 focus:ring-soccer-green/50"
                 style={{ background: '#10141a', border: '1.5px solid #262a31' }} />
+            </div>
+            <div aria-live="polite">
+              {lectura === 'leyendo' && (
+                <p className="text-xs text-white/60 mt-1.5 flex items-center gap-1.5"><Loader2 size={13} className="animate-spin" /> Leyendo el monto del comprobante…</p>
+              )}
+              {lectura === 'lista' && leido !== null && (leido === valor ? (
+                <p className="text-xs text-soccer-green mt-1.5 flex items-center gap-1.5"><ScanText size={13} /> Leímos {clp(leido)} en tu comprobante. Revisa que esté bien.</p>
+              ) : (
+                <button type="button" onClick={() => { montoEscrito.current = true; setMonto(String(leido)); }}
+                  className="mt-1.5 min-h-9 text-left text-xs text-[#ffd08b] flex items-center gap-1.5 cursor-pointer">
+                  <ScanText size={13} className="shrink-0" /> En el comprobante leímos {clp(leido)}. Toca para usar ese monto.
+                </button>
+              ))}
+              {lectura === 'no' && archivo && (
+                <p className="text-xs text-white/50 mt-1.5">No pudimos leer el monto automáticamente: escríbelo tú.</p>
+              )}
             </div>
             {cuota > 0 && valor > cuota && <p className="text-xs text-white/55 mt-1.5">Cubre más de un mes: el saldo pasa a los meses siguientes.</p>}
           </div>

@@ -25,6 +25,8 @@ export interface Comprobante {
   status: EstadoComprobante;
   motivo: string | null;
   monto_aprobado: number | null;
+  /** Monto que la lectura automática encontró en la imagen; null si no se pudo leer. */
+  monto_leido: number | null;
   reviewed_at: string | null;
   created_at: string;
   players?: { name: string; photo_url: string | null; created_at: string | null } | null;
@@ -47,7 +49,7 @@ const extension = (archivo: File) => {
 };
 
 /** Sube el archivo y crea el comprobante "por revisar". Si falla el registro, borra el archivo. */
-export async function subirComprobante(datos: { teamId: number; playerId: string; monto: number; nota: string; archivo: File }) {
+export async function subirComprobante(datos: { teamId: number; playerId: string; monto: number; montoLeido?: number | null; nota: string; archivo: File }) {
   const ruta = `${datos.teamId}/${datos.playerId}/${crypto.randomUUID()}.${extension(datos.archivo)}`;
   const { error: errArchivo } = await supabase.storage.from(BUCKET_COMPROBANTES)
     .upload(ruta, datos.archivo, { contentType: datos.archivo.type || undefined, upsert: false });
@@ -55,7 +57,7 @@ export async function subirComprobante(datos: { teamId: number; playerId: string
 
   const { error } = await supabase.from('comprobantes').insert([{
     team_id: datos.teamId, player_id: datos.playerId, amount: datos.monto,
-    file_path: ruta, nota: datos.nota.trim() || null,
+    file_path: ruta, nota: datos.nota.trim() || null, monto_leido: datos.montoLeido ?? null,
   }]);
   if (error) {
     await supabase.storage.from(BUCKET_COMPROBANTES).remove([ruta]);
