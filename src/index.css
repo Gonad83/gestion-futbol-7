@@ -204,9 +204,9 @@
 }
 .lamina-foto {
   position: absolute;
-  inset: 0 0 30% 0;
+  inset: 0 0 38% 0;
   width: 100%;
-  height: 70%;
+  height: 62%;
   object-fit: cover;
   object-position: center 20%;
 }
@@ -228,7 +228,7 @@
   inset: 0;
   background:
     linear-gradient(135deg, var(--base) 0%, var(--base) 24%, transparent 46%),
-    linear-gradient(180deg, transparent 50%, var(--base) 71%);
+    linear-gradient(180deg, transparent 42%, var(--base) 61%);
 }
 .lamina-nota {
   position: absolute;
@@ -254,6 +254,16 @@
   border-radius: 9999px;
   background: #10141a;
   color: #ffd08b;
+}
+.lamina-estrellas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 61.5%;
+  display: flex;
+  justify-content: center;
+  gap: 0.05em;
+  font-size: 0.88em;
 }
 .lamina-nombre {
   position: absolute;
