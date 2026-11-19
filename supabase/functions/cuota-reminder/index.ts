@@ -25,6 +25,8 @@ const HOSTS_DE_PAGO = ['mercadopago.cl', 'mercadopago.com', 'mpago.la', 'mpago.l
 type Tipo = 'inicio' | 'mitad';
 interface Mes { year: number; month: number }
 interface Aviso { nombre: string; email: string; pendientes: Mes[]; total: number }
+/** Escudo y foto de portada del equipo (los mismos de la app). */
+interface Marca { equipo: string; logo: string; banner: string }
 
 const escapar = (valor: unknown) =>
   String(valor ?? '')
@@ -51,6 +53,16 @@ function linkDePago(link: unknown) {
   }
 }
 
+/** Una imagen solo si su dirección es https. */
+function urlDeImagen(link: unknown) {
+  try {
+    const url = new URL(String(link ?? ''));
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 /** Mismo criterio que la pestaña Morosos de Caja: meses cobrables sin pagar desde el ingreso. */
 function mesesPendientes(ingreso: string | null, pagos: { month: number; year: number; status: string }[], hoy: Mes): Mes[] {
   const cubiertos = new Set(pagos.filter((p) => p.status === 'Pagado' || p.status === 'Exento').map((p) => `${p.year}-${p.month}`));
@@ -66,52 +78,84 @@ function mesesPendientes(ingreso: string | null, pagos: { month: number; year: n
 
 /* ── Plantilla (colores y tipografías de la app) ─────────────────────────── */
 
-function plantilla(tipo: Tipo, a: Aviso, equipo: string, cuota: number, hoy: Mes, pago: string) {
+const LEXEND = `'Lexend','Helvetica Neue',Arial,sans-serif`;
+const mesCorto = (p: Mes) => `${MESES[p.month - 1].slice(0, 3)} ${p.year}`;
+
+function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, pago: string) {
+  const equipo = marca.equipo;
   const mesActual = MESES[hoy.month - 1];
   const anteriores = a.pendientes.filter((p) => !(p.year === hoy.year && p.month === hoy.month));
   const esInicio = tipo === 'inicio';
   const acento = esInicio ? '#44f3a9' : '#ffd08b';
+  const brillo = esInicio ? 'rgba(68,243,169,0.18)' : 'rgba(255,208,139,0.18)';
   const cifra = esInicio ? cuota : a.total;
   const n = a.pendientes.length;
 
-  const chip = (p: Mes, color: string, fondo: string) =>
-    `<span style="display:inline-block;margin:0 6px 6px 0;padding:6px 12px;border-radius:999px;background:${fondo};color:${color};font-size:12px;font-weight:700;">${MESES[p.month - 1].slice(0, 3)} ${p.year}</span>`;
-
   const titulo = esInicio ? `Cuota de ${mesActual}` : 'Tu cuota sigue pendiente';
-  const etiqueta = esInicio ? `${mesActual} ${hoy.year}` : `Recordatorio · ${mesActual} ${hoy.year}`;
+  const etiqueta = esInicio ? `${mesActual} ${hoy.year}` : `Recordatorio · ${mesActual}`;
   const bajada = esInicio ? 'Cuota mensual' : (n === 1 ? '1 cuota pendiente' : `${n} cuotas pendientes`);
-
   const mensaje = esInicio
     ? `Empezó ${mesActual} y ya puedes pagar la cuota del mes. Con las cuotas al día pagamos la cancha y los gastos del equipo.`
     : `Vamos a mitad de mes y todavía no registramos tu pago. Ponerte al día nos ayuda a pagar la cancha y los gastos del equipo.`;
 
-  const detalle = esInicio
-    ? (anteriores.length === 0 ? '' : `
-      <tr><td style="padding:0 32px 8px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#262a31;border-radius:14px;">
-          <tr><td style="padding:18px 20px;">
-            <p style="margin:0 0 10px;color:#ffd08b;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Además tienes ${anteriores.length === 1 ? '1 cuota anterior' : `${anteriores.length} cuotas anteriores`}</p>
-            <div>${anteriores.map((p) => chip(p, '#ffd08b', 'rgba(255,208,139,0.12)')).join('')}</div>
-            <p style="margin:8px 0 0;color:rgba(255,255,255,0.6);font-size:14px;">Total con ${mesActual}: <strong style="color:#ffffff;">${clp(a.total)}</strong></p>
-          </td></tr>
-        </table>
-      </td></tr>`)
-    : `
-      <tr><td style="padding:0 32px 8px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#262a31;border-radius:14px;">
-          <tr><td style="padding:18px 20px;">
-            <p style="margin:0 0 10px;color:rgba(255,255,255,0.45);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Meses pendientes</p>
-            <div>${a.pendientes.map((p) => chip(p, '#fca5a5', 'rgba(248,113,113,0.14)')).join('')}</div>
-            <p style="margin:8px 0 0;color:rgba(255,255,255,0.6);font-size:14px;">${n} × ${clp(cuota)} = <strong style="color:#ffffff;">${clp(a.total)}</strong></p>
-          </td></tr>
-        </table>
-      </td></tr>`;
+  const chip = (p: Mes, color: string, fondo: string) =>
+    `<span style="display:inline-block;margin:0 6px 6px 0;padding:6px 12px;border-radius:999px;background:${fondo};color:${color};font-size:12px;font-weight:700;">${mesCorto(p)}</span>`;
 
+  // Tres datos en fila: resumen de la deuda.
+  const dato = (rotulo: string, valor: string, color: string) => `
+          <td width="33%" align="center" style="padding:14px 6px;background:#262a31;border-radius:14px;">
+            <p style="margin:0 0 6px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;">${rotulo}</p>
+            <p style="margin:0;color:${color};font-family:${LEXEND};font-size:18px;font-weight:700;">${valor}</p>
+          </td>`;
+  const separador = '<td width="8" style="font-size:0;line-height:0;">&nbsp;</td>';
+  const datos = esInicio
+    ? (anteriores.length === 0 ? [] : [
+        dato('Anteriores', String(anteriores.length), '#ffd08b'),
+        dato('Desde', mesCorto(anteriores[0]), '#ffffff'),
+        dato('Total', clp(a.total), '#ffffff'),
+      ])
+    : [
+        dato('Cuotas', String(n), '#fca5a5'),
+        dato('Valor cuota', clp(cuota), '#ffffff'),
+        dato('Desde', mesCorto(a.pendientes[0]), '#ffffff'),
+      ];
+  const filaDeDatos = datos.length === 0 ? '' : `
+    <tr><td style="padding:0 28px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${datos.join(separador)}
+      </tr></table>
+    </td></tr>`;
+
+  const mesesEnChips = esInicio ? anteriores : a.pendientes;
+  const cajaDeMeses = mesesEnChips.length === 0 ? '' : `
+    <tr><td style="padding:0 28px 8px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#181c22;border-radius:14px;">
+        <tr><td style="padding:16px 18px 10px;">
+          <p style="margin:0 0 10px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;">${esInicio ? 'Meses anteriores pendientes' : 'Meses pendientes'}</p>
+          <div>${mesesEnChips.map((p) => esInicio ? chip(p, '#ffd08b', 'rgba(255,208,139,0.12)') : chip(p, '#fca5a5', 'rgba(248,113,113,0.14)')).join('')}</div>
+        </td></tr>
+      </table>
+    </td></tr>`;
+
+  const estiloBoton = 'display:block;padding:16px;border-radius:14px;background:#44f3a9;background-image:linear-gradient(135deg,#44f3a9,#00d68f);color:#003822;font-family:' + LEXEND + ';font-size:16px;font-weight:700;text-decoration:none;text-align:center;';
   const botonPrincipal = pago
-    ? `<a href="${escapar(pago)}" style="display:block;padding:15px;border-radius:14px;background:#44f3a9;background-image:linear-gradient(135deg,#44f3a9,#00d68f);color:#003822;font-size:15px;font-weight:800;text-decoration:none;text-align:center;">Pagar ahora</a>`
-    : `<a href="${SITIO}/profile" style="display:block;padding:15px;border-radius:14px;background:#44f3a9;background-image:linear-gradient(135deg,#44f3a9,#00d68f);color:#003822;font-size:15px;font-weight:800;text-decoration:none;text-align:center;">Subir mi comprobante</a>`;
+    ? `<a href="${escapar(pago)}" style="${estiloBoton}">Pagar ${clp(esInicio ? cuota : a.total)}</a>`
+    : `<a href="${SITIO}/profile" style="${estiloBoton}">Subir mi comprobante</a>`;
   const botonSecundario = pago
     ? `<a href="${SITIO}/profile" style="display:block;margin-top:10px;padding:14px;border-radius:14px;background:#262a31;color:#9acbff;font-size:14px;font-weight:700;text-decoration:none;text-align:center;">Ya transferí: subir comprobante</a>`
+    : '';
+
+  const paso = (numero: number, texto: string) => `
+        <tr>
+          <td width="34" valign="top" style="padding:0 0 10px;"><span style="display:inline-block;width:24px;height:24px;line-height:24px;border-radius:999px;background:rgba(68,243,169,0.14);color:#44f3a9;font-size:12px;font-weight:800;text-align:center;">${numero}</span></td>
+          <td valign="top" style="padding:2px 0 10px;color:rgba(255,255,255,0.65);font-size:13px;line-height:1.5;">${texto}</td>
+        </tr>`;
+
+  const portada = marca.banner ? `
+    <tr><td style="padding:0;font-size:0;line-height:0;background:#0a0e14;">
+      <img src="${escapar(marca.banner)}" width="520" alt="${escapar(equipo)}" style="display:block;width:100%;max-width:520px;height:auto;border:0;">
+    </td></tr>` : '';
+  const escudo = (lado: number, radio: number) => marca.logo
+    ? `<img src="${escapar(marca.logo)}" width="${lado}" height="${lado}" alt="Escudo de ${escapar(equipo)}" style="display:block;width:${lado}px;height:${lado}px;border-radius:${radio}px;border:0;">`
     : '';
 
   const html = `<!DOCTYPE html>
@@ -122,29 +166,42 @@ function plantilla(tipo: Tipo, a: Aviso, equipo: string, cuota: number, hoy: Mes
 <body style="margin:0;padding:0;background:#10141a;font-family:'Manrope','Helvetica Neue',Arial,sans-serif;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapar(esInicio ? `${clp(cuota)} · ${equipo}` : `${bajada}: ${clp(a.total)} · ${equipo}`)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#10141a;">
-<tr><td align="center" style="padding:32px 16px;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#1c2026;border-radius:24px;overflow:hidden;">
-    <tr><td style="padding:22px 32px;background:#0a0e14;">
+<tr><td align="center" style="padding:28px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#1c2026;border-radius:24px;overflow:hidden;">${portada}
+    <tr><td style="height:4px;font-size:0;line-height:4px;background:#44f3a9;background-image:linear-gradient(90deg,#44f3a9,#9acbff,#ffd08b);">&nbsp;</td></tr>
+    <tr><td style="padding:18px 28px;background:#0a0e14;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td style="color:#ffffff;font-family:'Lexend','Helvetica Neue',Arial,sans-serif;font-size:15px;font-weight:700;">${escapar(equipo)}</td>
-        <td align="right" style="color:${acento};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">${escapar(etiqueta)}</td>
+        ${marca.logo ? `<td width="66" valign="middle">${escudo(54, 14)}</td>` : ''}
+        <td valign="middle">
+          <p style="margin:0;color:#ffffff;font-family:${LEXEND};font-size:17px;font-weight:700;">${escapar(equipo)}</p>
+          <p style="margin:3px 0 0;color:rgba(255,255,255,0.45);font-size:12px;">Tesorería del equipo</p>
+        </td>
+        <td align="right" valign="middle"><span style="display:inline-block;padding:7px 12px;border-radius:999px;background:${brillo};color:${acento};font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;">${escapar(etiqueta)}</span></td>
       </tr></table>
     </td></tr>
-    <tr><td align="center" style="padding:40px 32px 32px;background:#181c22;">
-      <p style="margin:0 0 14px;color:rgba(255,255,255,0.5);font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;">${escapar(bajada)}</p>
-      <p style="margin:0;color:${acento};font-family:'Lexend','Helvetica Neue',Arial,sans-serif;font-size:52px;line-height:1;font-weight:900;letter-spacing:-1.5px;">${clp(cifra)}</p>
-      <p style="margin:16px 0 0;color:#ffffff;font-family:'Lexend','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:700;">${escapar(titulo)}</p>
+    <tr><td align="center" style="padding:36px 28px 30px;background:#181c22;background-image:radial-gradient(circle at 50% 0%,${brillo},rgba(24,28,34,0) 70%);">
+      <p style="margin:0 0 12px;color:rgba(255,255,255,0.5);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;">${escapar(bajada)}</p>
+      <p style="margin:0;color:${acento};font-family:${LEXEND};font-size:56px;line-height:1;font-weight:900;letter-spacing:-1.5px;">${clp(cifra)}</p>
+      <p style="margin:14px 0 0;color:#ffffff;font-family:${LEXEND};font-size:20px;font-weight:700;">${escapar(titulo)}</p>
     </td></tr>
-    <tr><td style="padding:28px 32px 20px;">
-      <p style="margin:0 0 12px;color:#ffffff;font-size:16px;font-weight:700;">Hola ${escapar(a.nombre)},</p>
+    <tr><td style="padding:26px 28px 18px;">
+      <p style="margin:0 0 10px;color:#ffffff;font-family:${LEXEND};font-size:17px;font-weight:700;">Hola ${escapar(a.nombre)} 👋</p>
       <p style="margin:0;color:rgba(255,255,255,0.7);font-size:15px;line-height:1.6;">${mensaje}</p>
-    </td></tr>${detalle}
-    <tr><td style="padding:16px 32px 8px;">${botonPrincipal}${botonSecundario}</td></tr>
-    <tr><td style="padding:16px 32px 28px;">
-      <p style="margin:0;color:rgba(255,255,255,0.4);font-size:13px;line-height:1.5;">Si ya pagaste, no hagas nada: el capitán lo registrará en la Caja.</p>
+    </td></tr>${filaDeDatos}${cajaDeMeses}
+    <tr><td style="padding:14px 28px 6px;">${botonPrincipal}${botonSecundario}</td></tr>
+    <tr><td style="padding:22px 28px 14px;">
+      <p style="margin:0 0 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;">Cómo queda registrado</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${paso(1, pago ? 'Paga con el botón o haz la transferencia de siempre.' : 'Haz la transferencia de siempre.')}${paso(2, 'Si transferiste, sube la foto del comprobante en tu perfil.')}${paso(3, 'El capitán lo aprueba y tu cuota queda al día en la Caja.')}
+      </table>
     </td></tr>
-    <tr><td align="center" style="padding:18px 32px;background:#0a0e14;">
-      <p style="margin:0;color:rgba(255,255,255,0.3);font-size:11px;">${escapar(equipo)} · <a href="${SITIO}" style="color:rgba(255,255,255,0.45);text-decoration:none;">miclubpro.cl</a></p>
+    <tr><td style="padding:0 28px 26px;">
+      <p style="margin:0;color:rgba(255,255,255,0.35);font-size:12px;line-height:1.5;">¿Ya pagaste? No hagas nada, este aviso se cruza con los pagos recientes.</p>
+    </td></tr>
+    <tr><td style="padding:18px 28px;background:#0a0e14;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+        ${marca.logo ? `<td width="40" valign="middle">${escudo(28, 8)}</td>` : ''}
+        <td valign="middle" style="color:rgba(255,255,255,0.4);font-size:11px;line-height:1.5;">${escapar(equipo)}<br>Enviado con <a href="${SITIO}" style="color:#44f3a9;text-decoration:none;">miclubpro.cl</a></td>
+      </tr></table>
     </td></tr>
   </table>
 </td></tr></table>
@@ -181,7 +238,7 @@ serve(async (req) => {
     if (hoy.month <= 2) return json({ ok: true, mensaje: 'Enero y febrero no tienen cuota.', enviados: 0 });
 
     const { data: equipos, error: errEquipos } = await db.from('team_settings')
-      .select('id, team_name, owner_id, quota_amount, payment_link, payment_button_enabled');
+      .select('id, team_name, owner_id, quota_amount, payment_link, payment_button_enabled, logo_url, banner_url');
     if (errEquipos) throw errEquipos;
 
     const resumen: unknown[] = [];
@@ -225,9 +282,10 @@ serve(async (req) => {
       }
 
       const pago = equipo.payment_button_enabled ? linkDePago(equipo.payment_link) : '';
+      const marca: Marca = { equipo: nombreEquipo, logo: urlDeImagen(equipo.logo_url), banner: urlDeImagen(equipo.banner_url) };
       const remitente = `${nombreEquipo.replace(/[<>"\r\n]/g, '').slice(0, 60)} <cuotas@miclubpro.cl>`;
       const armar = (a: Aviso, para: string, prefijo = '') => {
-        const { asunto, html } = plantilla(tipo, a, nombreEquipo, cuota, hoy, pago);
+        const { asunto, html } = plantilla(tipo, a, marca, cuota, hoy, pago);
         return { from: remitente, to: [para], subject: prefijo + asunto, html, ...(correoDueno ? { reply_to: correoDueno } : {}) };
       };
 
