@@ -101,7 +101,10 @@ export function useMatchmaking(teamId: number | null, canManage: boolean) {
         }
       } catch (e) {
         console.error(e);
-        if (vigente) setLoading(false);
+        if (vigente) {
+          setLoading(false);
+          aviso.error('No se pudieron cargar los partidos. Revisa tu conexión.');
+        }
       }
     })();
     return () => { vigente = false; };
@@ -128,6 +131,7 @@ export function useMatchmaking(teamId: number | null, canManage: boolean) {
       }
     } catch (e) {
       console.error('Error in fetchConfirmedPlayers:', e);
+      aviso.error('No se pudo cargar la convocatoria. Revisa tu conexión.');
     } finally {
       setLoading(false);
     }
@@ -237,13 +241,14 @@ export function useMatchmaking(teamId: number | null, canManage: boolean) {
         aviso.info('No hay URL de webhook configurada (VITE_N8N_LISTA_FINAL_URL).');
         return;
       }
-      await fetch(webhookUrl, {
+      const res = await fetch(webhookUrl, {
         method: 'POST',
         // Sin la llave de administrador de n8n: el webhook no la pide y
         // mandarla la dejaba a la vista de cualquiera en la web.
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datosListaFinal(currentMatchObj, { teamA, teamB, colorA, colorB, formationA, formationB })),
       });
+      if (!res.ok) { aviso.error(`No se envió la lista final (error ${res.status}).`); return; }
       aviso.ok('¡Lista final enviada con éxito!');
     } catch (e) {
       console.error(e);

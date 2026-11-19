@@ -70,6 +70,7 @@ export function useDashboard(teamId: number | null) {
       setStats(datos.stats);
     } catch (e) {
       console.error('Error loading dashboard data:', e);
+      aviso.error('No se pudo cargar el inicio. Revisa tu conexión y vuelve a intentarlo.');
     } finally {
       setLoading(false);
     }
@@ -138,7 +139,12 @@ export function useDashboard(teamId: number | null) {
 
   const handleAttendanceChange = async (playerId: string, newStatus: EstadoAsistencia) => {
     if (!matchId) return;
-    await guardarAsistencia(matchId, playerId, newStatus);
+    try {
+      await guardarAsistencia(matchId, playerId, newStatus);
+    } catch (e) {
+      aviso.error('No se guardó la asistencia: ' + (e as Error).message);
+      return;
+    }
     // Se parte de la lista más reciente (prev), no de la que había al hacer clic:
     // así dos cambios seguidos no se pisan.
     setAttendanceList((prev) => {
@@ -245,11 +251,12 @@ export function useDashboard(teamId: number | null) {
     if (!webhookUrl) { aviso.info('No hay webhook configurado para notificaciones.'); return; }
     try {
       const voteUrl = `${window.location.origin}/vote?match_id=${stats.openVoteMatchId}`;
-      await fetch(webhookUrl, {
+      const res = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'mvp_vote_open', vote_url: voteUrl }),
       });
+      if (!res.ok) { aviso.error(`No se envió la notificación (error ${res.status}).`); return; }
       aviso.ok('¡Notificación enviada!');
     } catch (err) {
       aviso.error('Error al enviar notificación: ' + (err as Error).message);

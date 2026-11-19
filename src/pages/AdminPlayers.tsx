@@ -114,15 +114,18 @@ export default function AdminPlayers() {
     const existing = attendances.find(a => a.player_id === playerId);
     if (existing) {
       if (existing.status === 'Voy') {
-        await supabase.from('attendance').delete().eq('id', existing.id);
-        setAttendances(prev => prev.filter(a => a.id !== existing.id));
+        const { error } = await supabase.from('attendance').delete().eq('id', existing.id);
+        if (!error) setAttendances(prev => prev.filter(a => a.id !== existing.id));
+        else aviso.error('No se guardó la asistencia: ' + error.message);
       } else {
-        await supabase.from('attendance').update({ status: 'Voy' }).eq('id', existing.id);
-        setAttendances(prev => prev.map(a => (a.id === existing.id ? { ...a, status: 'Voy' } : a)));
+        const { error } = await supabase.from('attendance').update({ status: 'Voy' }).eq('id', existing.id);
+        if (!error) setAttendances(prev => prev.map(a => (a.id === existing.id ? { ...a, status: 'Voy' } : a)));
+        else aviso.error('No se guardó la asistencia: ' + error.message);
       }
     } else {
-      const { data } = await supabase.from('attendance').insert([{ match_id: nextMatch.id, player_id: playerId, status: 'Voy' }]).select();
+      const { data, error } = await supabase.from('attendance').insert([{ match_id: nextMatch.id, player_id: playerId, status: 'Voy' }]).select();
       if (data) setAttendances(prev => [...prev, data[0]]);
+      if (error) aviso.error('No se guardó la asistencia: ' + error.message);
     }
     setTogglingId(null);
   };
@@ -142,18 +145,36 @@ export default function AdminPlayers() {
 
   const handleDelete = async (player: Jugador) => {
     if (!isAdmin) return;
-    if (!(await confirmar(`¿Eliminar a ${player.name}? Se borran también su asistencia y sus pagos. Esta acción no se puede deshacer.`))) return;
+    // Sus pagos son parte del saldo de la caja: borrarlos lo cambiaría. Quien
+    // pagó alguna vez se deja Inactivo (no aparece en listas ni cobros).
+    const { count, error: errPagos } = await supabase.from('payments').select('id', { count: 'exact', head: true })
+      .eq('player_id', player.id).in('status', ['Pagado', 'Pendiente', 'Atrasado']).gt('amount', 0);
+    if (errPagos) { aviso.error('No se pudo revisar sus pagos: ' + errPagos.message); return; }
+    if ((count ?? 0) > 0) {
+      if (await confirmar(`${player.name} tiene pagos registrados en la caja; si lo eliminas, el saldo cambiaría. ¿Lo marco como Inactivo? Deja de aparecer en listas y cobros, y su historial se conserva.`, { textoConfirmar: 'Marcar Inactivo' })) {
+        await actualizar(player, { status: 'Inactivo' });
+      }
+      return;
+    }
+    if (!(await confirmar(`¿Eliminar a ${player.name}? Se borra también su asistencia. Esta acción no se puede deshacer.`))) return;
     setAbierto(null);
-    await supabase.from('attendance').delete().eq('player_id', player.id);
-    await supabase.from('payments').delete().eq('player_id', player.id);
-    await supabase.from('players').delete().eq('id', player.id).eq('team_id', teamId);
+    const { error: errAsis } = await supabase.from('attendance').delete().eq('player_id', player.id);
+    const { error } = errAsis ? { error: errAsis } : await supabase.from('players').delete().eq('id', player.id).eq('team_id', teamId);
+    if (error) {
+      aviso.error(/foreign key|violates/i.test(error.message)
+        ? `No se puede eliminar a ${player.name} porque tiene historial (por ejemplo, fue MVP). Márcalo como Inactivo.`
+        : 'No se pudo eliminar: ' + error.message);
+      return;
+    }
     setPlayers(prev => prev.filter(p => p.id !== player.id));
+    aviso.ok(`${player.name} fue eliminado.`);
   };
 
   const bulkNotify = async (value: boolean) => {
     setMenuEnvio(false);
     if (!isAdmin) return;
-    await supabase.from('players').update({ notify: value }).eq('team_id', teamId);
+    const { error } = await supabase.from('players').update({ notify: value }).eq('team_id', teamId);
+    if (error) { aviso.error('No se pudo guardar: ' + error.message); return; }
     setPlayers(prev => prev.map(p => ({ ...p, notify: value })));
     aviso.ok(value ? 'Todos recibirán correos.' : 'Nadie recibirá correos.');
   };
@@ -180,7 +201,8 @@ export default function AdminPlayers() {
     try {
       if (type === 'recordatorio' && nextMatch) {
         const enlace = await enlacesDelPartido(nextMatch.id);
-        await sendMatchReminder(player.email, player.name, fechaPartido(), nextMatch.location || '', enlace(player.id, 'Voy'), enlace(player.id, 'No voy'));
+        const ok = await sendMatchReminder(player.email, player.name, fechaPartido(), nextMatch.location || '', enlace(player.id, 'Voy'), enlace(player.id, 'No voy'));
+        if (!ok) { aviso.error('No se pudo enviar el correo.'); return; }
       } else if (type === 'pago') {
         const deuda = (await cargarMorosos([player])).get(player.id);
         if (!deuda) { aviso.info(`${player.name} está al día: no hay nada que cobrarle.`); return; }

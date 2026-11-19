@@ -70,6 +70,7 @@ export function useCaja(teamId: number | null, isAdmin: boolean) {
       setCashIncomes(datos.cashIncomes);
     } catch (e) {
       console.error('Error fetching finance data:', e);
+      aviso.error('No se pudo cargar la caja. Revisa tu conexión y vuelve a intentarlo.');
     } finally {
       setLoading(false);
     }
@@ -103,7 +104,8 @@ export function useCaja(teamId: number | null, isAdmin: boolean) {
   const handleSetExempt = async (player: FilaCuota) => {
     if (!isAdmin) return;
     try {
-      await marcarExento(player, selectedMonth, selectedYear);
+      const { error } = await marcarExento(player, selectedMonth, selectedYear);
+      if (error) throw error;
       await fetchData();
     } catch (e) { aviso.error(`Error: ${mensajeDe(e)}`); }
   };
@@ -111,7 +113,10 @@ export function useCaja(teamId: number | null, isAdmin: boolean) {
   const handleUnsetExempt = async (player: FilaCuota) => {
     if (!isAdmin) return;
     try {
-      if (player.payment_id) await dejarPendiente(player.payment_id);
+      if (player.payment_id) {
+        const { error } = await dejarPendiente(player.payment_id);
+        if (error) throw error;
+      }
       await fetchData();
     } catch (e) { aviso.error(`Error: ${mensajeDe(e)}`); }
   };

@@ -168,6 +168,7 @@ export default function Settings() {
   const [avisoEventos, setAvisoEventos] = useState(true);
 
   const [loading, setLoading] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(false);
   const [saving, setSaving] = useState(false);
   const [guardado, setGuardado] = useState('');
   const [copiado, setCopiado] = useState(false);
@@ -175,11 +176,13 @@ export default function Settings() {
   // Lo que hay que guardar, en un texto: si cambia respecto de lo guardado, hay cambios pendientes.
   const actual = JSON.stringify([teamName, paymentLink, paymentEnabled, city, commune, region, ageRange, preferredFormat, arenaVisible, teamDescription,
     avisoPartidos, avisoCuotas, avisoCumples, avisoEventos]);
-  const hayCambios = !loading && (actual !== guardado || !!logoFile || !!bannerFile);
+  const hayCambios = !loading && !errorCarga && (actual !== guardado || !!logoFile || !!bannerFile);
 
   useEffect(() => {
     if (!teamId) return;
-    supabase.from('team_settings').select('*').eq('id', teamId).single().then(({ data }) => {
+    supabase.from('team_settings').select('*').eq('id', teamId).single().then(({ data, error }) => {
+      // Si no se pudo leer, no se deja guardar: se pisarían los ajustes con campos vacíos.
+      if (error || !data) setErrorCarga(true);
       if (data) {
         const v = {
           teamName: data.team_name || '', paymentLink: data.payment_link || '', paymentEnabled: data.payment_button_enabled || false,
@@ -221,6 +224,7 @@ export default function Settings() {
   const handleSave = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!isAdmin || saving) return;
+    if (errorCarga) { aviso.error('No se pudieron cargar los ajustes, así que no se guardan para no borrar nada. Recarga la página.'); return; }
     if (!teamName.trim()) { aviso.info('El equipo necesita un nombre.'); return; }
     setSaving(true);
     try {
@@ -281,6 +285,10 @@ export default function Settings() {
       {loading ? (
         <div className="flex justify-center p-12">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-soccer-green" />
+        </div>
+      ) : errorCarga ? (
+        <div role="alert" className="rounded-[20px] p-5 text-sm text-white/80" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)' }}>
+          No se pudieron cargar los ajustes del equipo. Revisa tu conexión y recarga la página.
         </div>
       ) : (
         <form onSubmit={handleSave} className="space-y-6">

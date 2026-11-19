@@ -26,8 +26,11 @@ export interface Convocatoria {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function filas<T = any>(consulta: PromiseLike<{ data: any }>, ms = 10000): Promise<T[]> {
-  const { data } = await withTimeout(Promise.resolve(consulta), ms);
+async function filas<T = any>(consulta: PromiseLike<{ data: any; error?: { message: string } | null }>, ms = 10000): Promise<T[]> {
+  // Si la consulta falla se avisa: antes se devolvía una lista vacía y la
+  // pantalla mostraba ceros como si fueran datos reales.
+  const { data, error } = await withTimeout(Promise.resolve(consulta), ms);
+  if (error) throw new Error(error.message);
   return (data as T[] | null) || [];
 }
 
@@ -106,7 +109,10 @@ export function renombrarInvitado(guestId: string, name: string) {
 
 /** Guarda los equipos del partido (actualiza si ya había, crea si no). */
 export async function guardarEquipos(matchId: string, equipos: Required<Pick<EquiposGuardados, 'team_a' | 'team_b' | 'metadata'>>) {
-  const { data: existente } = await supabase.from('generated_teams').select('id').eq('match_id', matchId).maybeSingle();
-  if (existente) await supabase.from('generated_teams').update(equipos).eq('id', existente.id);
-  else await supabase.from('generated_teams').insert([{ match_id: matchId, ...equipos }]);
+  const { data: existente, error: errLeer } = await supabase.from('generated_teams').select('id').eq('match_id', matchId).maybeSingle();
+  if (errLeer) throw new Error(errLeer.message);
+  const { error } = existente
+    ? await supabase.from('generated_teams').update(equipos).eq('id', existente.id)
+    : await supabase.from('generated_teams').insert([{ match_id: matchId, ...equipos }]);
+  if (error) throw new Error(error.message);
 }

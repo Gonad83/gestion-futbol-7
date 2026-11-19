@@ -164,11 +164,17 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
             // capitán puede mandar el recordatorio después.
             const enlace = await enlacesDelPartido(newMatch[0].id).catch(() => null);
             if (!enlace) aviso.error('Partido guardado, pero no se pudieron enviar los correos. Usa "Recordatorio".');
-            else for (const player of activePlayers) {
-              const confirmUrl = enlace(player.id, 'Voy');
-              const declineUrl = enlace(player.id, 'No voy');
-              if (social) sendEventEmail(player.email, player.name, formData.description, dateLabel, formData.location, confirmUrl, declineUrl);
-              else sendNewMatchEmail(player.email, player.name, dateLabel, formData.location, confirmUrl, declineUrl);
+            else {
+              const envios = await Promise.all(activePlayers.map((player) => {
+                const confirmUrl = enlace(player.id, 'Voy');
+                const declineUrl = enlace(player.id, 'No voy');
+                return social
+                  ? sendEventEmail(player.email, player.name, formData.description, dateLabel, formData.location, confirmUrl, declineUrl)
+                  : sendNewMatchEmail(player.email, player.name, dateLabel, formData.location, confirmUrl, declineUrl);
+              }));
+              const enviados = envios.filter(Boolean).length;
+              if (enviados === activePlayers.length) aviso.ok(`Guardado. Invitación enviada a ${enviados} jugador(es).`);
+              else aviso.error(`Guardado, pero solo se enviaron ${enviados} de ${activePlayers.length} invitaciones. Usa "Recordatorio" para reintentar.`);
             }
           }
         }

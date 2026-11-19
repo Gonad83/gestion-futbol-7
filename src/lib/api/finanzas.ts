@@ -229,8 +229,11 @@ export function filtrarCuotas(filas: FilaCuota[], busqueda: string, estado: Filt
 // ── Lecturas ─────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function filas<T = any>(consulta: PromiseLike<{ data: any }>, ms = 10000): Promise<T[]> {
-  const { data } = await withTimeout(Promise.resolve(consulta), ms);
+async function filas<T = any>(consulta: PromiseLike<{ data: any; error?: { message: string } | null }>, ms = 10000): Promise<T[]> {
+  // Si la consulta falla se avisa: antes se devolvía una lista vacía y la
+  // pantalla mostraba ceros como si fueran datos reales.
+  const { data, error } = await withTimeout(Promise.resolve(consulta), ms);
+  if (error) throw new Error(error.message);
   return (data as T[] | null) || [];
 }
 

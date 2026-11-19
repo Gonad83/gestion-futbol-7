@@ -248,8 +248,11 @@ const suma = (filas: { amount: number | string | null }[]) => filas.reduce((acc,
 
 /** Ejecuta una consulta con tiempo límite y devuelve sus filas (vacío si no hay o falló). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function filas<T = any>(consulta: PromiseLike<{ data: any }>, ms: number): Promise<T[]> {
-  const { data } = await withTimeout(Promise.resolve(consulta), ms);
+async function filas<T = any>(consulta: PromiseLike<{ data: any; error?: { message: string } | null }>, ms: number): Promise<T[]> {
+  // Si la consulta falla se avisa: antes se devolvía una lista vacía y la
+  // pantalla mostraba ceros como si fueran datos reales.
+  const { data, error } = await withTimeout(Promise.resolve(consulta), ms);
+  if (error) throw new Error(error.message);
   return (data as T[] | null) || [];
 }
 
@@ -418,20 +421,16 @@ async function cargarMvp(teamId: number, allPlayers: JugadorDash[]): Promise<Dat
             const p = allPlayers.find((pl) => pl.id === id);
             return { id, count, name: p?.name || '?', nickname: p?.nickname || '', photo_url: p?.photo_url || '' };
           });
-      } else {
-        const { data: yaGuardado } = await supabase.from('mvp_winners').select('id').eq('match_id', ultimo.id).maybeSingle();
-        if (!yaGuardado) {
-          const ganador = contarVotos(await votosDelPartido(ultimo.id))[0];
-          const jugador = ganador && allPlayers.find((p) => p.id === ganador[0]);
-          if (jugador) await guardarGanadorMvp(ultimo.id, jugador, ganador[1]);
-        }
       }
+      // Al cerrar, el ganador lo guarda la base (cerrar_votaciones_mvp, cada hora),
+      // aunque nadie abra la app.
     }
 
     const { data: ganadores, error } = await withTimeout(
       Promise.resolve(
         supabase.from('mvp_winners')
           .select('player_id, player_name, player_photo_url, vote_count, week_date, created_at')
+          .order('week_date', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false }),
       ),
       5000,
@@ -460,14 +459,14 @@ export async function quitarInvitado(guestId: string) {
 
 /** Guarda la respuesta de un jugador para un partido; "Pendiente" borra la que hubiera. */
 export async function guardarAsistencia(matchId: string, playerId: string, estado: EstadoAsistencia) {
-  const { data: existente } = await supabase.from('attendance').select('id').eq('match_id', matchId).eq('player_id', playerId).maybeSingle();
-  if (estado === 'Pendiente') {
-    if (existente) await supabase.from('attendance').delete().eq('id', existente.id);
-  } else if (existente) {
-    await supabase.from('attendance').update({ status: estado }).eq('id', existente.id);
-  } else {
-    await supabase.from('attendance').insert({ match_id: matchId, player_id: playerId, status: estado });
-  }
+  const { data: existente, error: errLeer } = await supabase.from('attendance').select('id').eq('match_id', matchId).eq('player_id', playerId).maybeSingle();
+  if (errLeer) throw new Error(errLeer.message);
+  const { error } = estado === 'Pendiente'
+    ? (existente ? await supabase.from('attendance').delete().eq('id', existente.id) : { error: null })
+    : existente
+      ? await supabase.from('attendance').update({ status: estado }).eq('id', existente.id)
+      : await supabase.from('attendance').insert({ match_id: matchId, player_id: playerId, status: estado });
+  if (error) throw new Error(error.message);
 }
 
 /** Guarda el equipo titular armado a mano para que lo vea todo el equipo (solo el capitán puede). */
