@@ -58,6 +58,8 @@ export interface TitularGuardado {
   formacion: string;
   /** Ids por puesto, del arco hacia adelante (el orden de `puestosDe`). */
   puestos: (string | null)[];
+  /** Color de las láminas (un valor de JERSEY_COLORS); sin elegir, verde. */
+  color?: string;
 }
 
 /** La línea de cada puesto de la formación, del arco hacia adelante. */

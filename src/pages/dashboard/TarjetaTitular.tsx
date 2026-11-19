@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react';
 import { Info, RotateCcw, Shield, Star } from 'lucide-react';
 import type { DashboardStats, JugadorDash } from '../../lib/api/dashboard';
 import { Lamina } from '../../components/Lamina';
-import { tonoPorEstrellas } from '../../lib/lamina';
-import { FORMATIONS } from '../../lib/matchmaking';
+import { FORMATIONS, JERSEY_COLORS } from '../../lib/matchmaking';
 import { armarTitular, intercambiarPuestos, LINEAS, type Puesto, type TitularGuardado } from './titular';
 
 const FORMACIONES = FORMATIONS['7vs7'];
@@ -19,11 +18,11 @@ const nombreCorto = (nombre: string) => {
 const rotulo = (j: JugadorDash) => j.nickname?.trim() || j.name.trim().split(/\s+/).pop() || j.name;
 const siglaPosicion = (posicion: string | null) => (posicion ? posicion.trim().slice(0, 3).toUpperCase() : '—');
 
-function Ficha({ puesto, elegido, orden, onClick }: { puesto: Puesto<JugadorDash>; elegido: boolean; orden: number; onClick?: () => void }) {
+function Ficha({ puesto, color, elegido, orden, onClick }: { puesto: Puesto<JugadorDash>; color: string; elegido: boolean; orden: number; onClick?: () => void }) {
   const { jugador: j, linea, fueraDePuesto } = puesto;
   return (
     <Lamina nombre={j.name} rotulo={rotulo(j)} foto={j.photo_url} estrellas={j.rating} puesto={SIGLA_LINEA[linea]}
-      tono={linea === 'Portero' ? 'arquero' : tonoPorEstrellas(j.rating)} fueraDePuesto={fueraDePuesto} elegido={elegido}
+      color={color} fueraDePuesto={fueraDePuesto} elegido={elegido}
       alto="min(21cqh, 30cqw)" orden={orden} onClick={onClick}
       ariaLabel={`${NOMBRE_LINEA[linea]}: ${j.name}${fueraDePuesto ? ' (fuera de su puesto)' : ''}${elegido ? ', elegido para cambiar' : ''}`}
       title={`${j.name} · ${j.position || 'Sin posición'}${fueraDePuesto ? ' (fuera de su puesto)' : ''}`} />
@@ -47,6 +46,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
   const [elegido, setElegido] = useState<string | null>(null);
   const formacion = FORMACIONES.some((f) => f.value === guardado?.formacion) ? guardado!.formacion : FORMACIONES[0].value;
   const fijos = guardado?.puestos;
+  const color = JERSEY_COLORS.some((c) => c.value === guardado?.color) ? guardado!.color! : 'emerald';
   const aMano = Boolean(fijos?.some(Boolean));
 
   const titular = useMemo(() => {
@@ -62,7 +62,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
   const enBanca = (id: string) => titular.banca.some((j) => j.id === id);
   const tocar = (id: string) => {
     if (!elegido || (enBanca(elegido) && enBanca(id))) return setElegido(id);
-    if (elegido !== id) onGuardar({ formacion, puestos: intercambiarPuestos(titular, formacion, elegido, id) });
+    if (elegido !== id) onGuardar({ formacion, puestos: intercambiarPuestos(titular, formacion, elegido, id), color });
     setElegido(null);
   };
 
@@ -89,7 +89,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
             const activa = f.value === formacion;
             return (
               <button key={f.value} type="button" aria-pressed={activa} title={f.name}
-                onClick={() => { if (!activa) onGuardar({ formacion: f.value, puestos: fijos ?? [] }); }}
+                onClick={() => { if (!activa) onGuardar({ formacion: f.value, puestos: fijos ?? [], color }); }}
                 className="shrink-0 h-9 px-3 rounded-full text-xs font-bold tabular-nums transition-colors"
                 style={activa ? { background: 'rgba(68,243,169,0.15)', color: '#44f3a9' } : { background: '#262a31', color: 'rgba(255,255,255,0.6)' }}>
                 {f.value}
@@ -97,7 +97,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
             );
           })}
           {aMano && (
-            <button type="button" onClick={() => { setElegido(null); onGuardar({ formacion, puestos: [] }); }}
+            <button type="button" onClick={() => { setElegido(null); onGuardar({ formacion, puestos: [], color }); }}
               className="shrink-0 ml-auto h-9 px-3 rounded-full flex items-center gap-1.5 text-xs font-bold text-[#9acbff]" style={{ background: 'rgba(154,203,255,0.1)' }}>
               <RotateCcw size={13} /> Automático
             </button>
@@ -105,6 +105,20 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
         </div>
       ) : (
         <p className="mb-3 text-xs font-bold tabular-nums text-white/60">Formación {formacion}</p>
+      )}
+
+      {puedeEditar && (
+        <div className="flex flex-wrap items-center gap-1 mb-3" role="group" aria-label="Color de las láminas">
+          <span className="text-xs text-white/55 mr-1">Color</span>
+          {JERSEY_COLORS.map((c) => (
+            <button key={c.value} type="button" title={c.name} aria-label={c.name} aria-pressed={color === c.value}
+              onClick={() => { if (color !== c.value) onGuardar({ formacion, puestos: fijos ?? [], color: c.value }); }}
+              className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+              style={{ border: color === c.value ? '2px solid #fff' : '2px solid transparent' }}>
+              <span className={`w-6 h-6 rounded-full border ${c.class}`} />
+            </button>
+          ))}
+        </div>
       )}
 
       {puedeEditar && (
@@ -135,7 +149,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
           return fila.map((puesto, k) => (
             <div key={puesto.jugador.id} className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-500"
               style={{ top: `${top}%`, left: `${fila.length >= 4 ? 13 + (k * 74) / (fila.length - 1) : (100 / (fila.length + 1)) * (k + 1)}%`, zIndex: elegido === puesto.jugador.id ? 2 : 1 }}>
-              <Ficha puesto={puesto} orden={antes + k} elegido={elegido === puesto.jugador.id} onClick={puedeEditar ? () => tocar(puesto.jugador.id) : undefined} />
+              <Ficha puesto={puesto} color={color} orden={antes + k} elegido={elegido === puesto.jugador.id} onClick={puedeEditar ? () => tocar(puesto.jugador.id) : undefined} />
             </div>
           ));
         })}
@@ -149,7 +163,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
               const sel = elegido === j.id;
               return (
                 <Lamina key={j.id} nombre={j.name} rotulo={rotulo(j)} foto={j.photo_url} estrellas={j.rating} puesto={siglaPosicion(j.position)}
-                  tono={tonoPorEstrellas(j.rating)} elegido={sel} alto="68px" orden={i} onClick={puedeEditar ? () => tocar(j.id) : undefined}
+                  color={color} elegido={sel} alto="68px" orden={i} onClick={puedeEditar ? () => tocar(j.id) : undefined}
                   ariaLabel={`Banca: ${j.name}${sel ? ', elegido para cambiar' : ''}`} title={`${j.name} · ${j.position || 'Sin posición'}`} />
               );
             })}

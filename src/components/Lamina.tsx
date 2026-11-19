@@ -1,9 +1,11 @@
 import type { CSSProperties, MouseEvent } from 'react';
 import { ArrowLeftRight, Star } from 'lucide-react';
-import type { TonoLamina } from '../lib/lamina';
 
 /** La nota va de 1 a 7: se dibujan las siete, llenas hasta la del jugador. */
 const MAX_ESTRELLAS = 7;
+
+/** Colores de camiseta que la lámina sabe pintar; cualquier otro cae en azul. */
+const COLORES = ['black', 'white', 'blue', 'emerald', 'yellow', 'red', 'purple', 'lightblue'];
 
 const iniciales = (nombre: string) => nombre.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
 
@@ -15,10 +17,9 @@ interface Props {
   estrellas?: number | null;
   /** Tres letras: POR, DEF, MED, DEL. */
   puesto: string;
-  tono: TonoLamina;
+  /** Color de camiseta (black, white, blue, emerald, yellow, red, purple, lightblue). */
+  color: string;
   fueraDePuesto?: boolean;
-  /** Color de la camiseta del equipo: pinta la punta de abajo. */
-  camiseta?: string;
   elegido?: boolean;
   /** Alto de la lámina (cualquier medida CSS); el resto se escala solo. */
   alto: string;
@@ -30,13 +31,13 @@ interface Props {
 }
 
 /** Lámina de jugador al estilo de las cartas de FIFA: puesto, foto, estrellas y nombre. */
-export function Lamina({ nombre, rotulo, foto, estrellas, puesto, tono, fueraDePuesto, camiseta, elegido = false, alto, orden = 0, onClick, ariaLabel, title }: Props) {
+export function Lamina({ nombre, rotulo, foto, estrellas, puesto, color, fueraDePuesto, elegido = false, alto, orden = 0, onClick, ariaLabel, title }: Props) {
   const llenas = Math.max(0, Math.min(MAX_ESTRELLAS, Math.round(estrellas ?? 0)));
   return (
     <span className={`lamina-sombra flex ${elegido ? 'lamina-sombra-elegida' : ''}`}>
     <button type="button" onClick={onClick} disabled={!onClick} aria-pressed={onClick ? elegido : undefined}
       aria-label={ariaLabel} title={title}
-      className={`lamina lamina-${tono} scale-in ${elegido ? 'lamina-elegida' : ''}`}
+      className={`lamina lamina-${COLORES.includes(color) ? color : 'blue'} scale-in ${elegido ? 'lamina-elegida' : ''}`}
       style={{ '--alto': alto, animationDelay: `${orden * 45}ms` } as CSSProperties}>
       <span className="lamina-cara">
         {foto
@@ -55,7 +56,6 @@ export function Lamina({ nombre, rotulo, foto, estrellas, puesto, tono, fueraDeP
           </span>
         )}
         <span className="lamina-nombre">{rotulo}</span>
-        {camiseta && <span className="lamina-punta" style={{ background: camiseta }} aria-hidden="true" />}
         <span className="lamina-brillo" aria-hidden="true" />
       </span>
     </button>

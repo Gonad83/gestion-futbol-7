@@ -110,13 +110,13 @@ export function Pizarra({ teamA, teamB, formationA, setFormationA, formationB, s
 
         {teamA.map((p, i) => (
           <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'A', teamA.length, formationA)}>
-            <FichaJugador jugador={p} color={hexCamiseta(colorA)} arquero={i === 0} alto={altoLamina(formationA, formationB)} orden={i}
+            <FichaJugador jugador={p} color={colorA} arquero={i === 0} alto={altoLamina(formationA, formationB)} orden={i}
               elegido={swapSelection?.team === 'A' && swapSelection?.index === i} onClick={() => handleSwap('A', i)} />
           </div>
         ))}
         {teamB.map((p, i) => (
           <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'B', teamB.length, formationB)}>
-            <FichaJugador jugador={p} color={hexCamiseta(colorB)} arquero={i === 0} alto={altoLamina(formationA, formationB)} orden={i}
+            <FichaJugador jugador={p} color={colorB} arquero={i === 0} alto={altoLamina(formationA, formationB)} orden={i}
               elegido={swapSelection?.team === 'B' && swapSelection?.index === i} onClick={() => handleSwap('B', i)} />
           </div>
         ))}

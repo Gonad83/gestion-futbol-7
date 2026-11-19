@@ -5,8 +5,6 @@ import {
   Swords, Globe, Plus, X, Check, Filter, Trophy, CreditCard,
 } from 'lucide-react';
 import { Lamina } from '../components/Lamina';
-import { tonoPorEstrellas } from '../lib/lamina';
-import { hexCamiseta } from '../lib/matchmaking';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -338,7 +336,7 @@ export default function Arena() {
     return (
       <Lamina nombre={nombre} rotulo={player.nickname?.trim() || nombre.split(/\s+/).pop() || nombre} foto={player.photo_url}
         estrellas={player.rating} puesto={arquero ? 'POR' : player.position?.trim().slice(0, 3).toUpperCase() || 'INV'}
-        tono={arquero ? 'arquero' : tonoPorEstrellas(player.rating)} camiseta={hexCamiseta(color)} elegido={elegido}
+        color={color} elegido={elegido}
         alto={alto} orden={orden} onClick={onClick} ariaLabel={`${player.name}${elegido ? ', elegido para cambiar' : ''}`} title={player.name} />
     );
   };

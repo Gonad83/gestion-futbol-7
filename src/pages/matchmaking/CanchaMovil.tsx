@@ -85,8 +85,8 @@ export function CanchaMovil({ teamA, teamB, formationA, formationB, colorA, colo
         <div className="absolute left-1/2 bottom-3 w-[56%] h-[11%] -translate-x-1/2 border-2 border-b-0 border-white/25 pointer-events-none" />
         <div className="absolute left-1/2 bottom-3 w-[26%] h-[4.5%] -translate-x-1/2 border-2 border-b-0 border-white/25 pointer-events-none" />
 
-        {fichas(teamB, 'B', formationB, hexCamiseta(colorB))}
-        {fichas(teamA, 'A', formationA, hexCamiseta(colorA))}
+        {fichas(teamB, 'B', formationB, colorB)}
+        {fichas(teamA, 'A', formationA, colorA)}
       </div>
 
       {(bancaA.length > 0 || bancaB.length > 0) && (

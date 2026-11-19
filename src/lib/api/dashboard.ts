@@ -247,7 +247,11 @@ export function unirAsistencia(
 export function leerTitular(valor: unknown): TitularGuardado | null {
   const t = valor as Partial<TitularGuardado> | null;
   if (!t || typeof t.formacion !== 'string' || !Array.isArray(t.puestos)) return null;
-  return { formacion: t.formacion, puestos: t.puestos.map((id) => (typeof id === 'string' ? id : null)) };
+  return {
+    formacion: t.formacion,
+    puestos: t.puestos.map((id) => (typeof id === 'string' ? id : null)),
+    ...(typeof t.color === 'string' ? { color: t.color } : {}),
+  };
 }
 
 const suma = (filas: { amount: number | string | null }[]) => filas.reduce((acc, f) => acc + Number(f.amount), 0);
