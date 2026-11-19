@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { X, Edit2, Check, Copy } from 'lucide-react';
-import FifaCard from '../../components/FifaCard';
 import { CanchaMovil } from './CanchaMovil';
+import { FichaJugador } from './FichaJugador';
 import { JERSEY_COLORS, getPosition, getAvg, hexCamiseta, type JugadorMM, type SeleccionCambio, type Equipo, type Formacion } from '../../lib/matchmaking';
 
 interface Props {
@@ -32,6 +32,21 @@ interface Props {
   saveGuestName: (guestId: string) => void;
   handleSwap: (team: Equipo, index: number) => void;
   copyTeamsForWhatsApp: () => void;
+}
+
+/**
+ * Alto de las láminas en la cancha horizontal: lo que deja la línea más poblada
+ * a lo alto y la separación entre líneas a lo ancho (cada equipo usa un 44%).
+ * Se mide con las dos formaciones para que ambos equipos queden del mismo tamaño.
+ */
+function altoLamina(...formaciones: string[]): string {
+  const medidas = formaciones.flatMap((formacion) => {
+    const lineas = [1, ...formacion.split('-').map(Number)];
+    const porAlto = (90 / (Math.max(...lineas) + 1)) * 0.95;
+    const porAncho = (44 / lineas.length) * 0.92 * (4 / 3);
+    return [`${porAlto.toFixed(2)}cqh`, `${porAncho.toFixed(2)}cqw`];
+  });
+  return `min(${medidas.join(', ')})`;
 }
 
 export function Pizarra({ teamA, teamB, formationA, setFormationA, formationB, setFormationB, colorA, setColorA, colorB, setColorB, swapSelection, setSaved, editingGuestId, setEditingGuestId, editingGuestName, setEditingGuestName, copied, setShowGuestModal, setGuestModalName, setGuestModalRating, isPastMatch, canEdit, getMatchFormations, removeFromPool, saveGuestName, handleSwap, copyTeamsForWhatsApp }: Props) {
@@ -75,7 +90,7 @@ export function Pizarra({ teamA, teamB, formationA, setFormationA, formationB, s
       </div>
 
       <div className="hidden md:block relative w-full aspect-[16/8] rounded-[3rem] overflow-hidden border-[6px] p-6 group shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)]"
-        style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)', borderColor: '#0f172a' }}>
+        style={{ containerType: 'size', background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)', borderColor: '#0f172a' }}>
         <div className="absolute inset-0 opacity-20 pointer-events-none"
           style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10%, rgba(255,255,255,0.05) 10%, rgba(255,255,255,0.05) 20%)', backgroundSize: '200% 100%' }} />
         <div className="absolute inset-8 border-2 border-white/20 rounded-[2rem] pointer-events-none" />
@@ -94,13 +109,15 @@ export function Pizarra({ teamA, teamB, formationA, setFormationA, formationB, s
         </div>
 
         {teamA.map((p, i) => (
-          <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'A', teamA.length, formationA)} onClick={() => handleSwap('A', i)}>
-            <FifaCard player={p} color={i === 0 ? 'gold' : colorA} index={i} isSelected={swapSelection?.team === 'A' && swapSelection?.index === i} />
+          <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'A', teamA.length, formationA)}>
+            <FichaJugador jugador={p} color={hexCamiseta(colorA)} arquero={i === 0} alto={altoLamina(formationA, formationB)} orden={i}
+              elegido={swapSelection?.team === 'A' && swapSelection?.index === i} onClick={() => handleSwap('A', i)} />
           </div>
         ))}
         {teamB.map((p, i) => (
-          <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'B', teamB.length, formationB)} onClick={() => handleSwap('B', i)}>
-            <FifaCard player={p} color={i === 0 ? 'gold' : colorB} index={i} isSelected={swapSelection?.team === 'B' && swapSelection?.index === i} />
+          <div key={p.id} className="pitch-player transition-all duration-700" style={getPosition(i, 'B', teamB.length, formationB)}>
+            <FichaJugador jugador={p} color={hexCamiseta(colorB)} arquero={i === 0} alto={altoLamina(formationA, formationB)} orden={i}
+              elegido={swapSelection?.team === 'B' && swapSelection?.index === i} onClick={() => handleSwap('B', i)} />
           </div>
         ))}
       </div>

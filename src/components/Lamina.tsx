@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, MouseEvent } from 'react';
 import { ArrowLeftRight } from 'lucide-react';
 import type { TonoLamina } from '../lib/lamina';
 
@@ -21,7 +21,7 @@ interface Props {
   alto: string;
   /** Orden de entrada, para que aparezcan una tras otra. */
   orden?: number;
-  onClick?: () => void;
+  onClick?: (evento: MouseEvent<HTMLButtonElement>) => void;
   ariaLabel: string;
   title?: string;
 }

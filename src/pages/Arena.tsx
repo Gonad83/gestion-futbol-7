@@ -4,7 +4,9 @@ import {
   RefreshCw, Save, CheckCircle2, RotateCcw, MapPin, Clock, Users,
   Swords, Globe, Plus, X, Check, Filter, Trophy, CreditCard,
 } from 'lucide-react';
-import FifaCard from '../components/FifaCard';
+import { Lamina } from '../components/Lamina';
+import { tonoPorEstrellas } from '../lib/lamina';
+import { hexCamiseta } from '../lib/matchmaking';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -327,6 +329,19 @@ export default function Arena() {
   const anySwap    = swap !== null;
   const isStarSel  = (i: number) => swap?.type === 'starter' && swap.idx === i;
   const isBenchSel = (i: number) => swap?.type === 'bench'   && swap.idx === i;
+
+  // Las láminas se ajustan a la cancha: caben las líneas a lo alto y la más poblada a lo ancho.
+  const lineasFormacion = [1, ...formation.split('-').map(Number)];
+  const altoTitular = `min(${(80 / Math.max(lineasFormacion.length - 1, 1) * 0.92).toFixed(2)}cqh, ${((100 / (Math.max(...lineasFormacion) + 1)) * 0.92 * (4 / 3)).toFixed(2)}cqw, 24cqh)`;
+  const lamina = (player: (typeof starters)[number], orden: number, arquero: boolean, elegido: boolean, alto: string, onClick: (e: React.MouseEvent) => void) => {
+    const nombre = player.name.replace(/\s*\(I\)\s*$/i, '').trim();
+    return (
+      <Lamina nombre={nombre} rotulo={player.nickname?.trim() || nombre.split(/\s+/).pop() || nombre} foto={player.photo_url}
+        estrellas={player.rating} puesto={arquero ? 'POR' : player.position?.trim().slice(0, 3).toUpperCase() || 'INV'}
+        tono={arquero ? 'arquero' : tonoPorEstrellas(player.rating)} camiseta={hexCamiseta(color)} elegido={elegido}
+        alto={alto} orden={orden} onClick={onClick} ariaLabel={`${player.name}${elegido ? ', elegido para cambiar' : ''}`} title={player.name} />
+    );
+  };
   const textMatch = (value: string | null | undefined, query: string) =>
     !query.trim() || (value || '').toLowerCase().includes(query.trim().toLowerCase());
   const filteredOpen = openRequests.filter(r => {
@@ -794,7 +809,7 @@ export default function Arena() {
               <div className="flex-1 flex justify-center p-16"><RefreshCw className="animate-spin text-soccer-green" size={28} /></div>
             ) : (
               <div className="flex-1 relative overflow-hidden shadow-2xl"
-                style={{ aspectRatio: '3/4', background: 'linear-gradient(180deg,#053d2e 0%,#064e3b 40%,#065f46 100%)', border: '5px solid #0a0e14', borderRadius: '2rem' }}
+                style={{ aspectRatio: '3/4', containerType: 'size', background: 'linear-gradient(180deg,#053d2e 0%,#064e3b 40%,#065f46 100%)', border: '5px solid #0a0e14', borderRadius: '2rem' }}
                 onClick={() => swap && setSwap(null)}>
                 <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 9%,rgba(255,255,255,0.06) 9%,rgba(255,255,255,0.06) 10%)' }} />
                 <div className="absolute inset-4 border-2 border-white/15 rounded-xl pointer-events-none" />
@@ -805,9 +820,8 @@ export default function Arena() {
                 {teamName && <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] font-black text-white/15 uppercase tracking-widest whitespace-nowrap pointer-events-none">{teamName}</div>}
                 {starters.map((player, i) => (
                   <div key={player.id} className="pitch-player"
-                    style={{ ...pitchPos(i, formation), filter: isStarSel(i) ? 'drop-shadow(0 0 14px #44f3a9)' : anySwap && !isStarSel(i) ? 'brightness(0.55)' : undefined, cursor: 'pointer' }}
-                    onClick={e => { e.stopPropagation(); handlePlayer('starter', i); }}>
-                    <FifaCard player={player} color={i === 0 ? 'gold' : color} index={i} isSelected={isStarSel(i)} />
+                    style={{ ...pitchPos(i, formation), filter: anySwap && !isStarSel(i) ? 'brightness(0.55)' : undefined }}>
+                    {lamina(player, i, i === 0, isStarSel(i), altoTitular, e => { e.stopPropagation(); handlePlayer('starter', i); })}
                   </div>
                 ))}
                 {starters.length === 0 && <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"><Globe size={36} className="text-white/15" /><p className="text-white/20 text-xs font-bold">Sin jugadores activos</p></div>}
@@ -822,11 +836,9 @@ export default function Arena() {
                 </div>
                 <div className="flex flex-col gap-1.5 p-1.5 overflow-y-auto flex-1 custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
                   {bench.map((player, i) => (
-                    <div key={player.id} onClick={() => handlePlayer('bench', i)} className="flex-shrink-0 cursor-pointer"
-                      style={{ width: '52px', height: '74px', position: 'relative', filter: isBenchSel(i) ? 'drop-shadow(0 0 10px #44f3a9)' : anySwap && !isBenchSel(i) ? 'brightness(0.45)' : undefined, transition: 'filter 0.2s' }}>
-                      <div style={{ transform: 'scale(0.61)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}>
-                        <FifaCard player={player} color={color} index={i} isSelected={isBenchSel(i)} />
-                      </div>
+                    <div key={player.id} className="flex-shrink-0 flex justify-center"
+                      style={{ filter: anySwap && !isBenchSel(i) ? 'brightness(0.45)' : undefined, transition: 'filter 0.2s' }}>
+                      {lamina(player, i, false, isBenchSel(i), '70px', () => handlePlayer('bench', i))}
                     </div>
                   ))}
                 </div>

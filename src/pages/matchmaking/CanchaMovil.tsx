@@ -1,7 +1,6 @@
 import { Scale, Info } from 'lucide-react';
-import { Lamina } from '../../components/Lamina';
-import { tonoPorEstrellas } from '../../lib/lamina';
-import { esInvitado, getAvg, hexCamiseta, posicionVertical, sinMarcaDeInvitado, type Equipo, type JugadorMM, type SeleccionCambio } from '../../lib/matchmaking';
+import { FichaJugador } from './FichaJugador';
+import { getAvg, hexCamiseta, posicionVertical, type Equipo, type JugadorMM, type SeleccionCambio } from '../../lib/matchmaking';
 
 const nombreCorto = (nombre: string) => {
   const limpio = nombre.replace(/\s*\(I\)\s*$/i, '').trim();
@@ -9,36 +8,19 @@ const nombreCorto = (nombre: string) => {
   return partes.length > 1 ? `${partes[0][0]}. ${partes[partes.length - 1]}` : limpio;
 };
 
-interface FichaProps {
-  jugador: JugadorMM;
-  color: string;
-  arquero: boolean;
-  elegido: boolean;
-  alto: string;
-  orden: number;
-  onClick?: () => void;
-}
-
-function Ficha({ jugador, color, arquero, elegido, alto, orden, onClick }: FichaProps) {
-  const nombre = sinMarcaDeInvitado(jugador.name);
-  const puesto = arquero ? 'POR' : esInvitado(jugador) ? 'INV' : jugador.position?.trim().slice(0, 3).toUpperCase() || '—';
-  return (
-    <Lamina nombre={nombre} rotulo={jugador.nickname?.trim() || nombre.split(/\s+/).pop() || nombre} foto={jugador.photo_url}
-      estrellas={jugador.rating} puesto={puesto} tono={arquero ? 'arquero' : tonoPorEstrellas(jugador.rating)} camiseta={color}
-      elegido={elegido} alto={alto} orden={orden} onClick={onClick}
-      ariaLabel={`${jugador.name}${elegido ? ', elegido para cambiar' : ''}`} title={jugador.name} />
-  );
-}
-
 /**
  * Alto de las láminas de un equipo: lo que deja el espacio entre sus líneas
  * (cada equipo ocupa un 33% del alto de la cancha) y el ancho de su línea más poblada.
+ * Se mide con las dos formaciones para que ambos equipos queden del mismo tamaño.
  */
-function altoLamina(formacion: string): string {
-  const lineas = [1, ...formacion.split('-').map(Number)];
-  const entreLineas = lineas.length > 1 ? 33 / (lineas.length - 1) : 33;
-  const porAncho = (100 / (Math.max(...lineas) + 1)) * 0.92 * (4 / 3);
-  return `min(${(entreLineas * 0.95).toFixed(2)}cqh, ${porAncho.toFixed(2)}cqw, 16cqh)`;
+function altoLamina(...formaciones: string[]): string {
+  const medidas = formaciones.flatMap((formacion) => {
+    const lineas = [1, ...formacion.split('-').map(Number)];
+    const entreLineas = lineas.length > 1 ? 33 / (lineas.length - 1) : 33;
+    const porAncho = (100 / (Math.max(...lineas) + 1)) * 0.92 * (4 / 3);
+    return [`${(entreLineas * 0.95).toFixed(2)}cqh`, `${porAncho.toFixed(2)}cqw`];
+  });
+  return `min(${medidas.join(', ')}, 16cqh)`;
 }
 
 interface Props {
@@ -62,14 +44,14 @@ export function CanchaMovil({ teamA, teamB, formationA, formationB, colorA, colo
   const bancaA = banca(teamA, formationA);
   const bancaB = banca(teamB, formationB);
   const fichas = (equipo: JugadorMM[], team: Equipo, formacion: string, color: string) => {
-    const alto = altoLamina(formacion);
+    const alto = altoLamina(formationA, formationB);
     return equipo.map((p, i) => {
       const pos = posicionVertical(i, team, formacion);
       if (!pos) return null;
       const elegido = swapSelection?.team === team && swapSelection?.index === i;
       return (
         <div key={p.id} className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-500" style={{ ...pos, zIndex: elegido ? 2 : 1 }}>
-          <Ficha jugador={p} color={color} arquero={i === 0} alto={alto} orden={i} elegido={elegido}
+          <FichaJugador jugador={p} color={color} arquero={i === 0} alto={alto} orden={i} elegido={elegido}
             onClick={canEdit ? () => handleSwap(team, i) : undefined} />
         </div>
       );
