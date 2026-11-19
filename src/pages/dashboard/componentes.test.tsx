@@ -12,6 +12,7 @@ import { AvisoCuota, MosaicosInicio } from './ResumenInicio';
 import { SaludoInicio } from './SaludoInicio';
 import { TarjetaMvp } from './TarjetaMvp';
 import { TarjetaParticipaciones } from './TarjetaParticipaciones';
+import { TarjetaGoleadores } from './TarjetaGoleadores';
 import { TarjetaTitular } from './TarjetaTitular';
 
 /**
@@ -126,5 +127,14 @@ describe('bloques del panel de inicio', () => {
     );
     expect(html).toContain('Ana Rojas');
     expect(html).toContain('Invitado Uno');
+  });
+
+  it('goleadores: vacía explica cómo empezar, llena muestra goles y asistencias', () => {
+    expect(dibujar(<TarjetaGoleadores goleadores={[]} puedeCargar />)).toContain('Cargar resultado');
+    expect(dibujar(<TarjetaGoleadores goleadores={[]} puedeCargar={false} />)).toContain('el capitán carga');
+    const html = dibujar(<TarjetaGoleadores puedeCargar={false} goleadores={[{ id: 'a', name: 'Ana Rojas', nickname: null, photo_url: null, goles: 4, asistencias: 2, partidos: 3 }]} />);
+    expect(html).toContain('Ana Rojas');
+    expect(html).toContain('4 goles');
+    expect(html).toContain('2 asistencias');
   });
 });

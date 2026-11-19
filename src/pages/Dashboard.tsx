@@ -5,6 +5,7 @@ import { PartidoHero } from './dashboard/PartidoHero';
 import { AvisoCuota, MosaicosInicio } from './dashboard/ResumenInicio';
 import { TarjetaMvp } from './dashboard/TarjetaMvp';
 import { TarjetaParticipaciones } from './dashboard/TarjetaParticipaciones';
+import { TarjetaGoleadores } from './dashboard/TarjetaGoleadores';
 import { ModalAsistencia } from './dashboard/ModalAsistencia';
 import { TarjetaTitular } from './dashboard/TarjetaTitular';
 
@@ -65,6 +66,7 @@ export default function Dashboard() {
             closeVoting={d.closeVoting}
             notifyVoting={d.notifyVoting}
           />
+          <TarjetaGoleadores goleadores={d.stats.goleadores} puedeCargar={isAdmin || isMatchmaker} />
           <TarjetaParticipaciones stats={d.stats} />
         </div>
       </div>

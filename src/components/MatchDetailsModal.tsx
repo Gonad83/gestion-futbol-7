@@ -9,6 +9,7 @@ import { aviso, confirmar } from '../lib/avisos';
 import { enlacesDelPartido } from '../lib/enlaceAsistencia';
 import { fechaSinHora } from '../lib/formato';
 import { Capa } from './Capa';
+import { ResultadoPartido } from './ResultadoPartido';
 
 interface MatchDetailsModalProps {
   isOpen: boolean;
@@ -18,7 +19,7 @@ interface MatchDetailsModalProps {
 }
 
 export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: MatchDetailsModalProps) {
-  const { user, isAdmin, teamId } = useAuth();
+  const { user, isAdmin, isMatchmaker, teamId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [attendances, setAttendances] = useState<any[]>([]);
   const [myAttendance, setMyAttendance] = useState<any>(null);
@@ -499,6 +500,11 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                     </span>
                   </div>
                 </div>
+              )}
+
+              {/* RESULTADO: partidos deportivos ya jugados */}
+              {!isNew && match?.id && teamId && match.event_type !== 'Recreacional' && match.status !== 'Cancelado' && new Date(match.date) < new Date() && (
+                <ResultadoPartido matchId={match.id} teamId={teamId} puedeEditar={isAdmin || isMatchmaker} alGuardar={onSave} />
               )}
 
               {/* ATTENDANCE CONTROLS */}

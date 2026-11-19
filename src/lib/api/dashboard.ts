@@ -9,6 +9,7 @@ import { supabase, withTimeout } from '../supabase';
 import type { TitularGuardado } from '../../pages/dashboard/titular';
 import { totalRecibido, type FilaDinero } from '../cuotas';
 import { hoyLocal } from '../formato';
+import { rankingGoleadores, type Goleador } from './resultado';
 import { CUOTA_POR_DEFECTO, morososDeCaja } from './finanzas';
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -113,6 +114,8 @@ export interface DashboardStats {
   lastMvpWinner: GanadorMvp | null;
   mvpWinHistory: TopPlayer[];
   mvpHistory: GanadorMvp[];
+  /** Goleadores de los últimos 12 meses, con los resultados cargados. */
+  goleadores: Goleador[];
 }
 
 export interface DatosDashboard {
@@ -145,6 +148,7 @@ export const STATS_VACIAS: DashboardStats = {
   lastMvpWinner: null,
   mvpWinHistory: [],
   mvpHistory: [],
+  goleadores: [],
 };
 
 // ── Cuentas (sin base de datos) ──────────────────────────────────────────────
@@ -349,7 +353,7 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
   }
 
   const { ranking: topParticipations, totalPartidos: totalMatchesPlayed } = rankingParticipaciones(allPlayers, asistencias);
-  const mvp = await cargarMvp(teamId, allPlayers);
+  const [mvp, goleadores] = await Promise.all([cargarMvp(teamId, allPlayers), cargarGoleadores(teamId, allPlayers)]);
 
   return {
     teamSettings,
@@ -372,6 +376,7 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
       totalMatchesPlayed,
       allPlayers,
       ...mvp,
+      goleadores,
     },
   };
 }
@@ -385,6 +390,17 @@ type DatosMvp = Pick<
  * Votación del último partido deportivo (de los últimos 7 días) e historial de
  * ganadores. Si la votación ya cerró y nadie guardó al ganador, lo guarda.
  */
+/** Goleadores del equipo en los últimos 12 meses. Si falla, el Inicio se muestra igual, sin la tarjeta llena. */
+async function cargarGoleadores(teamId: number, allPlayers: JugadorDash[]): Promise<Goleador[]> {
+  const haceUnAno = new Date();
+  haceUnAno.setFullYear(haceUnAno.getFullYear() - 1);
+  const { data, error } = await supabase.from('match_player_stats')
+    .select('player_id, equipo, goles, asistencias, matches!inner(team_id, date)')
+    .eq('matches.team_id', teamId).gte('matches.date', haceUnAno.toISOString());
+  if (error) { console.error('goleadores:', error.message); return []; }
+  return rankingGoleadores((data ?? []) as { player_id: string; equipo: string | null; goles: number; asistencias: number }[], allPlayers);
+}
+
 async function cargarMvp(teamId: number, allPlayers: JugadorDash[]): Promise<DatosMvp> {
   const mvp: DatosMvp = {
     topMvp: [],
