@@ -276,7 +276,7 @@ serve(async (req) => {
       if (!jugadores?.length) continue;
 
       const { data: pagos, error: errPagos } = await db.from('payments')
-        .select('player_id, month, year, status, amount').in('player_id', jugadores.map((j) => j.id));
+        .select('player_id, month, year, status, amount, es_deuda').in('player_id', jugadores.map((j) => j.id));
       if (errPagos) throw errPagos;
 
       const avisos: Aviso[] = [];
@@ -291,7 +291,8 @@ serve(async (req) => {
         const debe = new Set(pendientes.map((p) => `${p.year}-${p.month}`));
         const abonado = suyos.reduce((suma, p) => {
           const monto = Number(p.amount ?? 0);
-          const esAbono = (p.status === 'Pendiente' || p.status === 'Atrasado') && monto > 0 && monto < cuota && debe.has(`${p.year}-${p.month}`);
+          // La deuda que anotaba n8n (es_deuda) no es dinero; cualquier otro monto pendiente es un abono.
+          const esAbono = (p.status === 'Pendiente' || p.status === 'Atrasado') && !p.es_deuda && monto > 0 && debe.has(`${p.year}-${p.month}`);
           return esAbono ? suma + monto : suma;
         }, 0);
         avisos.push({ nombre: j.name, email: String(j.email).trim().toLowerCase(), pendientes, abonado, total: Math.max(0, pendientes.length * cuota - abonado) });

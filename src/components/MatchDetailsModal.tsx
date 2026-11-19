@@ -7,6 +7,7 @@ import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, R
 import { sendNewMatchEmail, sendMatchReminder, sendEventEmail } from '../lib/sendEmail';
 import { aviso, confirmar } from '../lib/avisos';
 import { enlacesDelPartido } from '../lib/enlaceAsistencia';
+import { fechaSinHora } from '../lib/formato';
 import { Capa } from './Capa';
 
 interface MatchDetailsModalProps {
@@ -98,6 +99,12 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       // Recurring: bulk insert multiple matches (only for new events)
       if (recurring && !match?.id) {
         const cur = new Date(repeatStartDate + 'T12:00:00');
+        // Sin fecha de inicio o de término, el ciclo de abajo no terminaría nunca.
+        if (Number.isNaN(cur.getTime()) || Number.isNaN(new Date(repeatEndDate + 'T23:59:59').getTime())) {
+          aviso.info('Elige desde y hasta qué fecha se repite.');
+          setLoading(false);
+          return;
+        }
         while (cur.getDay() !== repeatDay) cur.setDate(cur.getDate() + 1);
         const end = new Date(repeatEndDate + 'T23:59:59');
 
@@ -125,8 +132,9 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         return;
       }
 
-      const baseDate = match?.date ? new Date(match.date) : new Date(formData.date);
-      const matchDate = new Date(baseDate);
+      // La fecha del formulario es "aaaa-mm-dd": se lee como ese día en Chile, no en UTC
+      // (antes quedaba un día antes). Al editar también se respeta si se cambió la fecha.
+      const matchDate = fechaSinHora(formData.date);
       matchDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
 
       const payload: any = {

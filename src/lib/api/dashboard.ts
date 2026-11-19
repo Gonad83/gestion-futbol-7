@@ -7,6 +7,9 @@
  */
 import { supabase, withTimeout } from '../supabase';
 import type { TitularGuardado } from '../../pages/dashboard/titular';
+import { totalRecibido, type FilaDinero } from '../cuotas';
+import { hoyLocal } from '../formato';
+import { CUOTA_POR_DEFECTO, morososDeCaja } from './finanzas';
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +28,8 @@ export interface JugadorDash {
   vision?: number | null;
   ataque?: number | null;
   defensa?: number | null;
+  /** Ingreso al equipo: desde ese mes se le cobra la cuota. */
+  created_at?: string | null;
 }
 
 export interface PagoDash {
@@ -33,6 +38,7 @@ export interface PagoDash {
   year: number;
   amount: number | string | null;
   status: string;
+  es_deuda?: boolean | null;
 }
 
 export interface Moroso extends JugadorDash {
@@ -144,40 +150,22 @@ export const STATS_VACIAS: DashboardStats = {
 // ── Cuentas (sin base de datos) ──────────────────────────────────────────────
 
 /**
- * Monto con que se anota el mes en curso cuando todavía no tiene fila de pago.
- * Solo sirve para marcar al jugador como pendiente; el monto real sale de Caja.
+ * Jugadores activos con cuotas pendientes hasta el mes de `hoy`. Usa la misma
+ * cuenta que Caja (todos los meses desde su ingreso que no están pagados ni
+ * exentos; enero y febrero no se cobran), así el Inicio y Caja dicen lo mismo.
  */
-const MONTO_MES_SIN_FILA = 8000;
-
-/** Jugadores activos con cuotas pendientes hasta el mes de `hoy` (enero y febrero no se cobran). */
-export function calcularMorosos(activos: JugadorDash[], pagos: PagoDash[], hoy: Date = new Date()): Moroso[] {
-  const currentMonth = hoy.getMonth() + 1;
-  const currentYear = hoy.getFullYear();
-
-  return activos
-    .map((player) => {
-      const playerPayments = pagos.filter((p) => p.player_id === player.id);
-      const paidMonths = new Set(
-        playerPayments.filter((p) => p.status === 'Pagado' || p.status === 'Exento').map((p) => `${p.year}-${p.month}`),
-      );
-      const pendingInfo = playerPayments.filter(
-        (p) =>
-          p.status === 'Pendiente' &&
-          (p.year < currentYear || (p.year === currentYear && p.month <= currentMonth)) &&
-          !paidMonths.has(`${p.year}-${p.month}`) &&
-          p.month > 2,
-      );
-      const hasCurrentMonthPaid = paidMonths.has(`${currentYear}-${currentMonth}`);
-      const hasCurrentMonthPending = pendingInfo.some((p) => p.month === currentMonth && p.year === currentYear);
-      if (!hasCurrentMonthPaid && !hasCurrentMonthPending && currentMonth > 2) {
-        pendingInfo.push({ player_id: player.id, month: currentMonth, year: currentYear, amount: MONTO_MES_SIN_FILA, status: 'Pendiente' });
-      }
-      const uniquePending = Array.from(new Map(pendingInfo.map((p) => [`${p.year}-${p.month}`, p])).values()).sort((a, b) =>
-        a.year !== b.year ? a.year - b.year : a.month - b.month,
-      );
-      return { ...player, pendingPayments: uniquePending };
-    })
-    .filter((p) => p.pendingPayments.length > 0);
+export function calcularMorosos(activos: JugadorDash[], pagos: PagoDash[], quota: number = CUOTA_POR_DEFECTO, hoy: Date = new Date()): Moroso[] {
+  const porId = new Map(activos.map((j) => [j.id, j]));
+  const deCaja = morososDeCaja(
+    activos.map((j) => ({ id: j.id, name: j.name, nickname: j.nickname, status: j.status, created_at: j.created_at ?? null })),
+    pagos,
+    quota,
+    hoy,
+  );
+  return deCaja.map((m) => ({
+    ...porId.get(m.id)!,
+    pendingPayments: m.pendingMonths.map((mes) => ({ player_id: m.id, month: mes.month, year: mes.year, amount: quota, status: 'Pendiente' })),
+  }));
 }
 
 /** Cuenta votos por jugador y los ordena de más a menos. */
@@ -286,7 +274,7 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
   const [settingsRes, allPlayers] = await Promise.all([
     supabase.from('team_settings').select('*').eq('id', teamId).maybeSingle(),
     filas<JugadorDash>(
-      supabase.from('players').select('id, name, nickname, status, photo_url, user_id, position, match_role, secondary_position, rating, vision, ataque, defensa').eq('team_id', teamId),
+      supabase.from('players').select('id, name, nickname, status, photo_url, user_id, position, match_role, secondary_position, rating, vision, ataque, defensa, created_at').eq('team_id', teamId),
       8000,
     ),
   ]);
@@ -318,8 +306,8 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
         .order('date', { ascending: true }).limit(1),
       20000,
     ),
-    sinJugadores ? [] : filas<PagoDash>(supabase.from('payments').select('player_id, month, year, amount, status').in('player_id', playerIds), 8000),
-    sinJugadores ? [] : filas<{ amount: number }>(supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', playerIds), 15000),
+    sinJugadores ? [] : filas<PagoDash>(supabase.from('payments').select('player_id, month, year, amount, status, es_deuda').in('player_id', playerIds), 8000),
+    sinJugadores ? [] : filas<FilaDinero>(supabase.from('payments').select('amount, status, es_deuda').in('status', ['Pagado', 'Pendiente', 'Atrasado']).in('player_id', playerIds), 15000),
     filas<{ amount: number }>(supabase.from('expenses').select('amount').eq('team_id', teamId), 15000),
     filas<{ amount: number }>(supabase.from('cash_incomes').select('amount').eq('team_id', teamId), 15000),
     sinJugadores
@@ -372,8 +360,9 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
       declinedCount,
       declinedIds,
       pendingCount: nextMatch ? Math.max(0, activos.length - confirmedCount - declinedCount) : 0,
-      morosos: calcularMorosos(activos, pagos),
-      balance: suma(pagados) + suma(ingresos) - suma(gastos),
+      morosos: calcularMorosos(activos, pagos, Number(s?.quota_amount ?? CUOTA_POR_DEFECTO)),
+      // Igual que en Caja: meses pagados y abonos, más ingresos, menos gastos.
+      balance: totalRecibido(pagados) + suma(ingresos) - suma(gastos),
       activePlayers: activos.length,
       totalPlayers: allPlayers.length,
       topParticipations,
@@ -493,6 +482,6 @@ export function guardarGanadorMvp(matchId: string, jugador: JugadorDash, votos: 
     player_name: jugador.name,
     player_photo_url: jugador.photo_url || null,
     vote_count: votos,
-    week_date: new Date().toISOString().split('T')[0],
+    week_date: hoyLocal(),
   });
 }

@@ -22,42 +22,42 @@ const mov = (concept: string, amount: number, date: string): Movimiento => ({ id
 
 describe('cuotasDelMes', () => {
   it('sin fila de pago, el jugador queda pendiente con 0 recibido', () => {
-    const [f] = cuotasDelMes([jugador('a')], [], 5, 2026, CUOTA);
+    const [f] = cuotasDelMes([jugador('a')], [], 5, 2026);
     expect(f).toMatchObject({ player_id: 'a', status: 'Pendiente', amount: 0, payment_id: null, isExempt: false });
   });
 
   it('muestra el pago del mes con su medio de pago', () => {
-    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Pagado', CUOTA, { payment_method: 'Efectivo' }), pago('a', 4, 'Pagado')], 5, 2026, CUOTA);
+    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Pagado', CUOTA, { payment_method: 'Efectivo' }), pago('a', 4, 'Pagado')], 5, 2026);
     expect(f).toMatchObject({ status: 'Pagado', amount: CUOTA, payment_method: 'Efectivo', payment_id: 'a-5-Pagado' });
   });
 
-  it('una deuda anotada por n8n (pendiente con el monto de la cuota) cuenta como 0 recibido', () => {
-    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Pendiente', CUOTA)], 5, 2026, CUOTA);
+  it('una deuda anotada por n8n (es_deuda) cuenta como 0 recibido', () => {
+    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Pendiente', CUOTA, { es_deuda: true })], 5, 2026);
     expect(f).toMatchObject({ status: 'Pendiente', amount: 0 });
   });
 
   it('un abono parcial se muestra con su monto', () => {
-    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Pendiente', 2000)], 5, 2026, CUOTA);
+    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Pendiente', 2000)], 5, 2026);
     expect(f).toMatchObject({ status: 'Pendiente', amount: 2000 });
   });
 
   it('si hay dos filas en el mes, manda la pagada', () => {
-    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Pendiente', 9000), pago('a', 5, 'Pagado', CUOTA)], 5, 2026, CUOTA);
+    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Pendiente', 9000), pago('a', 5, 'Pagado', CUOTA)], 5, 2026);
     expect(f.status).toBe('Pagado');
   });
 
   it('un mes anterior al ingreso queda exento automáticamente', () => {
-    const [f] = cuotasDelMes([jugador('a', '2026-06-15T12:00:00Z')], [], 5, 2026, CUOTA);
+    const [f] = cuotasDelMes([jugador('a', '2026-06-15T12:00:00Z')], [], 5, 2026);
     expect(f).toMatchObject({ status: 'Exento', isExempt: true, isAutoExempt: true, isManualExempt: false });
   });
 
   it('distingue la exención marcada a mano', () => {
-    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Exento', 0)], 5, 2026, CUOTA);
+    const [f] = cuotasDelMes([jugador('a')], [pago('a', 5, 'Exento', 0)], 5, 2026);
     expect(f).toMatchObject({ status: 'Exento', isAutoExempt: false, isManualExempt: true });
   });
 
   it('no mezcla pagos de otros jugadores ni de otros meses', () => {
-    const filas = cuotasDelMes([jugador('a'), jugador('b')], [pago('a', 5, 'Pagado'), pago('b', 4, 'Pagado')], 5, 2026, CUOTA);
+    const filas = cuotasDelMes([jugador('a'), jugador('b')], [pago('a', 5, 'Pagado'), pago('b', 4, 'Pagado')], 5, 2026);
     expect(filas.map((f) => f.status)).toEqual(['Pagado', 'Pendiente']);
   });
 });
@@ -72,7 +72,7 @@ describe('morososDeCaja', () => {
   it('descuenta los abonos de los meses pendientes, pero no la deuda anotada ni abonos de meses futuros', () => {
     const historial = [
       pago('a', 3, 'Pendiente', 2000),   // abono a marzo
-      pago('a', 4, 'Pendiente', CUOTA),  // deuda anotada, no es dinero recibido
+      pago('a', 4, 'Pendiente', CUOTA, { es_deuda: true }),  // deuda anotada, no es dinero recibido
       pago('a', 6, 'Pendiente', 1000),   // abono a un mes que aún no se cobra
     ];
     const [m] = morososDeCaja([jugador('a')], historial, CUOTA, HOY);
@@ -130,7 +130,7 @@ describe('resumenDeCaja', () => {
 describe('filtrarCuotas', () => {
   const filas = cuotasDelMes(
     [jugador('a', undefined, { name: 'Ana Rojas' }), jugador('b', undefined, { name: 'Beto', nickname: 'Tanque' }), jugador('c', undefined, { name: 'Caro' })],
-    [pago('a', 5, 'Pagado'), pago('c', 5, 'Exento', 0)], 5, 2026, CUOTA,
+    [pago('a', 5, 'Pagado'), pago('c', 5, 'Exento', 0)], 5, 2026,
   );
   const ids = (f: FilaCuota[]) => f.map((x) => x.player_id);
 
@@ -149,7 +149,7 @@ describe('filtrarCuotas', () => {
 describe('reportes de Caja', () => {
   const base: DatosReporte = {
     pestana: 'cuotas', month: 5, year: 2026,
-    payments: cuotasDelMes([jugador('a', undefined, { name: 'Ana "la 10"', nickname: '<b>Crack</b>' })], [pago('a', 5, 'Pagado')], 5, 2026, CUOTA),
+    payments: cuotasDelMes([jugador('a', undefined, { name: 'Ana "la 10"', nickname: '<b>Crack</b>' })], [pago('a', 5, 'Pagado')], 5, 2026),
     cashIncomes: [mov('Rifa <script>alert(1)</script>', 20000, '2026-05-01')],
     expenses: [mov('Cancha, mayo', 30000, '2026-05-02')],
     totalCashIncomes: 20000, totalExpenses: 30000,

@@ -61,11 +61,12 @@ function aplicarEnMemoria(inicial: PaymentRow[], plan: RebalancePlan): PaymentRo
 }
 
 /** Dinero realmente recibido: meses pagados completos más abonos parciales. */
-function dinero(filas: PaymentRow[], cuota = CUOTA) {
+function dinero(filas: PaymentRow[]) {
   return filas.reduce((suma, r) => {
     const monto = Number(r.amount ?? 0);
     if (r.status === 'Pagado') return suma + monto;
-    if ((r.status === 'Pendiente' || r.status === 'Atrasado') && monto > 0 && monto < cuota) return suma + monto;
+    // Un abono es dinero; la deuda anotada por n8n (es_deuda) no.
+    if ((r.status === 'Pendiente' || r.status === 'Atrasado') && monto > 0 && !r.es_deuda) return suma + monto;
     return suma;
   }, 0);
 }
@@ -136,19 +137,29 @@ describe('planRebalance: registrar pagos', () => {
   });
 
   it('usa una fila de deuda que ya existía en ese mes en vez de crear otra', () => {
-    // n8n deja "Pendiente" con el monto de la cuota como deuda, no como dinero recibido.
-    const deuda = fila(3, 2026, 'Pendiente', CUOTA);
+    // n8n dejaba "Pendiente" con el monto de la cuota como deuda (es_deuda), no como dinero recibido.
+    const deuda = fila(3, 2026, 'Pendiente', CUOTA, { es_deuda: true });
     const { plan, despues } = registrar([deuda], CUOTA, { medio: 'Efectivo' });
     expect(plan.inserts).toHaveLength(0);
-    expect(plan.updates).toEqual([{ id: deuda.id, changes: { status: 'Pagado', payment_method: 'Efectivo' } }]);
+    expect(plan.updates).toEqual([{ id: deuda.id, changes: { status: 'Pagado', payment_method: 'Efectivo', es_deuda: false } }]);
     expect(resumen(despues)).toEqual(['2026-03 Pagado 5000']);
   });
 
   it('una deuda sin pagar no cuenta como dinero', () => {
-    const deuda = fila(3, 2026, 'Pendiente', CUOTA);
+    const deuda = fila(3, 2026, 'Pendiente', CUOTA, { es_deuda: true });
     const plan = planRebalance([deuda], JUGADOR, INGRESO, CUOTA);
     expect(planHasChanges(plan)).toBe(false);
     expect(dinero(plan.rows)).toBe(0);
+  });
+
+  it('cambiar la cuota no borra ni inventa abonos', () => {
+    const abono = () => [fila(3, 2026, 'Pendiente', 3000)];
+    // Cuota más alta: el abono sigue siendo $3.000 recibidos.
+    expect(dinero(planRebalance(abono(), JUGADOR, INGRESO, 10000).rows)).toBe(3000);
+    // Cuota más baja: el abono alcanza para un mes completo y el resto sigue a cuenta del siguiente.
+    const bajada = planRebalance(abono(), JUGADOR, INGRESO, 2000);
+    expect(resumen(bajada.rows)).toEqual(['2026-03 Pagado 2000', '2026-04 Pendiente 1000']);
+    expect(dinero(bajada.rows)).toBe(3000);
   });
 
   it('un monto negativo no descuenta nada', () => {
@@ -210,9 +221,9 @@ describe('planRebalance: garantías que deben cumplirse siempre', () => {
     {
       nombre: 'deudas de n8n, un exento y pagos desordenados',
       filas: () => [
-        fila(3, 2026, 'Pendiente', CUOTA),
+        fila(3, 2026, 'Pendiente', CUOTA, { es_deuda: true }),
         fila(4, 2026, 'Exento', 0),
-        fila(5, 2026, 'Pendiente', CUOTA),
+        fila(5, 2026, 'Pendiente', CUOTA, { es_deuda: true }),
         fila(7, 2026, 'Pagado', CUOTA),
         fila(9, 2026, 'Pagado', CUOTA),
         fila(10, 2026, 'Pendiente', 1200),
@@ -275,20 +286,10 @@ describe('planRebalance: garantías que deben cumplirse siempre', () => {
 });
 
 describe('applyRebalancePlan', () => {
-  function supabaseFalso(fallarEn?: string) {
-    const llamadas: string[] = [];
-    const responder = (nombre: string) => {
-      llamadas.push(nombre);
-      return Promise.resolve({ error: fallarEn && nombre.startsWith(fallarEn) ? new Error('falló ' + nombre) : null });
-    };
+  function supabaseFalso(error: Error | null = null) {
+    const llamadas: { fn: string; args: Record<string, unknown> }[] = [];
     const cliente = {
-      from: () => ({
-        delete: () => ({ in: (_: string, ids: string[]) => responder(`delete ${ids.join(',')}`) }),
-        update: (cambios: Partial<PaymentRow>) => ({
-          eq: (_: string, id: string) => responder(`update ${id} ${cambios.month === undefined ? 'liberar' : 'mover'}`),
-        }),
-        insert: (filas: PaymentRow[]) => responder(`insert ${filas.length}`),
-      }),
+      rpc: (fn: string, args: Record<string, unknown>) => { llamadas.push({ fn, args }); return Promise.resolve({ error }); },
     };
     return { cliente, llamadas };
   }
@@ -303,10 +304,14 @@ describe('applyRebalancePlan', () => {
     inserts: [{ player_id: JUGADOR, month: 5, year: 2026, status: 'Pagado', amount: CUOTA }],
   };
 
-  it('borra, luego libera meses, luego mueve y al final inserta', async () => {
+  it('manda todo en una sola llamada (una transacción), liberando meses antes de moverlos', async () => {
     const { cliente, llamadas } = supabaseFalso();
     await applyRebalancePlan(cliente, plan);
-    expect(llamadas).toEqual(['delete d1', 'update u-liberar liberar', 'update u-mover mover', 'insert 1']);
+    expect(llamadas).toHaveLength(1);
+    expect(llamadas[0].fn).toBe('aplicar_reacomodo');
+    expect(llamadas[0].args.p_borrar).toEqual(['d1']);
+    expect((llamadas[0].args.p_cambios as { id: string }[]).map((c) => c.id)).toEqual(['u-liberar', 'u-mover']);
+    expect(llamadas[0].args.p_nuevos).toEqual([{ player_id: JUGADOR, month: 5, year: 2026, status: 'Pagado', amount: CUOTA, payment_method: null }]);
   });
 
   it('con un plan vacío no llama a la base', async () => {
@@ -315,9 +320,8 @@ describe('applyRebalancePlan', () => {
     expect(llamadas).toEqual([]);
   });
 
-  it('si un paso falla se detiene y avisa del error', async () => {
-    const { cliente, llamadas } = supabaseFalso('update');
+  it('si la base rechaza el reacomodo, avisa del error (y la base no deja nada a medias)', async () => {
+    const { cliente } = supabaseFalso(new Error('falló'));
     await expect(applyRebalancePlan(cliente, plan)).rejects.toThrow('falló');
-    expect(llamadas).toEqual(['delete d1', 'update u-liberar liberar']);
   });
 });

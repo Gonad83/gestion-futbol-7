@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction, SyntheticEvent } from 'react';
 import { Plus, ArrowUpCircle, Trash2 } from 'lucide-react';
 import type { Movimiento } from '../../lib/api/finanzas';
-import { clp } from '../../lib/formato';
+import { clp, fechaSinHora } from '../../lib/formato';
 
 interface Props {
   isAdmin: boolean;
@@ -70,7 +70,7 @@ export function PestanaIngresos({ isAdmin, cashIncomes, showIncomeForm, setShowI
                   </div>
                   <div>
                     <p className="font-bold text-white text-lg">{income.concept}</p>
-                    <p className="text-xs text-slate-400">{new Date(new Date(income.date).getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString('es-CL')}</p>
+                    <p className="text-xs text-slate-400">{fechaSinHora(income.date).toLocaleDateString('es-CL')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">

@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction, SyntheticEvent } from 'react';
 import { TrendingDown, Plus, Trash2 } from 'lucide-react';
 import type { Movimiento } from '../../lib/api/finanzas';
-import { clp } from '../../lib/formato';
+import { clp, fechaSinHora } from '../../lib/formato';
 
 interface Props {
   isAdmin: boolean;
@@ -60,7 +60,7 @@ export function PestanaGastos({ isAdmin, expenses, showExpenseForm, setShowExpen
                 </div>
                 <div>
                   <p className="font-bold text-white text-lg">{exp.concept}</p>
-                  <p className="text-xs text-slate-400">{new Date(new Date(exp.date).getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString('es-CL')}</p>
+                  <p className="text-xs text-slate-400">{fechaSinHora(exp.date).toLocaleDateString('es-CL')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">

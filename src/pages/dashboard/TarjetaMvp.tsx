@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { DashboardStats } from '../../lib/api/dashboard';
 import { RANK_COLORS } from './util';
+import { fechaSinHora } from '../../lib/formato';
 
 interface Props {
   stats: DashboardStats;
@@ -145,7 +146,7 @@ export function TarjetaMvp({ stats, isAdmin, copiedVote, shareVoteWhatsApp, clos
                       <span className="text-[11px] font-bold" style={{ color: '#ffd700' }}>{stats.lastMvpWinner.vote_count} votos</span>
                       {stats.lastMvpWinner.week_date && (
                         <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                          · {format(new Date(stats.lastMvpWinner.week_date), "d MMM", { locale: es })}
+                          · {format(fechaSinHora(stats.lastMvpWinner.week_date), "d MMM", { locale: es })}
                         </span>
                       )}
                     </div>

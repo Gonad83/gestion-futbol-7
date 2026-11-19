@@ -23,44 +23,45 @@ const meses = (m: { pendingPayments: PagoDash[] }) => m.pendingPayments.map((p) 
 
 /** 15 de mayo de 2026. */
 const HOY = new Date(2026, 4, 15);
+const CUOTA = 8000;
 
 describe('calcularMorosos', () => {
-  it('quien pagó el mes en curso y no debe meses anteriores no aparece', () => {
-    expect(calcularMorosos([jugador('a')], [pago('a', 5, 2026, 'Pagado')], HOY)).toEqual([]);
+  // Ingresó en marzo de 2026: se le cobra marzo, abril y mayo (hoy es 15 de mayo).
+  const desdeMarzo = (id: string) => jugador(id, { created_at: '2026-03-10T12:00:00Z' });
+
+  it('quien pagó todos sus meses no aparece', () => {
+    const pagos = [pago('a', 3, 2026, 'Pagado'), pago('a', 4, 2026, 'Pagado'), pago('a', 5, 2026, 'Pagado')];
+    expect(calcularMorosos([desdeMarzo('a')], pagos, CUOTA, HOY)).toEqual([]);
   });
 
-  it('sin fila para el mes en curso, igual queda como pendiente', () => {
-    const [m] = calcularMorosos([jugador('a')], [], HOY);
+  it('cuenta todos los meses sin pagar desde su ingreso, aunque no tengan fila (igual que Caja)', () => {
+    const [m] = calcularMorosos([desdeMarzo('a')], [pago('a', 4, 2026, 'Pagado')], CUOTA, HOY);
+    expect(meses(m)).toEqual(['2026-3', '2026-5']);
+  });
+
+  it('sin fecha de ingreso, cuenta desde el mes en curso', () => {
+    const [m] = calcularMorosos([jugador('a')], [], CUOTA, HOY);
     expect(meses(m)).toEqual(['2026-5']);
   });
 
-  it('lista los meses pendientes del más antiguo al más nuevo, sin repetir', () => {
-    const pagos = [pago('a', 5, 2026, 'Pendiente'), pago('a', 3, 2026, 'Pendiente'), pago('a', 3, 2026, 'Pendiente'), pago('a', 11, 2025, 'Pendiente')];
-    const [m] = calcularMorosos([jugador('a')], pagos, HOY);
-    expect(meses(m)).toEqual(['2025-11', '2026-3', '2026-5']);
+  it('un abono no paga el mes: sigue pendiente', () => {
+    const pagos = [pago('a', 3, 2026, 'Pagado'), pago('a', 4, 2026, 'Pagado'), { ...pago('a', 5, 2026, 'Pendiente'), amount: 3000 }];
+    const [m] = calcularMorosos([desdeMarzo('a')], pagos, CUOTA, HOY);
+    expect(meses(m)).toEqual(['2026-5']);
   });
 
-  it('no cuenta meses futuros, exentos, ya pagados, ni enero y febrero', () => {
-    const pagos = [
-      pago('a', 6, 2026, 'Pendiente'), // futuro
-      pago('a', 4, 2026, 'Exento'),
-      pago('a', 3, 2026, 'Pendiente'), pago('a', 3, 2026, 'Pagado'), // pagado gana
-      pago('a', 2, 2026, 'Pendiente'), // febrero no se cobra
-      pago('a', 5, 2026, 'Pagado'),
-    ];
-    expect(calcularMorosos([jugador('a')], pagos, HOY)).toEqual([]);
-  });
-
-  it('un mes exento en curso no genera deuda', () => {
-    expect(calcularMorosos([jugador('a')], [pago('a', 5, 2026, 'Exento')], HOY)).toEqual([]);
+  it('no cuenta meses exentos, futuros, ni enero y febrero', () => {
+    const pagos = [pago('a', 3, 2026, 'Pagado'), pago('a', 4, 2026, 'Exento'), pago('a', 5, 2026, 'Pagado'), pago('a', 6, 2026, 'Pendiente')];
+    expect(calcularMorosos([jugador('a', { created_at: '2026-01-05T12:00:00Z' })], pagos, CUOTA, HOY)).toEqual([]);
   });
 
   it('en enero y febrero nadie queda pendiente por el mes en curso', () => {
-    expect(calcularMorosos([jugador('a')], [], new Date(2026, 1, 10))).toEqual([]);
+    expect(calcularMorosos([jugador('a')], [], CUOTA, new Date(2026, 1, 10))).toEqual([]);
   });
 
   it('los pagos de otro jugador no se mezclan', () => {
-    const morosos = calcularMorosos([jugador('a'), jugador('b')], [pago('a', 5, 2026, 'Pagado')], HOY);
+    const pagos = ['a'].flatMap((id) => [3, 4, 5].map((m) => pago(id, m, 2026, 'Pagado')));
+    const morosos = calcularMorosos([desdeMarzo('a'), desdeMarzo('b')], pagos, CUOTA, HOY);
     expect(morosos.map((m) => m.id)).toEqual(['b']);
   });
 });

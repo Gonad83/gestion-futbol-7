@@ -13,6 +13,8 @@ import { sendMatchReminder, sendPaymentReminder } from '../lib/sendEmail';
 import { aviso, confirmar } from '../lib/avisos';
 import { clp } from '../lib/formato';
 import { enlacesDelPartido } from '../lib/enlaceAsistencia';
+import { CUOTA_POR_DEFECTO, morososDeCaja, type MorosoCaja } from '../lib/api/finanzas';
+import { MONTHS } from '../lib/formato';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Jugador = { id: string; name: string; nickname?: string | null; email?: string | null; photo_url?: string | null; status: string; notify?: boolean | null; match_role?: string | null; user_id?: string | null; [k: string]: any };
@@ -157,8 +159,21 @@ export default function AdminPlayers() {
   };
 
   const fechaPartido = () => format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
-  // El monto del cobro sale de la cuota del equipo (antes iba fijo en $8.000).
-  const montoCuota = () => (equipo.cuota > 0 ? clp(equipo.cuota) : 'tu cuota mensual');
+
+  /** Quiénes deben cuotas hoy, con la misma cuenta que Caja (meses desde su ingreso, menos abonos). */
+  const cargarMorosos = async (lista: Jugador[]): Promise<Map<string, MorosoCaja>> => {
+    const ids = lista.map(p => p.id);
+    if (ids.length === 0) return new Map();
+    const { data, error } = await supabase.from('payments').select('player_id, month, year, status, amount, es_deuda').in('player_id', ids);
+    if (error) throw error;
+    const cuota = equipo.cuota > 0 ? equipo.cuota : CUOTA_POR_DEFECTO;
+    const morosos = morososDeCaja(
+      lista.map(p => ({ id: p.id, name: p.name, nickname: p.nickname ?? null, status: p.status, created_at: (p.created_at as string | null) ?? null })),
+      data ?? [], cuota,
+    );
+    return new Map(morosos.map(m => [m.id, m]));
+  };
+  const mesesDe = (m: MorosoCaja) => m.pendingMonths.map(x => `${MONTHS[x.month - 1]} ${x.year}`);
 
   const sendToPlayer = async (type: 'pago' | 'recordatorio', player: Jugador) => {
     if (!player.email) { aviso.info(`${player.name} no tiene correo registrado.`); return; }
@@ -167,7 +182,10 @@ export default function AdminPlayers() {
         const enlace = await enlacesDelPartido(nextMatch.id);
         await sendMatchReminder(player.email, player.name, fechaPartido(), nextMatch.location || '', enlace(player.id, 'Voy'), enlace(player.id, 'No voy'));
       } else if (type === 'pago') {
-        await sendPaymentReminder(player.email, player.name, ['Cuota pendiente'], montoCuota(), equipo.linkPago || undefined);
+        const deuda = (await cargarMorosos([player])).get(player.id);
+        if (!deuda) { aviso.info(`${player.name} está al día: no hay nada que cobrarle.`); return; }
+        const ok = await sendPaymentReminder(player.email, player.name, mesesDe(deuda), clp(deuda.totalDebt), equipo.linkPago || undefined);
+        if (!ok) { aviso.error('No se pudo enviar el correo.'); return; }
       }
       aviso.ok(`Correo enviado a ${player.name}.`);
     } catch { aviso.error('Error al enviar el correo.'); }
@@ -209,8 +227,17 @@ export default function AdminPlayers() {
     if (type === 'recordatorio' && !nextMatch) { aviso.info('No hay un partido próximo agendado.'); return; }
     let targets = players.filter(p => p.notify !== false && p.status === 'Activo' && p.email);
     if (type === 'recordatorio') targets = targets.filter(p => !va(p.id));
+    // El cobro va solo a quienes deben, con sus meses y su saldo (antes le llegaba a todos).
+    let deudas = new Map<string, MorosoCaja>();
+    if (type === 'pago') {
+      try { deudas = await cargarMorosos(targets); } catch { aviso.error('No se pudo revisar quién debe.'); return; }
+      targets = targets.filter(p => deudas.has(p.id));
+      if (targets.length === 0) { aviso.ok('Todos están al día: no hay cobros que enviar.'); return; }
+    }
     if (targets.length === 0) { aviso.info('No hay jugadores a los que enviar.'); return; }
-    if (!(await confirmar(`¿Enviar ${type === 'pago' ? 'el cobro' : 'el recordatorio'} a ${targets.length} jugadores?`))) return;
+    if (!(await confirmar(type === 'pago'
+      ? `¿Enviar el cobro a los ${targets.length} jugadores que deben cuotas?`
+      : `¿Enviar el recordatorio a ${targets.length} jugadores?`))) return;
     setSending(type);
     try {
       let sent = 0;
@@ -218,7 +245,7 @@ export default function AdminPlayers() {
       for (const p of targets) {
         const ok = enlace
           ? await sendMatchReminder(p.email!, p.name, fechaPartido(), nextMatch.location || '', enlace(p.id, 'Voy'), enlace(p.id, 'No voy'))
-          : await sendPaymentReminder(p.email!, p.name, ['Cuota pendiente'], montoCuota(), equipo.linkPago || undefined);
+          : await sendPaymentReminder(p.email!, p.name, mesesDe(deudas.get(p.id)!), clp(deudas.get(p.id)!.totalDebt), equipo.linkPago || undefined);
         if (ok) sent++;
       }
       aviso.ok(`Enviados ${sent} de ${targets.length} correos.`);

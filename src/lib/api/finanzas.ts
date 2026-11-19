@@ -7,6 +7,7 @@
  */
 import { supabase, withTimeout } from '../supabase';
 import { applyRebalancePlan, planHasChanges, planRebalance, type PaymentRow } from '../paymentLedger';
+import { esAbono, recibido as recibidoDe, totalRecibido, type FilaDinero } from '../cuotas';
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,6 @@ export function cuotasDelMes(
   historial: PaymentRow[],
   month: number,
   year: number,
-  quota: number,
 ): FilaCuota[] {
   const delMes = historial.filter((h) => h.month === month && h.year === year);
 
@@ -121,10 +121,9 @@ export function cuotasDelMes(
     const isManualExempt = !isAutoExempt && payment?.status === 'Exento';
     const isExempt = isAutoExempt || isManualExempt;
 
-    // n8n deja "Pendiente" con el monto de la cuota como deuda; aquí `amount`
-    // siempre es lo recibido, así que esa deuda cuenta como 0.
-    let recibido = Number(payment?.amount ?? 0);
-    if ((payment?.status === 'Pendiente' || payment?.status === 'Atrasado') && recibido >= quota) recibido = 0;
+    // `amount` es siempre lo recibido: un mes pagado o un abono. La deuda que
+    // anotaba n8n (es_deuda) cuenta como 0.
+    const recibido = payment ? recibidoDe(payment) : 0;
 
     return {
       player_id: p.id,
@@ -164,15 +163,10 @@ export function morososDeCaja(jugadores: JugadorCaja[], historial: PaymentRow[],
         m++;
         if (m > 12) { m = 1; y++; }
       }
-      // Abonos: filas sin pagar con un monto menor a la cuota, en meses que aún debe.
-      // (Una fila pendiente con el monto completo de la cuota es solo la deuda anotada.)
+      // Abonos: dinero recibido a cuenta de meses que aún debe (la deuda anotada no cuenta).
       const debe = new Set(pendingMonths.map((mes) => `${mes.year}-${mes.month}`));
-      const abonado = historial.reduce((suma, h) => {
-        const monto = Number(h.amount ?? 0);
-        const esAbono = h.player_id === p.id && (h.status === 'Pendiente' || h.status === 'Atrasado')
-          && monto > 0 && monto < quota && debe.has(`${h.year}-${h.month}`);
-        return esAbono ? suma + monto : suma;
-      }, 0);
+      const abonado = historial.reduce((suma, h) =>
+        h.player_id === p.id && esAbono(h) && debe.has(`${h.year}-${h.month}`) ? suma + Number(h.amount) : suma, 0);
       const totalDebt = Math.max(0, pendingMonths.length * quota - abonado);
       return { id: p.id, name: p.name, nickname: p.nickname, pendingMonths, abonado, totalDebt };
     })
@@ -215,7 +209,8 @@ export function resumenDeCaja(
     morososThisMonth,
     totalActivePlayers,
     tasaMora: totalActivePlayers > 0 ? Math.round((morososThisMonth / totalActivePlayers) * 100) : 0,
-    monthlyIncome: suma(datos.payments.filter((p) => p.status === 'Pagado')),
+    // Lo recibido en el mes: meses pagados y abonos (amount ya es solo lo recibido).
+    monthlyIncome: suma(datos.payments),
   };
 }
 
@@ -260,7 +255,7 @@ export async function cargarCaja(teamId: number, month: number, year: number, is
 
   // 2. El resto, siempre filtrado por el equipo.
   const [pagadosIniciales, expenses, cashIncomes, settingsRes, historialInicial] = await Promise.all([
-    allPlayerIds.length === 0 ? [] : filas<{ amount: number }>(supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', allPlayerIds)),
+    allPlayerIds.length === 0 ? [] : filas<FilaDinero>(supabase.from('payments').select('amount, status, es_deuda').in('status', ['Pagado', 'Pendiente', 'Atrasado']).in('player_id', allPlayerIds)),
     filas<Movimiento>(supabase.from('expenses').select('*').eq('team_id', teamId).order('date', { ascending: false })),
     filas<Movimiento>(supabase.from('cash_incomes').select('*').eq('team_id', teamId).order('date', { ascending: false })),
     withTimeout(Promise.resolve(supabase.from('team_settings').select('id, quota_amount').eq('id', teamId).single()), 10000),
@@ -279,7 +274,7 @@ export async function cargarCaja(teamId: number, month: number, year: number, is
       for (const plan of conCambios) await applyRebalancePlan(supabase, plan);
       const [histRes, paidRes] = await Promise.all([
         supabase.from('payments').select('*').in('player_id', playerIds),
-        supabase.from('payments').select('amount').eq('status', 'Pagado').in('player_id', allPlayerIds),
+        supabase.from('payments').select('amount, status, es_deuda').in('status', ['Pagado', 'Pendiente', 'Atrasado']).in('player_id', allPlayerIds),
       ]);
       if (!histRes.error) historial = histRes.data || [];
       if (!paidRes.error) pagados = paidRes.data || [];
@@ -296,9 +291,10 @@ export async function cargarCaja(teamId: number, month: number, year: number, is
   return {
     quota,
     settingsId: settingsRes.data?.id ?? null,
-    payments: cuotasDelMes(jugadores, historial, month, year, quota),
+    payments: cuotasDelMes(jugadores, historial, month, year),
     morosos: morososDeCaja(jugadores, historial, quota),
-    allPaidAmount: suma(pagados),
+    // Saldo: todo lo recibido en cuotas, incluidos los abonos.
+    allPaidAmount: totalRecibido(pagados),
     expenses,
     cashIncomes,
   };

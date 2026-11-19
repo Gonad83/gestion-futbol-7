@@ -3,6 +3,8 @@
 // Así nunca queda un mes "Pagado" con un mes anterior impago, y un pago
 // adelantado no se pierde cuando empieza un mes nuevo.
 
+import { esAbono } from './cuotas';
+
 export interface PaymentRow {
   id?: string;
   player_id: string;
@@ -13,6 +15,8 @@ export interface PaymentRow {
   payment_method?: string | null;
   notified_at?: string | null;
   created_at?: string | null;
+  /** Deuda anotada por n8n ("Pendiente $8.000"): su monto no es dinero recibido. */
+  es_deuda?: boolean | null;
 }
 
 export interface RebalancePlan {
@@ -30,12 +34,8 @@ const cmpYM = (a: { year: number; month: number }, b: { year: number; month: num
 /** Enero y febrero no tienen cuota. */
 export const isBillableMonth = (month: number) => month > 2;
 
-/** Cuánto dinero aporta realmente la fila (n8n inserta "Pendiente" con amount = cuota como deuda). */
-const partialAmount = (r: PaymentRow, quota: number) => {
-  if (r.status !== 'Pendiente' && r.status !== 'Atrasado') return 0;
-  const a = Number(r.amount ?? 0);
-  return a > 0 && a < quota ? a : 0;
-};
+/** Dinero de un abono (fila sin pagar con monto que no es deuda anotada). No depende de la cuota. */
+const partialAmount = (r: PaymentRow) => (esAbono(r) ? Number(r.amount) : 0);
 
 /**
  * Calcula cómo deben quedar los pagos de UN jugador.
@@ -60,7 +60,7 @@ export function planRebalance(
   const fullRows = others
     .filter(r => r.status === 'Pagado')
     .sort((a, b) => cmpYM(a, b) || String(a.created_at ?? '').localeCompare(String(b.created_at ?? '')));
-  const partialRows = others.filter(r => partialAmount(r, quota) > 0);
+  const partialRows = others.filter(r => partialAmount(r) > 0);
 
   // Créditos a ubicar: cada fila Pagado = un mes; los abonos se suman.
   type Credit = { status: 'Pagado' | 'Pendiente'; amount: number; payment_method: string | null };
@@ -69,7 +69,7 @@ export function planRebalance(
     amount: Number(r.amount ?? 0),
     payment_method: r.payment_method ?? null,
   }));
-  let partial = partialRows.reduce((s, r) => s + partialAmount(r, quota), 0) + Math.max(0, extraCredit);
+  let partial = partialRows.reduce((s, r) => s + partialAmount(r), 0) + Math.max(0, extraCredit);
   const partialMethod = method ?? partialRows[0]?.payment_method ?? null;
   if (quota > 0) {
     while (partial >= quota) {
@@ -136,18 +136,20 @@ export function planRebalance(
     if (keep.status !== d.status) changes.status = d.status;
     if (Number(keep.amount ?? 0) !== d.amount) changes.amount = d.amount;
     if (d.payment_method && keep.payment_method !== d.payment_method) changes.payment_method = d.payment_method;
+    if (keep.es_deuda && (changes.status || changes.amount !== undefined)) changes.es_deuda = false;
     if (keep.id && Object.keys(changes).length > 0) updates.push({ id: keep.id, changes });
     finalRows.push({ ...keep, ...changes });
   }
 
   // Filas sobrantes con dinero se mueven a los meses de destino libres.
-  const spare = others.filter(r => !used.has(r) && (r.status === 'Pagado' || partialAmount(r, quota) > 0));
+  const spare = others.filter(r => !used.has(r) && (r.status === 'Pagado' || partialAmount(r) > 0));
   for (const d of pending) {
     const idx = d.status === 'Pagado' ? (spare.length > 0 ? 0 : -1) : spare.findIndex(r => r.status !== 'Pagado');
     const row = idx >= 0 ? spare.splice(idx, 1)[0] : undefined;
     if (row) {
       used.add(row);
       const changes: Partial<PaymentRow> = { month: d.month, year: d.year, status: d.status, amount: d.amount };
+      if (row.es_deuda) changes.es_deuda = false;
       if (d.payment_method) changes.payment_method = d.payment_method;
       if (row.id) updates.push({ id: row.id, changes });
       finalRows.push({ ...row, ...changes });
@@ -164,7 +166,7 @@ export function planRebalance(
   // Lo que sobró ya fue contado en otro mes: queda como pendiente sin monto.
   for (const r of others) {
     if (used.has(r)) continue;
-    if (r.status === 'Pagado' || partialAmount(r, quota) > 0) {
+    if (r.status === 'Pagado' || partialAmount(r) > 0) {
       if (r.id) updates.push({ id: r.id, changes: { status: 'Pendiente', amount: 0 } });
       finalRows.push({ ...r, status: 'Pendiente', amount: 0 });
     } else {
@@ -178,21 +180,21 @@ export function planRebalance(
 export const planHasChanges = (p: RebalancePlan) =>
   p.deletes.length > 0 || p.updates.length > 0 || p.inserts.length > 0;
 
-/** Aplica el plan en Supabase: primero borra duplicados, luego actualiza, luego inserta. */
+/**
+ * Aplica el plan en Supabase en una sola transacción (función aplicar_reacomodo):
+ * si algo falla, no queda nada a medias.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function applyRebalancePlan(supabase: any, plan: RebalancePlan) {
-  if (plan.deletes.length > 0) {
-    const { error } = await supabase.from('payments').delete().in('id', plan.deletes);
-    if (error) throw error;
-  }
+  if (!planHasChanges(plan)) return;
   // Los "liberados" (quedan en 0) van antes que los movimientos para no chocar de mes.
-  const sorted = [...plan.updates].sort((a, b) =>
+  const cambios = [...plan.updates].sort((a, b) =>
     (a.changes.month === undefined ? 0 : 1) - (b.changes.month === undefined ? 0 : 1));
-  for (const u of sorted) {
-    const { error } = await supabase.from('payments').update(u.changes).eq('id', u.id);
-    if (error) throw error;
-  }
-  if (plan.inserts.length > 0) {
-    const { error } = await supabase.from('payments').insert(plan.inserts);
-    if (error) throw error;
-  }
+  const { error } = await supabase.rpc('aplicar_reacomodo', {
+    p_borrar: plan.deletes,
+    p_cambios: cambios,
+    p_nuevos: plan.inserts.map(({ player_id, month, year, status, amount, payment_method }) =>
+      ({ player_id, month, year, status, amount: Number(amount ?? 0), payment_method: payment_method ?? null })),
+  });
+  if (error) throw error;
 }

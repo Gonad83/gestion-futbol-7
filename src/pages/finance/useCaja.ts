@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type SyntheticEvent } from 'react';
 import { aviso, confirmar } from '../../lib/avisos';
-import { MONTHS, clp } from '../../lib/formato';
+import { MONTHS, clp, hoyLocal } from '../../lib/formato';
 import { aCsv, csvDeCaja, htmlDeCaja, type PestanaCaja } from '../../lib/reportesCaja';
 import {
   CUOTA_POR_DEFECTO,
@@ -37,7 +37,7 @@ export function useCaja(teamId: number | null, isAdmin: boolean) {
   const [copiedAll, setCopiedAll] = useState(false);
   const [copiedPlayer, setCopiedPlayer] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = hoyLocal();
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenseData, setExpenseData] = useState({ concept: '', amount: '', date: today });
   const [showIncomeForm, setShowIncomeForm] = useState(false);
