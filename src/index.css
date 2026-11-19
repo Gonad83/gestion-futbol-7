@@ -16,6 +16,18 @@
     font-family: 'Lexend', system-ui, sans-serif;
   }
 
+  /* La lista que despliega un selector la dibuja el sistema: sin esto sale blanca,
+     con el texto blanco heredado, y no se lee nada. */
+  select {
+    color-scheme: dark;
+  }
+
+  select option,
+  select optgroup {
+    background-color: #1c2026;
+    color: #fff;
+  }
+
   /* Quien navega con teclado ve siempre dónde está parado. */
   :focus-visible {
     outline: 2px solid #44f3a9;
