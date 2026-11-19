@@ -1,11 +1,6 @@
 import type { CSSProperties } from 'react';
 import { ArrowLeftRight } from 'lucide-react';
-
-export type TonoLamina = 'oro' | 'plata' | 'bronce' | 'arquero';
-
-/** Oro para los cracks (6-7 estrellas), plata para el medio (4-5), bronce el resto. */
-export const tonoPorEstrellas = (estrellas?: number | null): TonoLamina =>
-  !estrellas ? 'plata' : estrellas >= 6 ? 'oro' : estrellas >= 4 ? 'plata' : 'bronce';
+import type { TonoLamina } from '../lib/lamina';
 
 const iniciales = (nombre: string) => nombre.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
 
@@ -19,6 +14,8 @@ interface Props {
   puesto: string;
   tono: TonoLamina;
   fueraDePuesto?: boolean;
+  /** Color de la camiseta del equipo: pinta la punta de abajo. */
+  camiseta?: string;
   elegido?: boolean;
   /** Alto de la lámina (cualquier medida CSS); el resto se escala solo. */
   alto: string;
@@ -30,7 +27,7 @@ interface Props {
 }
 
 /** Lámina de jugador al estilo de las cartas de FIFA: nota, puesto, foto y nombre. */
-export function Lamina({ nombre, rotulo, foto, estrellas, puesto, tono, fueraDePuesto, elegido = false, alto, orden = 0, onClick, ariaLabel, title }: Props) {
+export function Lamina({ nombre, rotulo, foto, estrellas, puesto, tono, fueraDePuesto, camiseta, elegido = false, alto, orden = 0, onClick, ariaLabel, title }: Props) {
   return (
     <span className={`lamina-sombra flex ${elegido ? 'lamina-sombra-elegida' : ''}`}>
     <button type="button" onClick={onClick} disabled={!onClick} aria-pressed={onClick ? elegido : undefined}
@@ -50,6 +47,7 @@ export function Lamina({ nombre, rotulo, foto, estrellas, puesto, tono, fueraDeP
           <span className="lamina-aviso" aria-hidden="true"><ArrowLeftRight size="0.9em" strokeWidth={3} /></span>
         )}
         <span className="lamina-nombre">{rotulo}</span>
+        {camiseta && <span className="lamina-punta" style={{ background: camiseta }} aria-hidden="true" />}
         <span className="lamina-brillo" aria-hidden="true" />
       </span>
     </button>

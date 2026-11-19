@@ -1,5 +1,7 @@
 import { Scale, Info } from 'lucide-react';
-import { getAvg, hexCamiseta, posicionVertical, type Equipo, type JugadorMM, type SeleccionCambio } from '../../lib/matchmaking';
+import { Lamina } from '../../components/Lamina';
+import { tonoPorEstrellas } from '../../lib/lamina';
+import { esInvitado, getAvg, hexCamiseta, posicionVertical, sinMarcaDeInvitado, type Equipo, type JugadorMM, type SeleccionCambio } from '../../lib/matchmaking';
 
 const nombreCorto = (nombre: string) => {
   const limpio = nombre.replace(/\s*\(I\)\s*$/i, '').trim();
@@ -12,31 +14,31 @@ interface FichaProps {
   color: string;
   arquero: boolean;
   elegido: boolean;
+  alto: string;
+  orden: number;
   onClick?: () => void;
 }
 
-function Ficha({ jugador, color, arquero, elegido, onClick }: FichaProps) {
-  const anillo = arquero ? '#ffd08b' : color;
+function Ficha({ jugador, color, arquero, elegido, alto, orden, onClick }: FichaProps) {
+  const nombre = sinMarcaDeInvitado(jugador.name);
+  const puesto = arquero ? 'POR' : esInvitado(jugador) ? 'INV' : jugador.position?.trim().slice(0, 3).toUpperCase() || '—';
   return (
-    <button type="button" onClick={onClick} disabled={!onClick}
-      aria-label={`${jugador.name}${elegido ? ', elegido para cambiar' : ''}`} aria-pressed={elegido}
-      className="flex flex-col items-center gap-0.5 w-16 enabled:cursor-pointer">
-      <span className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold text-white transition-transform"
-        style={{
-          background: '#10141a', border: `2.5px solid ${anillo}`,
-          boxShadow: elegido ? '0 0 0 4px rgba(255,208,139,0.35), 0 0 18px rgba(255,208,139,0.6)' : '0 4px 10px rgba(0,0,0,0.5)',
-          transform: elegido ? 'scale(1.12)' : undefined,
-        }}>
-        {jugador.photo_url
-          ? <img src={jugador.photo_url} alt="" className="w-full h-full object-cover" />
-          : jugador.name.replace(/\s*\(I\)\s*$/i, '').trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')}
-      </span>
-      <span className="max-w-full truncate px-1 rounded text-[11px] font-semibold leading-tight"
-        style={elegido ? { background: '#ffd08b', color: '#2b1d00' } : { color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-        {nombreCorto(jugador.name)}
-      </span>
-    </button>
+    <Lamina nombre={nombre} rotulo={jugador.nickname?.trim() || nombre.split(/\s+/).pop() || nombre} foto={jugador.photo_url}
+      estrellas={jugador.rating} puesto={puesto} tono={arquero ? 'arquero' : tonoPorEstrellas(jugador.rating)} camiseta={color}
+      elegido={elegido} alto={alto} orden={orden} onClick={onClick}
+      ariaLabel={`${jugador.name}${elegido ? ', elegido para cambiar' : ''}`} title={jugador.name} />
   );
+}
+
+/**
+ * Alto de las láminas de un equipo: lo que deja el espacio entre sus líneas
+ * (cada equipo ocupa un 33% del alto de la cancha) y el ancho de su línea más poblada.
+ */
+function altoLamina(formacion: string): string {
+  const lineas = [1, ...formacion.split('-').map(Number)];
+  const entreLineas = lineas.length > 1 ? 33 / (lineas.length - 1) : 33;
+  const porAncho = (100 / (Math.max(...lineas) + 1)) * 0.92 * (4 / 3);
+  return `min(${(entreLineas * 0.95).toFixed(2)}cqh, ${porAncho.toFixed(2)}cqw, 16cqh)`;
 }
 
 interface Props {
@@ -59,17 +61,20 @@ export function CanchaMovil({ teamA, teamB, formationA, formationB, colorA, colo
   const banca = (equipo: JugadorMM[], formacion: string) => equipo.filter((_, i) => posicionVertical(i, 'A', formacion) === null);
   const bancaA = banca(teamA, formationA);
   const bancaB = banca(teamB, formationB);
-  const fichas = (equipo: JugadorMM[], team: Equipo, formacion: string, color: string) =>
-    equipo.map((p, i) => {
+  const fichas = (equipo: JugadorMM[], team: Equipo, formacion: string, color: string) => {
+    const alto = altoLamina(formacion);
+    return equipo.map((p, i) => {
       const pos = posicionVertical(i, team, formacion);
       if (!pos) return null;
+      const elegido = swapSelection?.team === team && swapSelection?.index === i;
       return (
-        <div key={p.id} className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-500" style={pos}>
-          <Ficha jugador={p} color={color} arquero={i === 0} onClick={canEdit ? () => handleSwap(team, i) : undefined}
-            elegido={swapSelection?.team === team && swapSelection?.index === i} />
+        <div key={p.id} className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-500" style={{ ...pos, zIndex: elegido ? 2 : 1 }}>
+          <Ficha jugador={p} color={color} arquero={i === 0} alto={alto} orden={i} elegido={elegido}
+            onClick={canEdit ? () => handleSwap(team, i) : undefined} />
         </div>
       );
     });
+  };
 
   const diferencia = Math.abs(Number(getAvg(teamA)) - Number(getAvg(teamB))).toFixed(1);
 
@@ -81,14 +86,22 @@ export function CanchaMovil({ teamA, teamB, formationA, formationB, colorA, colo
         </p>
       )}
 
-      <div className="relative w-full aspect-[3/4] rounded-[20px] overflow-hidden"
-        style={{ background: 'repeating-linear-gradient(180deg, #0f3d2c 0 12.5%, #0d3627 12.5% 25%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      {/* Más alta que ancha para que las láminas de los dos equipos quepan sin encimarse. */}
+      <div className="relative w-full aspect-[9/16] rounded-[20px] overflow-hidden"
+        style={{
+          containerType: 'size',
+          background: 'radial-gradient(ellipse 80% 40% at 50% 50%, rgba(68,243,169,0.12), transparent 70%), repeating-linear-gradient(180deg, #14553c 0 6.25%, #0f4530 6.25% 12.5%)',
+          boxShadow: 'inset 0 0 60px rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.08)',
+        }}>
         {/* Líneas de la cancha */}
-        <div className="absolute inset-3 rounded-xl border border-white/20 pointer-events-none" />
-        <div className="absolute left-3 right-3 top-1/2 h-px bg-white/20 pointer-events-none" />
-        <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 pointer-events-none" />
-        <div className="absolute left-1/2 top-3 w-32 h-14 -translate-x-1/2 border border-t-0 border-white/20 pointer-events-none" />
-        <div className="absolute left-1/2 bottom-3 w-32 h-14 -translate-x-1/2 border border-b-0 border-white/20 pointer-events-none" />
+        <div className="absolute inset-3 rounded-xl border-2 border-white/25 pointer-events-none" />
+        <div className="absolute left-3 right-3 top-1/2 h-0.5 -translate-y-1/2 bg-white/25 pointer-events-none" />
+        <div className="absolute left-1/2 top-1/2 w-[28%] aspect-square -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/25 pointer-events-none" />
+        <div className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/40 pointer-events-none" />
+        <div className="absolute left-1/2 top-3 w-[56%] h-[11%] -translate-x-1/2 border-2 border-t-0 border-white/25 pointer-events-none" />
+        <div className="absolute left-1/2 top-3 w-[26%] h-[4.5%] -translate-x-1/2 border-2 border-t-0 border-white/25 pointer-events-none" />
+        <div className="absolute left-1/2 bottom-3 w-[56%] h-[11%] -translate-x-1/2 border-2 border-b-0 border-white/25 pointer-events-none" />
+        <div className="absolute left-1/2 bottom-3 w-[26%] h-[4.5%] -translate-x-1/2 border-2 border-b-0 border-white/25 pointer-events-none" />
 
         {fichas(teamB, 'B', formationB, hexCamiseta(colorB))}
         {fichas(teamA, 'A', formationA, hexCamiseta(colorA))}

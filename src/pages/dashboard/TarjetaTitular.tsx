@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Info, RotateCcw, Shield, Star } from 'lucide-react';
 import type { DashboardStats, JugadorDash } from '../../lib/api/dashboard';
-import { Lamina, tonoPorEstrellas } from '../../components/Lamina';
+import { Lamina } from '../../components/Lamina';
+import { tonoPorEstrellas } from '../../lib/lamina';
 import { FORMATIONS } from '../../lib/matchmaking';
 import { armarTitular, intercambiarPuestos, LINEAS, type Puesto, type TitularGuardado } from './titular';
 

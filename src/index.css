@@ -386,6 +386,11 @@
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
+.lamina-punta {
+  position: absolute;
+  inset: 87% 0 0 0;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.35);
+}
 .lamina-brillo {
   position: absolute;
   inset: 0;
