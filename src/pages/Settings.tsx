@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { aviso } from '../lib/avisos';
 import { EQUIPO_ACTUALIZADO } from '../lib/config';
 import { BarraGuardar } from '../components/BarraGuardar';
+import { Suscripcion } from './settings/Suscripcion';
 
 const REGIONS_CL = [
   'Región Metropolitana','Arica y Parinacota','Tarapacá','Antofagasta','Atacama',
@@ -377,6 +378,8 @@ export default function Settings() {
             </Fila>
             <p className="text-xs text-white/50">Los eventos sociales se crean en Calendario → <strong className="text-white/70">+ Evento</strong> → 🎉 Recreacional.</p>
           </Seccion>
+
+          <Suscripcion />
         </form>
       )}
 
