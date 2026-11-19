@@ -90,6 +90,8 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
   const brillo = esInicio ? 'rgba(68,243,169,0.18)' : 'rgba(255,208,139,0.18)';
   const cifra = esInicio ? cuota : a.total;
   const n = a.pendientes.length;
+  // Quien debe varias cuotas no tiene que pagarlas todas juntas: puede abonar.
+  const variasCuotas = n > 1;
 
   const titulo = esInicio ? `Cuota de ${mesActual}` : 'Tu cuota sigue pendiente';
   const etiqueta = esInicio ? `${mesActual} ${hoy.year}` : `Recordatorio · ${mesActual}`;
@@ -138,13 +140,22 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
 
   const estiloBoton = 'display:block;padding:16px;border-radius:14px;background:#44f3a9;background-image:linear-gradient(135deg,#44f3a9,#00d68f);color:#003822;font-family:' + LEXEND + ';font-size:16px;font-weight:700;text-decoration:none;text-align:center;';
   const botonPrincipal = pago
-    ? `<a href="${escapar(pago)}" style="${estiloBoton}">Pagar ${clp(esInicio ? cuota : a.total)}</a>`
+    ? `<a href="${escapar(pago)}" style="${estiloBoton}">${variasCuotas ? 'Pagar o abonar' : `Pagar ${clp(cuota)}`}</a>`
     : `<a href="${SITIO}/profile" style="${estiloBoton}">Subir mi comprobante</a>`;
   const botonSecundario = pago
     ? `<a href="${SITIO}/profile" style="display:block;margin-top:10px;padding:14px;border-radius:14px;background:#262a31;color:#9acbff;font-size:14px;font-weight:700;text-decoration:none;text-align:center;">Ya transferí: subir comprobante</a>`
     : '';
+  const abono = variasCuotas ? `
+    <tr><td style="padding:10px 28px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(154,203,255,0.08);border-radius:14px;">
+        <tr><td style="padding:14px 18px;color:rgba(255,255,255,0.75);font-size:13px;line-height:1.55;"><strong style="color:#9acbff;">No tienes que pagar todo de una vez.</strong> Puedes abonar de a una cuota (${clp(cuota)}) o lo que puedas este mes: cada abono cubre primero el mes más antiguo.</td></tr>
+      </table>
+    </td></tr>` : '';
+  const paso1 = pago
+    ? (variasCuotas ? 'Paga o abona con el botón, o haz la transferencia de siempre.' : 'Paga con el botón o haz la transferencia de siempre.')
+    : (variasCuotas ? 'Haz la transferencia de siempre, por el total o por un abono.' : 'Haz la transferencia de siempre.');
 
-  const paso = (numero: number, texto: string) => `
+  const paso =(numero: number, texto: string) => `
         <tr>
           <td width="34" valign="top" style="padding:0 0 10px;"><span style="display:inline-block;width:24px;height:24px;line-height:24px;border-radius:999px;background:rgba(68,243,169,0.14);color:#44f3a9;font-size:12px;font-weight:800;text-align:center;">${numero}</span></td>
           <td valign="top" style="padding:2px 0 10px;color:rgba(255,255,255,0.65);font-size:13px;line-height:1.5;">${texto}</td>
@@ -188,10 +199,10 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
       <p style="margin:0 0 10px;color:#ffffff;font-family:${LEXEND};font-size:17px;font-weight:700;">Hola ${escapar(a.nombre)} 👋</p>
       <p style="margin:0;color:rgba(255,255,255,0.7);font-size:15px;line-height:1.6;">${mensaje}</p>
     </td></tr>${filaDeDatos}${cajaDeMeses}
-    <tr><td style="padding:14px 28px 6px;">${botonPrincipal}${botonSecundario}</td></tr>
+    <tr><td style="padding:14px 28px 6px;">${botonPrincipal}${botonSecundario}</td></tr>${abono}
     <tr><td style="padding:22px 28px 14px;">
       <p style="margin:0 0 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;">Cómo queda registrado</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${paso(1, pago ? 'Paga con el botón o haz la transferencia de siempre.' : 'Haz la transferencia de siempre.')}${paso(2, 'Si transferiste, sube la foto del comprobante en tu perfil.')}${paso(3, 'El capitán lo aprueba y tu cuota queda al día en la Caja.')}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${paso(1, paso1)}${paso(2, 'Si transferiste, sube la foto del comprobante en tu perfil.')}${paso(3, 'El capitán lo aprueba y tu cuota queda al día en la Caja.')}
       </table>
     </td></tr>
     <tr><td style="padding:0 28px 26px;">
