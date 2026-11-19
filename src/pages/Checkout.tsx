@@ -221,7 +221,9 @@ export default function Checkout() {
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block font-headline font-bold text-[#101923]">Pagar con {p.titulo}</span>
-                  <span className="block text-xs mt-0.5 text-[#5b6573]">{p.id === 'flow' && cycle === 'mensual' ? 'Inscribes tu tarjeta y se cobra solo cada mes' : p.detalle}</span>
+                  <span className="block text-xs mt-0.5 text-[#5b6573]">{cycle === 'mensual'
+                    ? (p.id === 'flow' ? 'Inscribes tu tarjeta y se cobra solo cada mes' : 'Pagas este mes; para el siguiente vuelves a pagar')
+                    : p.detalle}</span>
                 </span>
                 {cargando === p.id
                   ? <Loader2 size={20} className="animate-spin shrink-0 text-[#101923]" />

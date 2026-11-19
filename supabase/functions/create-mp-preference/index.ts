@@ -46,65 +46,38 @@ serve(async (req) => {
     const isAnnual = cycle === 'anual';
     const successUrl = `${origin}/register-captain?plan=${plan}&cycle=${cycle}&status=approved&email=${encodeURIComponent(payer?.email || '')}&name=${encodeURIComponent(payer?.name || '')}&team=${encodeURIComponent(payer?.teamName || '')}`;
 
-    let url: string;
+    // Mensual o anual, por Mercado Pago es siempre un pago único: un mes o un año.
+    // Antes el mensual era una suscripción de Mercado Pago con el primer mes gratis,
+    // y sus cobros nunca llegaban a la app (mp-webhook solo entiende pagos). La
+    // renovación automática mensual se ofrece con Flow (flow-suscripcion).
+    const preference = {
+      items: [{
+        title: planLabel,
+        quantity: 1,
+        unit_price: amount,
+        currency_id: 'CLP',
+      }],
+      payer: { email: payer?.email || '' },
+      // El correo con que se registra el equipo: Mercado Pago puede informar
+      // como pagador el de su propia cuenta, que puede ser otro.
+      metadata: { email: String(payer?.email || '').trim().toLowerCase() },
+      external_reference: `clubpro_${plan}_${isAnnual ? 'annual' : 'monthly'}_${Date.now()}`,
+      back_urls: {
+        success: successUrl,
+        failure: `${origin}/checkout?plan=${plan}&cycle=${cycle}`,
+        pending: `${origin}/checkout?plan=${plan}&cycle=${cycle}`,
+      },
+      auto_return: 'approved',
+    };
 
-    if (isAnnual) {
-      // Pago único anual
-      const preference = {
-        items: [{
-          title: planLabel,
-          quantity: 1,
-          unit_price: amount,
-          currency_id: 'CLP',
-        }],
-        payer: { email: payer?.email || '' },
-        // El correo con que se registra el equipo: Mercado Pago puede informar
-        // como pagador el de su propia cuenta, que puede ser otro.
-        metadata: { email: String(payer?.email || '').trim().toLowerCase() },
-        external_reference: `clubpro_${plan}_annual_${Date.now()}`,
-        back_urls: {
-          success: successUrl,
-          failure: `${origin}/checkout?plan=${plan}&cycle=${cycle}`,
-          pending: `${origin}/checkout?plan=${plan}&cycle=${cycle}`,
-        },
-        auto_return: 'approved',
-      };
-
-      const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(preference),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || JSON.stringify(data));
-      url = data.init_point;
-
-    } else {
-      // Suscripción mensual recurrente
-      const subscription = {
-        reason: planLabel,
-        external_reference: `clubpro_${plan}_monthly_${Date.now()}`,
-        payer_email: payer?.email || '',
-        auto_recurring: {
-          frequency: 1,
-          frequency_type: 'months',
-          transaction_amount: amount,
-          currency_id: 'CLP',
-        },
-        free_trial: { frequency: 1, frequency_type: 'months' },
-        back_url: successUrl,
-        status: 'pending',
-      };
-
-      const res = await fetch('https://api.mercadopago.com/preapproval', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || JSON.stringify(data));
-      url = data.init_point;
-    }
+    const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(preference),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+    const url: string = data.init_point;
 
     return new Response(JSON.stringify({ url }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
