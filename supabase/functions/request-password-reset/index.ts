@@ -18,7 +18,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SITIO = 'https://miclubpro.cl';
 const MAX_POR_CORREO_POR_HORA = 3;
-const MAX_TOTAL_POR_HORA = 60;
+// Antes había un tope de 60 por hora para todos: cualquiera podía gastarlo y
+// dejar sin correo de recuperación a todo el resto. Ahora el tope es por
+// correo y por conexión.
+const MAX_POR_IP_POR_HORA = 10;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -74,19 +77,23 @@ serve(async (req) => {
 
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const haceUnaHora = new Date(Date.now() - 60 * 60_000).toISOString();
+    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim().slice(0, 64) || 'desconocida';
 
-    const [{ count: delCorreo }, { count: total }] = await Promise.all([
+    // Primero se anota el pedido y después se cuenta (incluyéndolo): así dos
+    // pedidos al mismo tiempo no pasan los dos por debajo del tope.
+    const { error: errAnotar } = await admin.from('password_reset_requests').insert({ email: destinatario, ip });
+    if (errAnotar) throw new Error(errAnotar.message);
+    const [{ count: delCorreo }, { count: deLaIp }] = await Promise.all([
       admin.from('password_reset_requests').select('id', { count: 'exact', head: true })
         .eq('email', destinatario).gte('created_at', haceUnaHora),
       admin.from('password_reset_requests').select('id', { count: 'exact', head: true })
-        .gte('created_at', haceUnaHora),
+        .eq('ip', ip).gte('created_at', haceUnaHora),
     ]);
     // Pasado el límite se responde "listo" igual: quien insiste no aprende nada
     // y el buzón del jugador no se llena.
-    if ((delCorreo ?? 0) >= MAX_POR_CORREO_POR_HORA || (total ?? 0) >= MAX_TOTAL_POR_HORA) {
+    if ((delCorreo ?? 0) > MAX_POR_CORREO_POR_HORA || (deLaIp ?? 0) > MAX_POR_IP_POR_HORA) {
       return json({ ok: true });
     }
-    await admin.from('password_reset_requests').insert({ email: destinatario });
 
     const { data: enlace, error: errEnlace } = await admin.auth.admin.generateLink({
       type: 'recovery',

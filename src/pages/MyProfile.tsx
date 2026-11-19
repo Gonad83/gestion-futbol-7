@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { subirFoto } from '../lib/subirFoto';
 import { useAuth } from '../hooks/useAuth';
 import { Camera, UserCircle, Star } from 'lucide-react';
 import { aviso } from '../lib/avisos';
@@ -112,12 +113,7 @@ export default function MyProfile() {
     setGuardando(true);
     try {
       let urlFoto = playerProfile.photo_url || '';
-      if (foto) {
-        const nombre = `${Date.now()}.${foto.name.split('.').pop()}`;
-        const { error: errSubida } = await supabase.storage.from('foto jugadores').upload(nombre, foto, { upsert: true });
-        if (errSubida) throw errSubida;
-        urlFoto = supabase.storage.from('foto jugadores').getPublicUrl(nombre).data.publicUrl;
-      }
+      if (foto) urlFoto = await subirFoto(foto, 'jugador');
       const { data: actualizado, error } = await supabase.from('players').update({
         name: datos.name.trim(),
         nickname: datos.nickname,

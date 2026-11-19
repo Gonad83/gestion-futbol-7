@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { subirFoto } from '../lib/subirFoto';
 import { Camera, Copy, Check, Share2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { aviso } from '../lib/avisos';
@@ -212,14 +213,7 @@ export default function Settings() {
     setPreview(URL.createObjectURL(file));
   };
 
-  const uploadImage = async (file: File, prefix: string) => {
-    const ext = file.name.split('.').pop();
-    const fileName = `${prefix}_${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('foto jugadores').upload(fileName, file, { upsert: true });
-    if (error) throw error;
-    const { data } = supabase.storage.from('foto jugadores').getPublicUrl(fileName);
-    return data.publicUrl;
-  };
+  const uploadImage = (file: File, prefix: string) => subirFoto(file, prefix);
 
   const handleSave = async (e?: React.FormEvent) => {
     e?.preventDefault();

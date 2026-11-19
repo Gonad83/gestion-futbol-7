@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import { subirFoto } from '../lib/subirFoto';
 import { sendWelcomeEmail } from '../lib/sendEmail';
 import { X, Camera, Upload, Star } from 'lucide-react';
 import { SUB_STATS, MAX_STARS, subStat, ratingFromSubStats, type SubStatKey } from '../lib/playerStats';
@@ -97,16 +98,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
     try {
       let finalPhotoUrl = formData.photo_url;
 
-      if (photoFile) {
-        const ext = photoFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('foto jugadores')
-          .upload(fileName, photoFile, { upsert: true });
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('foto jugadores').getPublicUrl(fileName);
-        finalPhotoUrl = urlData.publicUrl;
-      }
+      if (photoFile) finalPhotoUrl = await subirFoto(photoFile, 'jugador');
 
       // Remove virtual fields from payload to avoid Supabase errors
       const { matchesPlayed, participationPct, ...cleanData } = formData as any;
