@@ -257,13 +257,15 @@ serve(async (req) => {
     if (hoy.month <= 2) return json({ ok: true, mensaje: 'Enero y febrero no tienen cuota.', enviados: 0 });
 
     const { data: equipos, error: errEquipos } = await db.from('team_settings')
-      .select('id, team_name, owner_id, quota_amount, payment_link, payment_button_enabled, logo_url, banner_url');
+      .select('id, team_name, owner_id, quota_amount, payment_link, payment_button_enabled, logo_url, banner_url, aviso_cuotas');
     if (errEquipos) throw errEquipos;
 
     const resumen: unknown[] = [];
 
     for (const equipo of equipos ?? []) {
       const nombreEquipo = String(equipo.team_name || 'MiClubPro');
+      // El capitán apagó los avisos de cuota en Ajustes (la prueba manual igual sale).
+      if (equipo.aviso_cuotas === false && !prueba) { resumen.push({ equipo: nombreEquipo, omitido: 'Aviso apagado en Ajustes' }); continue; }
       const cuota = Number(equipo.quota_amount ?? CUOTA_POR_DEFECTO);
       if (!(cuota > 0)) continue;
 

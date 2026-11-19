@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2 } from 'lucide-react';
-import { sendNewMatchEmail, sendMatchReminder } from '../lib/sendEmail';
+import { sendNewMatchEmail, sendMatchReminder, sendEventEmail } from '../lib/sendEmail';
 import { aviso, confirmar } from '../lib/avisos';
 import { Capa } from './Capa';
 
@@ -145,15 +145,17 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         const { data: newMatch, error: insertError } = await supabase.from('matches').insert([payload]).select();
         if (insertError) throw insertError;
 
-        // Notificar jugadores del nuevo partido via Resend
+        // Avisar a los jugadores: partido ("¿vas?") o evento social ("¿te sumas?").
         if (newMatch && newMatch.length > 0) {
           const { data: activePlayers } = await supabase.from('players').select('id, name, email').eq('team_id', teamId).eq('status', 'Activo').eq('notify', true).not('email', 'is', null);
           if (activePlayers && activePlayers.length > 0) {
             const dateLabel = format(matchDate, "EEEE d 'de' MMMM, HH:mm", { locale: es });
+            const social = formData.event_type === 'Recreacional';
             for (const player of activePlayers) {
               const confirmUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${newMatch[0].id}&status=Voy`;
               const declineUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${newMatch[0].id}&status=No%20voy`;
-              sendNewMatchEmail(player.email, player.name, dateLabel, formData.location, confirmUrl, declineUrl);
+              if (social) sendEventEmail(player.email, player.name, formData.description, dateLabel, formData.location, confirmUrl, declineUrl);
+              else sendNewMatchEmail(player.email, player.name, dateLabel, formData.location, confirmUrl, declineUrl);
             }
           }
         }
@@ -175,6 +177,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       const { data: activePlayers } = await supabase
         .from('players')
         .select('id, name, email')
+        .eq('team_id', teamId)
         .eq('status', 'Activo')
         .eq('notify', true)
         .not('email', 'is', null);
@@ -192,7 +195,9 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       for (const player of pendingPlayers) {
         const confirmUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=Voy`;
         const declineUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=No%20voy`;
-        const ok = await sendMatchReminder(player.email, player.name, dateLabel, match.location || '', confirmUrl, declineUrl);
+        const ok = match.event_type === 'Recreacional'
+          ? await sendEventEmail(player.email, player.name, match.description || '', dateLabel, match.location || '', confirmUrl, declineUrl, true)
+          : await sendMatchReminder(player.email, player.name, dateLabel, match.location || '', confirmUrl, declineUrl);
         if (ok) sent++;
       }
       aviso.ok(`Recordatorio enviado a ${sent} de ${pendingPlayers.length} jugador(es) sin responder.`);
@@ -481,7 +486,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                 <div className="mt-8 border-t border-glass-border pt-6">
                   {myPlayerId ? (
                     <>
-                      <h3 className="font-semibold text-white mb-4 text-center">¿Vas a jugar?</h3>
+                      <h3 className="font-semibold text-white mb-4 text-center">{match.event_type === 'Recreacional' ? '¿Te sumas?' : '¿Vas a jugar?'}</h3>
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handleAttendance('Voy')}
@@ -492,7 +497,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                               : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'
                           }`}
                         >
-                          <CheckCircle2 size={18} /> <span className="text-xs sm:text-sm">Confirmo</span>
+                          <CheckCircle2 size={18} /> <span className="text-xs sm:text-sm">{match.event_type === 'Recreacional' ? 'Me sumo' : 'Confirmo'}</span>
                         </button>
 
                         <button 
@@ -529,7 +534,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                 <h3 className="font-semibold text-soccer-green mb-4 flex items-center justify-between">
                   <span className="flex items-center gap-2"><Users size={18} /> Confirmados</span>
                   <span className="bg-soccer-green/20 text-soccer-green py-0.5 px-2 rounded-full text-xs font-bold ring-1 ring-soccer-green/30">
-                    {attendances.filter(a => a.status === 'Voy').length} Jugadores
+                    {attendances.filter(a => a.status === 'Voy').length} {match.event_type === 'Recreacional' ? 'Se suman' : 'Jugadores'}
                   </span>
                 </h3>
 

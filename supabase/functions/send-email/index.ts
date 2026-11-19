@@ -128,6 +128,38 @@ function templateNewMatch(data: { playerName: string; teamName: string; date: st
   };
 }
 
+/** Evento social (asado, junta): pregunta si se suma o no. */
+function templateEvento(data: { playerName: string; teamName: string; title: string; date: string; location: string; confirmUrl: string; declineUrl: string }, recordatorio: boolean) {
+  const titulo = data.title || 'Evento del equipo';
+  return {
+    subject: recordatorio ? `🎉 ¿Te sumas? ${titulo} — ${data.date}` : `🎉 ${titulo} — ${data.date}`,
+    html: `
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#10141a;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#10141a;"><tr><td align="center" style="padding:32px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#1c2026;border-radius:20px;overflow:hidden;">
+  <tr><td align="center" style="padding:36px 32px;background:#1f1633;background-image:linear-gradient(135deg,#2a1a4a 0%,#1a1230 100%);">
+    <p style="margin:0 0 6px;color:#c4b5fd;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;">${recordatorio ? 'Es mañana' : 'Nuevo evento'}</p>
+    <p style="margin:0;color:#fff;font-size:26px;font-weight:900;">🎉 ${titulo}</p>
+    <p style="margin:12px 0 0;color:#fff;font-size:17px;font-weight:700;">${data.date}</p>
+    ${data.location ? `<p style="margin:6px 0 0;color:rgba(255,255,255,0.5);font-size:13px;">📍 ${data.location}</p>` : ''}
+  </td></tr>
+  <tr><td style="padding:28px 32px;">
+    <p style="margin:0 0 14px;color:rgba(255,255,255,0.75);font-size:15px;line-height:1.6;">Hola <strong style="color:#fff">${data.playerName}</strong>,</p>
+    <p style="margin:0 0 22px;color:rgba(255,255,255,0.75);font-size:15px;line-height:1.6;">${recordatorio
+      ? `Mañana es el evento de <strong style="color:#fff">${data.teamName}</strong> y todavía no sabemos si vienes. ¿Te sumas?`
+      : `<strong style="color:#fff">${data.teamName}</strong> organiza un evento fuera de la cancha. ¿Te sumas?`}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td width="50%" style="padding-right:6px"><a href="${data.confirmUrl}" style="display:block;text-align:center;padding:14px;border-radius:12px;font-weight:900;font-size:15px;text-decoration:none;background:#a78bfa;color:#1a1033;">🙌 Me sumo</a></td>
+      <td width="50%" style="padding-left:6px"><a href="${data.declineUrl}" style="display:block;text-align:center;padding:14px;border-radius:12px;font-weight:900;font-size:15px;text-decoration:none;background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.3);">No puedo</a></td>
+    </tr></table>
+  </td></tr>
+  <tr><td align="center" style="padding:16px 32px;background:#0a0e14;color:rgba(255,255,255,0.3);font-size:11px;">© ${data.teamName} · miclubpro.cl</td></tr>
+</table></td></tr></table>
+</body></html>`,
+  };
+}
+
 function templatePaymentReminder(data: { playerName: string; teamName: string; months: string[]; totalDebt: string; paymentLink?: string }) {
   const monthList = data.months.map(m => `<li style="margin:4px 0;color:rgba(255,255,255,0.6);">📅 ${m}</li>`).join('');
   return {
@@ -247,6 +279,7 @@ serve(async (req) => {
       playerName: escapar(data.playerName),
       joinCode: escapar(data.joinCode),
       date: escapar(data.date),
+      title: escapar(data.title),
       location: escapar(data.location),
       totalDebt: escapar(data.totalDebt),
       months: Array.isArray(data.months) ? data.months.map(escapar) : [],
@@ -261,6 +294,8 @@ serve(async (req) => {
       case 'new_match':        template = templateNewMatch(limpio);        break;
       case 'match_reminder':   template = templateMatchReminder(limpio);   break;
       case 'payment_reminder': template = templatePaymentReminder(limpio); break;
+      case 'new_event':        template = templateEvento(limpio, false);   break;
+      case 'event_reminder':   template = templateEvento(limpio, true);    break;
       default: return json({ error: 'Tipo de email desconocido' }, 400);
     }
 

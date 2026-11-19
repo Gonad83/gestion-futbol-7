@@ -19,5 +19,9 @@ export const sendNewMatchEmail = (to: string, playerName: string, date: string, 
 export const sendMatchReminder = (to: string, playerName: string, date: string, location: string, confirmUrl: string, declineUrl: string) =>
   callSendEmail('match_reminder', to, { playerName, date, location, confirmUrl, declineUrl });
 
+/** Evento social (asado, junta): "¿Te sumas?". `recordatorio` = aviso del día antes. */
+export const sendEventEmail = (to: string, playerName: string, title: string, date: string, location: string, confirmUrl: string, declineUrl: string, recordatorio = false) =>
+  callSendEmail(recordatorio ? 'event_reminder' : 'new_event', to, { playerName, title, date, location, confirmUrl, declineUrl });
+
 export const sendPaymentReminder = (to: string, playerName: string, months: string[], totalDebt: string, paymentLink?: string) =>
   callSendEmail('payment_reminder', to, { playerName, months, totalDebt, paymentLink });

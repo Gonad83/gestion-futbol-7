@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Camera, CheckCircle2, AlertCircle, Copy, Check, Share2, Send } from 'lucide-react';
+import { Camera, Copy, Check, Share2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { aviso } from '../lib/avisos';
 import { EQUIPO_ACTUALIZADO } from '../lib/config';
@@ -160,31 +160,21 @@ export default function Settings() {
   const [arenaVisible, setArenaVisible] = useState(true);
   const [teamDescription, setTeamDescription] = useState('');
 
+  // Avisos automáticos por correo (cada uno se puede apagar).
+  const [avisoPartidos, setAvisoPartidos] = useState(true);
+  const [avisoCuotas, setAvisoCuotas] = useState(true);
+  const [avisoCumples, setAvisoCumples] = useState(true);
+  const [avisoEventos, setAvisoEventos] = useState(true);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [guardado, setGuardado] = useState('');
   const [copiado, setCopiado] = useState(false);
 
-  const [testingReminder, setTestingReminder] = useState(false);
-  const [reminderResult, setReminderResult] = useState<{ ok: boolean; matches_processed?: number; emails_sent?: number; message?: string; error?: string } | null>(null);
-
   // Lo que hay que guardar, en un texto: si cambia respecto de lo guardado, hay cambios pendientes.
-  const actual = JSON.stringify([teamName, paymentLink, paymentEnabled, city, commune, region, ageRange, preferredFormat, arenaVisible, teamDescription]);
+  const actual = JSON.stringify([teamName, paymentLink, paymentEnabled, city, commune, region, ageRange, preferredFormat, arenaVisible, teamDescription,
+    avisoPartidos, avisoCuotas, avisoCumples, avisoEventos]);
   const hayCambios = !loading && (actual !== guardado || !!logoFile || !!bannerFile);
-
-  const handleTestReminder = async () => {
-    setTestingReminder(true);
-    setReminderResult(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('auto-reminder');
-      if (error) throw error;
-      setReminderResult(data);
-    } catch (err) {
-      setReminderResult({ ok: false, error: err instanceof Error ? err.message : String(err) });
-    } finally {
-      setTestingReminder(false);
-    }
-  };
 
   useEffect(() => {
     if (!teamId) return;
@@ -194,13 +184,17 @@ export default function Settings() {
           teamName: data.team_name || '', paymentLink: data.payment_link || '', paymentEnabled: data.payment_button_enabled || false,
           city: data.city || '', commune: data.commune || '', region: data.region || '', ageRange: data.age_range || 'Open',
           preferredFormat: data.preferred_format || '7vs7', arenaVisible: data.arena_visible ?? true, teamDescription: data.team_description || '',
+          avisoPartidos: data.aviso_partidos ?? true, avisoCuotas: data.aviso_cuotas ?? true,
+          avisoCumples: data.aviso_cumples ?? true, avisoEventos: data.aviso_eventos ?? true,
         };
+        setAvisoPartidos(v.avisoPartidos); setAvisoCuotas(v.avisoCuotas); setAvisoCumples(v.avisoCumples); setAvisoEventos(v.avisoEventos);
         setTeamName(v.teamName); setJoinCode(data.join_code || ''); setPaymentLink(v.paymentLink); setPaymentEnabled(v.paymentEnabled);
         setLogoUrl(data.logo_url || ''); setLogoPreview(data.logo_url || '');
         setBannerUrl(data.banner_url || ''); setBannerPreview(data.banner_url || '');
         setCity(v.city); setCommune(v.commune); setRegion(v.region); setAgeRange(v.ageRange);
         setPreferredFormat(v.preferredFormat); setArenaVisible(v.arenaVisible); setTeamDescription(v.teamDescription);
-        setGuardado(JSON.stringify([v.teamName, v.paymentLink, v.paymentEnabled, v.city, v.commune, v.region, v.ageRange, v.preferredFormat, v.arenaVisible, v.teamDescription]));
+        setGuardado(JSON.stringify([v.teamName, v.paymentLink, v.paymentEnabled, v.city, v.commune, v.region, v.ageRange, v.preferredFormat, v.arenaVisible, v.teamDescription,
+          v.avisoPartidos, v.avisoCuotas, v.avisoCumples, v.avisoEventos]));
       }
       setLoading(false);
     });
@@ -245,6 +239,10 @@ export default function Settings() {
         preferred_format: preferredFormat,
         arena_visible: arenaVisible,
         team_description: teamDescription || null,
+        aviso_partidos: avisoPartidos,
+        aviso_cuotas: avisoCuotas,
+        aviso_cumples: avisoCumples,
+        aviso_eventos: avisoEventos,
       }).eq('id', teamId);
       if (updateError) throw updateError;
 
@@ -363,23 +361,21 @@ export default function Settings() {
             </div>
           </Seccion>
 
-          <Seccion titulo="Recordatorios">
-            <Fila titulo="Recordatorio 24 h antes" detalle="Correo a quienes no han confirmado, todos los días a las 9:00.">
-              <span className="shrink-0 px-2.5 py-1 rounded-full text-xs font-bold text-soccer-green" style={{ background: 'rgba(68,243,169,0.12)' }}>Activo</span>
+          <Seccion titulo="Recordatorios automáticos">
+            <p className="text-xs text-white/50 -mt-1">Se envían por correo cerca de las 9:00. Los jugadores que apagaron los avisos en su perfil no los reciben.</p>
+            <Fila titulo="⚽ Partidos" detalle="24 h antes, a quien aún no dice si va, con botones para sumarse a la lista o bajarse.">
+              <Interruptor activo={avisoPartidos} cambiar={() => setAvisoPartidos(v => !v)} etiqueta="Recordatorio de partidos" />
             </Fila>
-            <button type="button" onClick={handleTestReminder} disabled={testingReminder}
-              className="flex items-center gap-1.5 text-sm font-bold text-[#9acbff] hover:text-white py-1 cursor-pointer disabled:opacity-50">
-              <Send size={14} /> {testingReminder ? 'Enviando...' : 'Enviar prueba ahora'}
-            </button>
-            {reminderResult && (
-              <p role="status" className="flex items-start gap-2 px-3 py-2.5 rounded-xl text-sm"
-                style={{ background: reminderResult.ok ? 'rgba(68,243,169,0.08)' : 'rgba(248,113,113,0.08)', color: reminderResult.ok ? '#44f3a9' : '#fca5a5' }}>
-                {reminderResult.ok ? <CheckCircle2 size={15} className="shrink-0 mt-0.5" /> : <AlertCircle size={15} className="shrink-0 mt-0.5" />}
-                {reminderResult.ok
-                  ? reminderResult.message || `${reminderResult.matches_processed} partido(s) revisado(s) · ${reminderResult.emails_sent} correo(s) enviado(s)`
-                  : reminderResult.error || 'Error desconocido'}
-              </p>
-            )}
+            <Fila titulo="💰 Cobro de cuotas" detalle="El día 1, aviso de la cuota del mes; el día 15, a quienes siguen debiendo.">
+              <Interruptor activo={avisoCuotas} cambiar={() => setAvisoCuotas(v => !v)} etiqueta="Recordatorio de cuotas" />
+            </Fila>
+            <Fila titulo="🎂 Cumpleaños" detalle="Saludo del equipo a cada jugador el día de su cumpleaños (si tiene fecha de nacimiento).">
+              <Interruptor activo={avisoCumples} cambiar={() => setAvisoCumples(v => !v)} etiqueta="Saludo de cumpleaños" />
+            </Fila>
+            <Fila titulo="🎉 Eventos sociales" detalle="Asados y juntas: 24 h antes pregunta a quien no ha respondido si se suma o no.">
+              <Interruptor activo={avisoEventos} cambiar={() => setAvisoEventos(v => !v)} etiqueta="Recordatorio de eventos sociales" />
+            </Fila>
+            <p className="text-xs text-white/50">Los eventos sociales se crean en Calendario → <strong className="text-white/70">+ Evento</strong> → 🎉 Recreacional.</p>
           </Seccion>
         </form>
       )}
