@@ -34,7 +34,7 @@ export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanc
         </div>
 
         <div className="flex gap-2 mb-4 text-[11px] font-bold uppercase tracking-widest">
-          <span className="flex items-center gap-1 text-soccer-green"><CheckCircle2 size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Voy').length} Voy</span>
+          <span className="flex items-center gap-1 text-soccer-green"><CheckCircle2 size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Voy').length} Confirmados</span>
           <span className="flex items-center gap-1 text-red-400 ml-3"><XCircle size={11} />{attendanceList.filter(p => p.attendanceStatus === 'No voy').length} No Voy</span>
           <span className="flex items-center gap-1 text-amber-400 ml-3"><Clock size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Pendiente').length} Pendiente</span>
         </div>
@@ -61,7 +61,7 @@ export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanc
                   <div className="flex gap-1.5">
                     <button onClick={() => handleAttendanceChange(player.id, 'Voy')}
                       className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${player.attendanceStatus === 'Voy' ? 'bg-soccer-green text-black' : 'bg-soccer-green/10 text-soccer-green/50 hover:bg-soccer-green/20'}`}
-                    >Voy</button>
+                    >Confirmo</button>
                     <button onClick={() => handleAttendanceChange(player.id, 'No voy')}
                       className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${player.attendanceStatus === 'No voy' ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-400/50 hover:bg-red-500/20'}`}
                     >No voy</button>

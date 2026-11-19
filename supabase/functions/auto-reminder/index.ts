@@ -64,7 +64,7 @@ function plantilla(d: { jugador: string; equipo: string; fecha: string; lugar: s
     <p>Hola <strong style="color:#fff">${escapar(d.jugador)}</strong>,</p>
     <p><strong style="color:#fff">${escapar(d.equipo)}</strong> juega pronto y todavía no sabemos si vas. Confirma tu asistencia:</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td width="50%" style="padding-right:6px"><a href="${escapar(d.voy)}" class="btn btn-yes">✅ Voy</a></td>
+      <td width="50%" style="padding-right:6px"><a href="${escapar(d.voy)}" class="btn btn-yes">✅ Confirmo</a></td>
       <td width="50%" style="padding-left:6px"><a href="${escapar(d.noVoy)}" class="btn btn-no">❌ No voy</a></td>
     </tr></table>
   </div>

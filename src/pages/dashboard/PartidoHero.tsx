@@ -104,7 +104,7 @@ export function PartidoHero({ stats, myPlayer, myConfirmStatus, confirmingMyStat
             style={myConfirmStatus === 'Voy'
               ? { background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822', boxShadow: '0 8px 24px -8px rgba(68,243,169,0.6)' }
               : { background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1.5px solid rgba(68,243,169,0.35)' }}>
-            <CheckCircle2 size={20} /> Voy
+            <CheckCircle2 size={20} /> Confirmo
           </button>
           <button type="button" onClick={() => handleMyConfirm('No voy')} disabled={confirmingMyStatus} aria-pressed={myConfirmStatus === 'No voy'}
             className="h-14 rounded-full flex items-center justify-center gap-2 font-headline font-bold text-lg transition-all cursor-pointer disabled:opacity-60"

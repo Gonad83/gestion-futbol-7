@@ -78,7 +78,7 @@ function templateMatchReminder(data: { playerName: string; teamName: string; dat
     <p>Hola <strong style="color:#fff">${data.playerName}</strong>,</p>
     <p>El <strong style="color:#fff">${data.teamName}</strong> tiene partido próximamente. Por favor confirma tu asistencia:</p>
     <div class="btn-row">
-      <a href="${data.confirmUrl}" class="btn btn-yes">✅ Voy</a>
+      <a href="${data.confirmUrl}" class="btn btn-yes">✅ Confirmo</a>
       <a href="${data.declineUrl}" class="btn btn-no">❌ No voy</a>
     </div>
   </div>
@@ -118,7 +118,7 @@ function templateNewMatch(data: { playerName: string; teamName: string; date: st
     <p>Hola <strong style="color:#fff">${data.playerName}</strong>,</p>
     <p>Se ha programado un nuevo partido para <strong style="color:#fff">${data.teamName}</strong>. ¿Vas a jugar?</p>
     <div class="btn-row">
-      <a href="${data.confirmUrl}" class="btn btn-yes">✅ Voy</a>
+      <a href="${data.confirmUrl}" class="btn btn-yes">✅ Confirmo</a>
       <a href="${data.declineUrl}" class="btn btn-no">❌ No voy</a>
     </div>
   </div>
