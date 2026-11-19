@@ -5,6 +5,8 @@ import { PRECIOS, MONTOS } from '../lib/contenidoPublico';
 
 const MP_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mp-preference`;
 const FLOW_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-flow-preference`;
+// El plan mensual con Flow es una suscripción: se inscribe la tarjeta y Flow cobra solo cada mes.
+const FLOW_SUSCRIPCION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/flow-suscripcion`;
 
 type PlanId = 'pro' | 'elite';
 type Cycle = 'mensual' | 'anual';
@@ -98,7 +100,8 @@ export default function Checkout() {
     setError('');
     setCargando(p.id);
     try {
-      const res = await fetch(p.url, {
+      const url = p.id === 'flow' && cycle === 'mensual' ? FLOW_SUSCRIPCION_URL : p.url;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
         body: JSON.stringify({
@@ -218,7 +221,7 @@ export default function Checkout() {
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block font-headline font-bold text-[#101923]">Pagar con {p.titulo}</span>
-                  <span className="block text-xs mt-0.5 text-[#5b6573]">{p.detalle}</span>
+                  <span className="block text-xs mt-0.5 text-[#5b6573]">{p.id === 'flow' && cycle === 'mensual' ? 'Inscribes tu tarjeta y se cobra solo cada mes' : p.detalle}</span>
                 </span>
                 {cargando === p.id
                   ? <Loader2 size={20} className="animate-spin shrink-0 text-[#101923]" />
