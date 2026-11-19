@@ -1,118 +1,89 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Mercado Pago avisa aquí cuando cambia un pago. Se publica sin verificación de
+// JWT (Mercado Pago no manda uno): no se confía en nada del aviso salvo el id,
+// y el pago se consulta a Mercado Pago con nuestra llave.
+//
+// Lo que se vende por Mercado Pago es el plan de MiClubPro (ver
+// create-mp-preference), no la cuota de un jugador. Antes este aviso anotaba
+// el pago como cuota "Pagado" del jugador con ese correo y nunca activaba el
+// plan. Ahora queda en flow_payments, igual que un pago de Flow, y se aplica
+// con la misma función: una sola vez por pago, aunque el aviso se repita.
+
+const PRECIOS: Record<string, Record<string, number>> = {
+  pro: { monthly: 9990, annual: 95880 },
+  elite: { monthly: 19990, annual: 191880 },
 };
 
+// external_reference = «clubpro_{pro|elite}_{monthly|annual}_{fecha}»
+function leerReferencia(ref: string): { tier: 'pro' | 'elite'; plan: 'monthly' | 'annual' } | null {
+  const partes = /^clubpro_(pro|elite)_(monthly|annual)_\d+$/.exec(ref);
+  return partes ? { tier: partes[1] as 'pro' | 'elite', plan: partes[2] as 'monthly' | 'annual' } : null;
+}
+
+const listo = (cuerpo: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(cuerpo), { status, headers: { 'Content-Type': 'application/json' } });
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS });
-  }
+  if (req.method !== 'POST') return listo({ error: 'Método no permitido' }, 405);
 
   try {
-    const body = await req.json();
-    const { type, data } = body;
+    const url = new URL(req.url);
+    const body = await req.json().catch(() => ({}));
+    const tipo = body?.type ?? url.searchParams.get('type') ?? url.searchParams.get('topic');
+    const paymentId = String(body?.data?.id ?? url.searchParams.get('data.id') ?? url.searchParams.get('id') ?? '');
 
-    // Only process payment events
-    if (type !== 'payment') {
-      return new Response(JSON.stringify({ received: true, skipped: true }), {
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
-    }
+    if (tipo !== 'payment') return listo({ received: true, skipped: true });
+    if (!/^\d+$/.test(paymentId)) return listo({ error: 'Falta el id del pago' }, 400);
 
     const MP_ACCESS_TOKEN = Deno.env.get('MP_ACCESS_TOKEN');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    if (!MP_ACCESS_TOKEN) throw new Error('MP_ACCESS_TOKEN no configurado');
 
-    const paymentId = data?.id;
-    if (!paymentId) throw new Error('Missing payment id in webhook payload');
-
-    // Fetch payment details from Mercado Pago
     const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
     });
-    if (!mpRes.ok) throw new Error(`MP API error: ${mpRes.status}`);
+    if (!mpRes.ok) throw new Error(`Mercado Pago respondió ${mpRes.status}`);
+    const pago = await mpRes.json();
 
-    const payment = await mpRes.json();
-    const { status, status_detail, payer, transaction_amount, date_approved, metadata } = payment;
+    if (pago.status !== 'approved') return listo({ received: true, status: pago.status });
 
-    // Log every event for audit
-    await supabase.from('mercadopago_events').insert({
-      payment_id: String(paymentId),
-      status,
-      status_detail,
-      metadata: metadata ?? null,
-      raw_data: payment,
-    });
+    const compra = leerReferencia(String(pago.external_reference ?? ''));
+    if (!compra) return listo({ received: true, skipped: 'no es un plan de MiClubPro' });
 
-    // Only record approved payments
-    if (status !== 'approved') {
-      return new Response(JSON.stringify({ received: true, status }), {
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
+    const monto = Number(pago.transaction_amount) || 0;
+    if (pago.currency_id !== 'CLP' || monto < PRECIOS[compra.tier][compra.plan]) {
+      console.error(`Pago ${paymentId}: monto ${monto} ${pago.currency_id} no cubre ${compra.tier}/${compra.plan}`);
+      return listo({ received: true, skipped: 'monto insuficiente' });
     }
 
-    const payerEmail = payer?.email;
-    if (!payerEmail) throw new Error('No payer email in payment data');
+    const correo = String(pago.metadata?.email || pago.payer?.email || '').trim().toLowerCase();
+    if (!correo) throw new Error('El pago no trae correo');
 
-    // Find the player by email
-    const { data: player } = await supabase
-      .from('players')
-      .select('id')
-      .ilike('email', payerEmail)
-      .maybeSingle();
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const token = `mp_${paymentId}`;
 
-    if (!player) {
-      // No matching player — log but don't fail
-      console.log(`Pago aprobado de ${payerEmail} pero no se encontró jugador con ese email`);
-      return new Response(JSON.stringify({ received: true, warning: 'player_not_found', email: payerEmail }), {
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
-    }
+    // El token es único: si Mercado Pago repite el aviso, se actualiza la misma fila.
+    const { error } = await db.from('flow_payments').upsert({
+      token,
+      commerce_order: String(pago.external_reference),
+      amount: monto,
+      payer_email: correo,
+      plan: compra.plan,
+      tier: compra.tier,
+      status: 'paid',
+      paid_at: pago.date_approved ?? new Date().toISOString(),
+    }, { onConflict: 'token' });
+    if (error) throw new Error(error.message);
 
-    // Determine month/year from the payment approval date
-    const approvedDate = date_approved ? new Date(date_approved) : new Date();
-    const month = approvedDate.getUTCMonth() + 1;
-    const year = approvedDate.getUTCFullYear();
-    const amount = Number(transaction_amount) || 0;
+    // Si el capitán ya tiene equipo, activa o extiende su plan; si no, lo toma
+    // register_new_captain cuando se registre con ese correo.
+    const { error: errPlan } = await db.rpc('aplicar_pago_flow', { p_token: token });
+    if (errPlan) console.error('aplicar_pago_flow:', errPlan.message);
 
-    // Check for existing payment record this player/month/year
-    const { data: existing } = await supabase
-      .from('payments')
-      .select('id, status')
-      .eq('player_id', player.id)
-      .eq('month', month)
-      .eq('year', year)
-      .maybeSingle();
-
-    if (existing) {
-      if (existing.status !== 'Pagado') {
-        await supabase
-          .from('payments')
-          .update({ status: 'Pagado', amount })
-          .eq('id', existing.id);
-      }
-    } else {
-      await supabase.from('payments').insert({
-        player_id: player.id,
-        month,
-        year,
-        amount,
-        status: 'Pagado',
-      });
-    }
-
-    return new Response(JSON.stringify({ success: true, player_id: player.id, month, year, amount }), {
-      headers: { ...CORS, 'Content-Type': 'application/json' },
-    });
-  } catch (err: any) {
-    console.error('Webhook error:', err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...CORS, 'Content-Type': 'application/json' },
-    });
+    return listo({ received: true });
+  } catch (err) {
+    console.error('mp-webhook:', err instanceof Error ? err.message : err);
+    return listo({ error: 'error' }, 500);
   }
 });

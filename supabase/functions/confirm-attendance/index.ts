@@ -6,13 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/** Compara sin cortar en el primer carácter distinto. */
+function iguales(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let dif = 0;
+  for (let i = 0; i < a.length; i++) dif |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return dif === 0;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { player_id, match_id, status } = await req.json();
+    const { player_id, match_id, status, t } = await req.json();
 
-    if (!player_id || !match_id || !status) {
+    if (!player_id || !match_id || !status || !t) {
       return new Response(JSON.stringify({ error: 'Parámetros faltantes' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -28,6 +36,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // El enlace del correo lleva una clave que la base calcula para este jugador
+    // en este partido; sin ella cualquiera podría responder por otro. También
+    // es null si el jugador y el partido no son del mismo equipo.
+    const { data: esperado, error: errToken } = await supabaseAdmin
+      .rpc('token_asistencia_interno', { p_player: player_id, p_match: match_id });
+    if (errToken) throw errToken;
+    if (!esperado || !iguales(String(esperado), String(t))) {
+      return new Response(JSON.stringify({ error: 'Enlace no válido. Responde desde la app.' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const [{ data: player }, { data: match }] = await Promise.all([
       supabaseAdmin.from('players').select('id, name').eq('id', player_id).single(),

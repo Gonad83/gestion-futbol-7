@@ -229,8 +229,12 @@ serve(async (req) => {
       }
 
       if (pendientes.length > 0) {
+        // Cada enlace lleva la clave de ese jugador en ese partido (ver confirm-attendance).
+        const { data: claves, error: errClaves } = await db.rpc('tokens_asistencia_interno', { p_match: partido.id });
+        if (errClaves) throw errClaves;
+        const clave = new Map((claves ?? []).map((c: { player_id: string; token: string }) => [c.player_id, c.token]));
         const enlace = (jugador: string, estado: string) =>
-          `${SITIO}/confirmar?player_id=${jugador}&match_id=${partido.id}&status=${encodeURIComponent(estado)}`;
+          `${SITIO}/confirmar?${new URLSearchParams({ player_id: jugador, match_id: partido.id, status: estado, t: clave.get(jugador) ?? '' })}`;
         const error = await enviarLote(pendientes.map((j) => {
           const datos = { jugador: j.name, equipo: nombreEquipo, fecha, lugar: partido.location || '', voy: enlace(j.id, 'Voy'), noVoy: enlace(j.id, 'No voy') };
           return {

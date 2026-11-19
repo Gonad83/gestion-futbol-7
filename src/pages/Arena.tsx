@@ -183,14 +183,16 @@ export default function Arena() {
   /* ── Amistosos ── */
   const fetchFriendlies = async () => {
     if (!teamId) return;
-    const [mine, open] = await Promise.all([
-      supabase.from('friendly_requests').select('*, challenger:challenger_team_id(team_name,city,commune,region,age_range,preferred_format)')
-        .eq('team_id', teamId).neq('status', 'cancelled').order('date'),
-      supabase.from('friendly_requests').select('*, team:team_id(team_name,city,commune,region,age_range,preferred_format,logo_url)')
-        .eq('status', 'open').order('date'),
+    // De los otros equipos solo se ve su ficha pública (equipos_arena): la fila
+    // completa, con el código para unirse, es solo para sus miembros.
+    const [mine, open, fichas] = await Promise.all([
+      supabase.from('friendly_requests').select('*').eq('team_id', teamId).neq('status', 'cancelled').order('date'),
+      supabase.from('friendly_requests').select('*').eq('status', 'open').order('date'),
+      supabase.rpc('equipos_arena'),
     ]);
-    setMyRequests(mine.data || []);
-    setOpenRequests((open.data || []).filter((r: any) => r.team_id !== teamId));
+    const ficha = new Map(((fichas.data || []) as any[]).map(f => [f.id, f]));
+    setMyRequests((mine.data || []).map((r: any) => ({ ...r, challenger: ficha.get(r.challenger_team_id) ?? null })));
+    setOpenRequests((open.data || []).filter((r: any) => r.team_id !== teamId).map((r: any) => ({ ...r, team: ficha.get(r.team_id) ?? null })));
   };
 
   const handlePublishReq = async (e: React.FormEvent) => {

@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { sendMatchReminder, sendPaymentReminder } from '../lib/sendEmail';
 import { aviso, confirmar } from '../lib/avisos';
 import { clp } from '../lib/formato';
+import { enlacesDelPartido } from '../lib/enlaceAsistencia';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Jugador = { id: string; name: string; nickname?: string | null; email?: string | null; photo_url?: string | null; status: string; notify?: boolean | null; match_role?: string | null; user_id?: string | null; [k: string]: any };
@@ -156,7 +157,6 @@ export default function AdminPlayers() {
   };
 
   const fechaPartido = () => format(new Date(nextMatch.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
-  const urlConfirmar = (p: Jugador, estado: string) => `${window.location.origin}/confirmar?player_id=${p.id}&match_id=${nextMatch.id}&status=${encodeURIComponent(estado)}`;
   // El monto del cobro sale de la cuota del equipo (antes iba fijo en $8.000).
   const montoCuota = () => (equipo.cuota > 0 ? clp(equipo.cuota) : 'tu cuota mensual');
 
@@ -164,7 +164,8 @@ export default function AdminPlayers() {
     if (!player.email) { aviso.info(`${player.name} no tiene correo registrado.`); return; }
     try {
       if (type === 'recordatorio' && nextMatch) {
-        await sendMatchReminder(player.email, player.name, fechaPartido(), nextMatch.location || '', urlConfirmar(player, 'Voy'), urlConfirmar(player, 'No voy'));
+        const enlace = await enlacesDelPartido(nextMatch.id);
+        await sendMatchReminder(player.email, player.name, fechaPartido(), nextMatch.location || '', enlace(player.id, 'Voy'), enlace(player.id, 'No voy'));
       } else if (type === 'pago') {
         await sendPaymentReminder(player.email, player.name, ['Cuota pendiente'], montoCuota(), equipo.linkPago || undefined);
       }
@@ -213,9 +214,10 @@ export default function AdminPlayers() {
     setSending(type);
     try {
       let sent = 0;
+      const enlace = type === 'recordatorio' ? await enlacesDelPartido(nextMatch.id) : null;
       for (const p of targets) {
-        const ok = type === 'recordatorio'
-          ? await sendMatchReminder(p.email!, p.name, fechaPartido(), nextMatch.location || '', urlConfirmar(p, 'Voy'), urlConfirmar(p, 'No voy'))
+        const ok = enlace
+          ? await sendMatchReminder(p.email!, p.name, fechaPartido(), nextMatch.location || '', enlace(p.id, 'Voy'), enlace(p.id, 'No voy'))
           : await sendPaymentReminder(p.email!, p.name, ['Cuota pendiente'], montoCuota(), equipo.linkPago || undefined);
         if (ok) sent++;
       }

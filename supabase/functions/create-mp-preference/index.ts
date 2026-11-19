@@ -5,6 +5,9 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const SITIO = 'https://miclubpro.cl';
+const ORIGENES = new Set([SITIO, 'https://www.miclubpro.cl', 'http://localhost:5183']);
+
 // El precio lo fija el servidor: lo que mande el navegador como monto se ignora.
 // Debe coincidir con PLAN_INFO en src/pages/Checkout.tsx y con la portada.
 const PLANES: Record<string, Record<string, { monto: number; titulo: string }>> = {
@@ -24,7 +27,9 @@ serve(async (req) => {
   }
 
   try {
-    const { plan, cycle, origin, payer } = await req.json();
+    const { plan, cycle, origin: origenPedido, payer } = await req.json();
+    // Solo se vuelve a nuestros propios sitios, nunca a uno que mande el navegador.
+    const origin = ORIGENES.has(String(origenPedido)) ? String(origenPedido) : SITIO;
     const elegido = PLANES[String(plan)]?.[String(cycle)];
     if (!elegido) {
       return new Response(JSON.stringify({ error: 'Plan no válido' }), {
@@ -53,6 +58,9 @@ serve(async (req) => {
           currency_id: 'CLP',
         }],
         payer: { email: payer?.email || '' },
+        // El correo con que se registra el equipo: Mercado Pago puede informar
+        // como pagador el de su propia cuenta, que puede ser otro.
+        metadata: { email: String(payer?.email || '').trim().toLowerCase() },
         external_reference: `clubpro_${plan}_annual_${Date.now()}`,
         back_urls: {
           success: successUrl,

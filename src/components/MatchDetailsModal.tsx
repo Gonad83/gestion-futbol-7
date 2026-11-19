@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale';
 import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2 } from 'lucide-react';
 import { sendNewMatchEmail, sendMatchReminder, sendEventEmail } from '../lib/sendEmail';
 import { aviso, confirmar } from '../lib/avisos';
+import { enlacesDelPartido } from '../lib/enlaceAsistencia';
 import { Capa } from './Capa';
 
 interface MatchDetailsModalProps {
@@ -151,9 +152,13 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
           if (activePlayers && activePlayers.length > 0) {
             const dateLabel = format(matchDate, "EEEE d 'de' MMMM, HH:mm", { locale: es });
             const social = formData.event_type === 'Recreacional';
-            for (const player of activePlayers) {
-              const confirmUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${newMatch[0].id}&status=Voy`;
-              const declineUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${newMatch[0].id}&status=No%20voy`;
+            // El partido ya quedó guardado: si fallan los enlaces, se avisa y el
+            // capitán puede mandar el recordatorio después.
+            const enlace = await enlacesDelPartido(newMatch[0].id).catch(() => null);
+            if (!enlace) aviso.error('Partido guardado, pero no se pudieron enviar los correos. Usa "Recordatorio".');
+            else for (const player of activePlayers) {
+              const confirmUrl = enlace(player.id, 'Voy');
+              const declineUrl = enlace(player.id, 'No voy');
               if (social) sendEventEmail(player.email, player.name, formData.description, dateLabel, formData.location, confirmUrl, declineUrl);
               else sendNewMatchEmail(player.email, player.name, dateLabel, formData.location, confirmUrl, declineUrl);
             }
@@ -192,9 +197,10 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
       const dateLabel = format(new Date(match.date), "EEEE d 'de' MMMM, HH:mm", { locale: es });
       let sent = 0;
+      const enlace = await enlacesDelPartido(match.id);
       for (const player of pendingPlayers) {
-        const confirmUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=Voy`;
-        const declineUrl = `${window.location.origin}/confirmar?player_id=${player.id}&match_id=${match.id}&status=No%20voy`;
+        const confirmUrl = enlace(player.id, 'Voy');
+        const declineUrl = enlace(player.id, 'No voy');
         const ok = match.event_type === 'Recreacional'
           ? await sendEventEmail(player.email, player.name, match.description || '', dateLabel, match.location || '', confirmUrl, declineUrl, true)
           : await sendMatchReminder(player.email, player.name, dateLabel, match.location || '', confirmUrl, declineUrl);

@@ -19,10 +19,11 @@ export default function ConfirmarAsistencia() {
   const player_id = searchParams.get('player_id');
   const match_id = searchParams.get('match_id');
   const status = searchParams.get('status');
+  const t = searchParams.get('t');
 
   useEffect(() => {
     const confirm = async () => {
-      if (!player_id || !match_id || !status) {
+      if (!player_id || !match_id || !status || !t) {
         setErrorMsg('Enlace inválido. Faltan parámetros.');
         setState('error');
         return;
@@ -32,7 +33,7 @@ export default function ConfirmarAsistencia() {
         const [{ data: sessionData }, { data, error }] = await Promise.all([
           supabase.auth.getSession(),
           supabase.functions.invoke('confirm-attendance', {
-            body: { player_id, match_id, status },
+            body: { player_id, match_id, status, t },
           }),
         ]);
 
