@@ -258,21 +258,28 @@
   background: #10141a;
   color: #ffd08b;
 }
+/* Estrellas amarillas sobre una pastilla oscura, para que se lean en cualquier color de lámina. */
 .lamina-estrellas {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 61.5%;
+  left: 50%;
+  top: 60%;
+  transform: translateX(-50%);
   display: flex;
-  justify-content: center;
   gap: 0.05em;
-  font-size: 0.88em;
+  padding: 0.18em 0.3em;
+  border-radius: 9999px;
+  background: rgba(16, 20, 26, 0.82);
+  color: #ffd23f;
+  font-size: 0.84em;
+}
+.lamina-estrella-vacia {
+  color: rgba(255, 255, 255, 0.4);
 }
 .lamina-nombre {
   position: absolute;
   left: 0.3em;
   right: 0.3em;
-  top: 71.5%;
+  top: 72.5%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

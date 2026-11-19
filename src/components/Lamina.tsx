@@ -51,7 +51,7 @@ export function Lamina({ nombre, rotulo, foto, estrellas, puesto, color, fueraDe
         {llenas > 0 && (
           <span className="lamina-estrellas" aria-hidden="true">
             {Array.from({ length: MAX_ESTRELLAS }, (_, i) => (
-              <Star key={i} size="1em" strokeWidth={2.5} fill={i < llenas ? 'currentColor' : 'none'} opacity={i < llenas ? 1 : 0.4} />
+              <Star key={i} size="1em" strokeWidth={2.5} fill={i < llenas ? 'currentColor' : 'none'} className={i < llenas ? undefined : 'lamina-estrella-vacia'} />
             ))}
           </span>
         )}
