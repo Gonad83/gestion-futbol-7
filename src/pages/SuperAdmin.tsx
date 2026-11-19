@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { SUPER_ADMIN_EMAIL } from '../lib/config';
+import { MONTOS } from '../lib/contenidoPublico';
 import {
   Crown, RefreshCw, Users, TrendingUp, DollarSign,
   Clock, Shield, Building2, Zap, Star
@@ -11,9 +12,10 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 
-const PRICE_MONTHLY = 4990;
-const PRICE_ANNUAL_YEAR = 29940;
-const PRICE_ANNUAL_MONTH = 2495;
+// Precios del plan Pro (los de la portada y el cobro salen de contenidoPublico.ts).
+const PRICE_MONTHLY = MONTOS.pro.mensual;
+const PRICE_ANNUAL_YEAR = MONTOS.pro.anual;
+const PRICE_ANNUAL_MONTH = Math.round(MONTOS.pro.anual / 12);
 
 const PLAN_META: Record<string, { label: string; color: string; bg: string; price: number; period: string }> = {
   free:    { label: 'Prueba',  color: '#ffffff50', bg: 'rgba(255,255,255,0.06)', price: 0, period: '' },
@@ -109,7 +111,7 @@ export default function SuperAdmin() {
       // All registered teams (all rows in team_settings)
       const { data: teams } = await supabase
         .from('team_settings')
-        .select('id, team_name, join_code, plan, created_at, logo_url')
+        .select('id, team_name, join_code, plan, tier, created_at, logo_url')
         .order('created_at', { ascending: false });
 
       // All admin players (captains)
@@ -137,7 +139,13 @@ export default function SuperAdmin() {
       const monthlyTeams  = allTeams.filter(t => t.plan === 'monthly').length;
       const annualTeams   = allTeams.filter(t => t.plan === 'annual').length;
       const payingTeams   = monthlyTeams + annualTeams;
-      const mrr           = monthlyTeams * PRICE_MONTHLY + annualTeams * PRICE_ANNUAL_MONTH;
+      // Ingreso mensual según lo que pagó cada equipo: Pro o Elite, mensual o anual.
+      const mrr = allTeams.reduce((suma, t) => {
+        const montos = (t as { tier?: string }).tier === 'elite' ? MONTOS.elite : MONTOS.pro;
+        if (t.plan === 'monthly') return suma + montos.mensual;
+        if (t.plan === 'annual') return suma + Math.round(montos.anual / 12);
+        return suma;
+      }, 0);
       const arr           = mrr * 12;
       const conversionRate = allTeams.length > 0 ? Math.round((payingTeams / allTeams.length) * 100) : 0;
 
@@ -289,7 +297,7 @@ export default function SuperAdmin() {
                   <div>
                     <p className="text-white/80 text-sm font-semibold">Plan Anual</p>
                     <p className="text-[11px]" style={{ color: '#44f3a980' }}>
-                      ${PRICE_ANNUAL_MONTH.toLocaleString('es-CL')}/mes · 50% OFF
+                      ${PRICE_ANNUAL_MONTH.toLocaleString('es-CL')}/mes · 20% OFF
                       {stats.annualTeams > 0 && ` · $${(stats.annualTeams * PRICE_ANNUAL_YEAR).toLocaleString('es-CL')}/año`}
                     </p>
                   </div>

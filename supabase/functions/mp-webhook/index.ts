@@ -12,8 +12,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // con la misma función: una sola vez por pago, aunque el aviso se repita.
 
 const PRECIOS: Record<string, Record<string, number>> = {
-  pro: { monthly: 9990, annual: 95880 },
-  elite: { monthly: 19990, annual: 191880 },
+  pro: { monthly: 4990, annual: 47880 },
+  elite: { monthly: 9990, annual: 95880 },
 };
 
 // external_reference = «clubpro_{pro|elite}_{monthly|annual}_{fecha}»

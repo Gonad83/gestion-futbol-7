@@ -13,8 +13,8 @@
 ## Planes y precios (pesos chilenos, por equipo, no por jugador)
 
 - Starter: gratis por 1 mes, sin tarjeta. 1 equipo, 10 jugadores y 4 invitados.
-- Pro: $9.990 al mes, o $95.880 al año ($7.990 al mes). 1 equipo, hasta 14 jugadores.
-- Elite: $19.990 al mes, o $191.880 al año ($15.990 al mes). Jugadores ilimitados, gestión de liga, ranking MVP histórico, fixtures automáticos y soporte prioritario.
+- Pro: $4.990 al mes, o $47.880 al año ($3.990 al mes). 1 equipo, hasta 14 jugadores.
+- Elite: $9.990 al mes, o $95.880 al año ($7.990 al mes). Jugadores ilimitados, gestión de liga, ranking MVP histórico, fixtures automáticos y soporte prioritario.
 - Sin contrato: se cambia de plan o se cancela cuando se quiera. Pagos con Flow (Webpay, tarjetas, Mach) o Mercado Pago.
 
 ## Páginas

@@ -327,7 +327,7 @@ export default function Landing() {
           <div className="pre-cab">
             <div>
               <h2 data-rev>Un plan por equipo, no por jugador.</h2>
-              <p className="cab-p">Con el plantel completo, el plan Pro sale menos de $750 por jugador al mes.</p>
+              <p className="cab-p">Con el plantel completo, el plan Pro sale menos de $400 por jugador al mes.</p>
             </div>
             <div className="periodo" role="group" aria-label="Forma de pago">
               <button type="button" className={ciclo === 'mensual' ? 'activo' : ''} onClick={() => setCiclo('mensual')}>Mensual</button>

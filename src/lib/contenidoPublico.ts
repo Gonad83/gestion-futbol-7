@@ -9,14 +9,14 @@
  */
 
 export const PRECIOS = {
-  pro: { mensual: '$9.990', anual: '$7.990', notaAnual: '$95.880 al año, en un pago' },
-  elite: { mensual: '$19.990', anual: '$15.990', notaAnual: '$191.880 al año, en un pago' },
+  pro: { mensual: '$4.990', anual: '$3.990', notaAnual: '$47.880 al año, en un pago' },
+  elite: { mensual: '$9.990', anual: '$7.990', notaAnual: '$95.880 al año, en un pago' },
 };
 
 /** Lo mismo en números, para los datos estructurados. Pesos chilenos. */
 export const MONTOS = {
-  pro: { mensual: 9990, anual: 95880 },
-  elite: { mensual: 19990, anual: 191880 },
+  pro: { mensual: 4990, anual: 47880 },
+  elite: { mensual: 9990, anual: 95880 },
 };
 
 /** Preguntas de la portada. */

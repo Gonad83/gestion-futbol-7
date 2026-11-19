@@ -12,12 +12,12 @@ const ORIGENES = new Set([SITIO, 'https://www.miclubpro.cl', 'http://localhost:5
 // Debe coincidir con PLAN_INFO en src/pages/Checkout.tsx y con la portada.
 const PLANES: Record<string, Record<string, { monto: number; titulo: string }>> = {
   pro: {
-    mensual: { monto: 9990, titulo: 'MiClubPro: Plan Pro Mensual' },
-    anual: { monto: 95880, titulo: 'MiClubPro: Plan Pro Anual' },
+    mensual: { monto: 4990, titulo: 'MiClubPro: Plan Pro Mensual' },
+    anual: { monto: 47880, titulo: 'MiClubPro: Plan Pro Anual' },
   },
   elite: {
-    mensual: { monto: 19990, titulo: 'MiClubPro: Plan Elite Mensual' },
-    anual: { monto: 191880, titulo: 'MiClubPro: Plan Elite Anual' },
+    mensual: { monto: 9990, titulo: 'MiClubPro: Plan Elite Mensual' },
+    anual: { monto: 95880, titulo: 'MiClubPro: Plan Elite Anual' },
   },
 };
 
