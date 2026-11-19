@@ -71,7 +71,7 @@ describe('bloques del panel de inicio', () => {
   it('equipo titular: sin plantel no se dibuja y quien dijo "No voy" queda fuera', () => {
     expect(dibujar(<TarjetaTitular stats={STATS_VACIAS} guardado={null} puedeEditar onGuardar={nada} />)).toBe('');
     const html = dibujar(<TarjetaTitular stats={{ ...llenas, declinedIds: ['b'] }} guardado={null} puedeEditar={false} onGuardar={nada} />);
-    expect(html).toContain('A. Rojas');
+    expect(html).toContain(': Ana Rojas');
     expect(html).toContain('No van (');
     expect(html).not.toContain('Toca dos jugadores');
     // El capitán ve la ayuda para mover; con el titular armado a mano, también el botón para volver al automático.

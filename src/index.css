@@ -281,6 +281,133 @@
   text-shadow: 1px 1px 2px rgba(0,0,0,1);
 }
 
+/* Lámina de jugador (equipo titular). Todo va en em sobre el alto de la lámina,
+   así la misma sirve grande en la cancha y chica en la banca. */
+.lamina {
+  --forma: polygon(50% 0%, 100% 8%, 100% 85%, 50% 100%, 0% 85%, 0% 8%);
+  height: var(--alto);
+  aspect-ratio: 3 / 4;
+  font-size: calc(var(--alto) / 10);
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  clip-path: var(--forma);
+  background: var(--canto);
+  color: var(--tinta);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s;
+}
+/* La sombra va por filtro en el envoltorio: el recorte se come cualquier box-shadow. */
+.lamina-sombra {
+  filter: drop-shadow(0 0.5em 0.5em rgba(0, 0, 0, 0.55));
+}
+.lamina:enabled { cursor: pointer; }
+.lamina:enabled:hover { transform: translateY(-4%) scale(1.07); }
+.lamina-elegida,
+.lamina-elegida:enabled:hover { transform: scale(1.12); }
+
+.lamina-oro     { --canto: linear-gradient(160deg, #fff6cf, #b98a1c 55%, #6e4a06); --fondo: linear-gradient(160deg, #ffe9a3 0%, #f0c24a 38%, #c8921a 100%); --base: #d9a52c; --tinta: #3a2600; }
+.lamina-plata   { --canto: linear-gradient(160deg, #ffffff, #8d97a3 55%, #4a535e); --fondo: linear-gradient(160deg, #f4f6f8 0%, #c9d0d8 38%, #98a2ae 100%); --base: #b3bcc6; --tinta: #1c2228; }
+.lamina-bronce  { --canto: linear-gradient(160deg, #ffe0c4, #9a5a2c 55%, #4f2a10); --fondo: linear-gradient(160deg, #f1c7a2 0%, #cf8f5c 38%, #a5683a 100%); --base: #bd7c4a; --tinta: #2d1505; }
+.lamina-arquero { --canto: linear-gradient(160deg, #e2fff3, #00a56d 55%, #00573b); --fondo: linear-gradient(160deg, #b6ffe0 0%, #44f3a9 38%, #00c283 100%); --base: #2ad998; --tinta: #003822; }
+
+.lamina-cara {
+  position: absolute;
+  inset: 0.22em;
+  clip-path: var(--forma);
+  background: var(--fondo);
+  overflow: hidden;
+}
+.lamina-foto {
+  position: absolute;
+  inset: 0 0 30% 0;
+  width: 100%;
+  height: 70%;
+  object-fit: cover;
+  object-position: center 20%;
+}
+.lamina-iniciales {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55em 0 0 0.75em;
+  font-family: 'Lexend', system-ui, sans-serif;
+  font-size: 2.2em;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  opacity: 0.4;
+}
+/* La esquina toma el color de la lámina para que la nota se lea sobre cualquier foto,
+   y abajo la foto se funde con la franja del nombre. */
+.lamina-esquina {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, var(--base) 0%, var(--base) 24%, transparent 46%),
+    linear-gradient(180deg, transparent 50%, var(--base) 71%);
+}
+.lamina-nota {
+  position: absolute;
+  top: 0.95em;
+  left: 0.6em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-family: 'Lexend', system-ui, sans-serif;
+}
+.lamina-nota b { font-size: 2em; font-weight: 900; letter-spacing: -0.04em; }
+.lamina-nota i { font-size: 0.95em; font-weight: 800; font-style: normal; letter-spacing: 0.04em; margin-top: 0.1em; }
+.lamina-aviso {
+  position: absolute;
+  top: 0.9em;
+  right: 0.45em;
+  width: 1.7em;
+  height: 1.7em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #10141a;
+  color: #ffd08b;
+}
+.lamina-nombre {
+  position: absolute;
+  left: 0.3em;
+  right: 0.3em;
+  top: 71.5%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: center;
+  text-transform: uppercase;
+  font-family: 'Lexend', system-ui, sans-serif;
+  font-size: 1.12em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.lamina-brillo {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.5) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  pointer-events: none;
+}
+.lamina:enabled:hover .lamina-brillo,
+.lamina-elegida .lamina-brillo {
+  transition: background-position 0.7s ease;
+  background-position: -30% 0;
+}
+.lamina-sombra-elegida {
+  filter: drop-shadow(0 0 0.25em #ffd08b) drop-shadow(0 0 1em rgba(255, 208, 139, 0.75));
+}
+@media (prefers-reduced-motion: reduce) {
+  .lamina { transition: none; animation: none; }
+  .lamina:enabled:hover { transform: none; }
+  .lamina-brillo { display: none; }
+}
+
 /* Tactical Pitch */
 .pitch-player {
   @apply absolute transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)];

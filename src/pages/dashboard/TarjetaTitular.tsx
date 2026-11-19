@@ -1,45 +1,31 @@
 import { useMemo, useState } from 'react';
 import { Info, RotateCcw, Shield, Star } from 'lucide-react';
 import type { DashboardStats, JugadorDash } from '../../lib/api/dashboard';
+import { Lamina, tonoPorEstrellas } from '../../components/Lamina';
 import { FORMATIONS } from '../../lib/matchmaking';
 import { armarTitular, intercambiarPuestos, LINEAS, type Puesto, type TitularGuardado } from './titular';
 
 const FORMACIONES = FORMATIONS['7vs7'];
 const NOMBRE_LINEA = { Portero: 'Portero', Defensa: 'Defensa', Medio: 'Medio', Delantero: 'Delantero' } as const;
 
+const SIGLA_LINEA = { Portero: 'POR', Defensa: 'DEF', Medio: 'MED', Delantero: 'DEL' } as const;
+
 const nombreCorto = (nombre: string) => {
   const partes = nombre.trim().split(/\s+/);
   return partes.length > 1 ? `${partes[0][0]}. ${partes[partes.length - 1]}` : nombre.trim();
 };
-const iniciales = (nombre: string) => nombre.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
+/** Lo que cabe al pie de la lámina: el apodo, o si no el apellido. */
+const rotulo = (j: JugadorDash) => j.nickname?.trim() || j.name.trim().split(/\s+/).pop() || j.name;
+const siglaPosicion = (posicion: string | null) => (posicion ? posicion.trim().slice(0, 3).toUpperCase() : '—');
 
-const BRILLO_ELEGIDO = '0 0 0 4px rgba(255,208,139,0.35), 0 0 18px rgba(255,208,139,0.6)';
-
-function Ficha({ puesto, elegido, onClick }: { puesto: Puesto<JugadorDash>; elegido: boolean; onClick?: () => void }) {
+function Ficha({ puesto, elegido, orden, onClick }: { puesto: Puesto<JugadorDash>; elegido: boolean; orden: number; onClick?: () => void }) {
   const { jugador: j, linea, fueraDePuesto } = puesto;
-  const anillo = linea === 'Portero' ? '#ffd08b' : '#44f3a9';
   return (
-    <button type="button" onClick={onClick} disabled={!onClick} aria-pressed={onClick ? elegido : undefined}
-      aria-label={`${NOMBRE_LINEA[linea]}: ${j.name}${fueraDePuesto ? ' (fuera de su puesto)' : ''}${elegido ? ', elegido para cambiar' : ''}`}
-      title={`${j.name} · ${j.position || 'Sin posición'}${fueraDePuesto ? ' (fuera de su puesto)' : ''}`}
-      className="flex flex-col items-center gap-0.5 w-[72px] enabled:cursor-pointer">
-      <span className="relative transition-transform" style={{ transform: elegido ? 'scale(1.12)' : undefined }}>
-        <span className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold text-white"
-          style={{ background: '#10141a', border: `2.5px ${fueraDePuesto ? 'dashed' : 'solid'} ${anillo}`, boxShadow: elegido ? BRILLO_ELEGIDO : '0 4px 10px rgba(0,0,0,0.5)' }}>
-          {j.photo_url ? <img src={j.photo_url} alt="" className="w-full h-full object-cover" /> : iniciales(j.name)}
-        </span>
-        {j.rating ? (
-          <span className="absolute -bottom-1 -right-2 flex items-center gap-px px-1 rounded-full text-[10px] font-black tabular-nums"
-            style={{ background: '#10141a', color: '#ffd08b', border: '1px solid rgba(255,208,139,0.35)' }}>
-            <Star size={8} fill="#ffd08b" strokeWidth={0} />{j.rating}
-          </span>
-        ) : null}
-      </span>
-      <span className="max-w-full truncate px-1 rounded text-[11px] font-semibold leading-tight"
-        style={elegido ? { background: '#ffd08b', color: '#2b1d00' } : { color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-        {nombreCorto(j.name)}
-      </span>
-    </button>
+    <Lamina nombre={j.name} rotulo={rotulo(j)} foto={j.photo_url} estrellas={j.rating} puesto={SIGLA_LINEA[linea]}
+      tono={linea === 'Portero' ? 'arquero' : tonoPorEstrellas(j.rating)} fueraDePuesto={fueraDePuesto} elegido={elegido}
+      alto="min(21cqh, 30cqw)" orden={orden} onClick={onClick}
+      ariaLabel={`${NOMBRE_LINEA[linea]}: ${j.name}${fueraDePuesto ? ' (fuera de su puesto)' : ''}${elegido ? ', elegido para cambiar' : ''}`}
+      title={`${j.name} · ${j.position || 'Sin posición'}${fueraDePuesto ? ' (fuera de su puesto)' : ''}`} />
   );
 }
 
@@ -126,37 +112,44 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
         </p>
       )}
 
-      <div className="relative w-full aspect-[4/5] sm:aspect-[5/4] rounded-[20px] overflow-hidden"
-        style={{ background: 'repeating-linear-gradient(180deg, #0f3d2c 0 12.5%, #0d3627 12.5% 25%)' }}>
-        <div className="absolute inset-3 rounded-xl border border-white/20 pointer-events-none" />
-        <div className="absolute left-1/2 top-3 w-24 h-12 -translate-x-1/2 rounded-b-full border border-t-0 border-white/20 pointer-events-none" />
-        <div className="absolute left-1/2 bottom-3 w-32 h-12 -translate-x-1/2 border border-b-0 border-white/20 pointer-events-none" />
+      {/* Media cancha vista desde el arco propio; el tamaño de las láminas sale del de la cancha. */}
+      <div className="relative w-full aspect-[3/4] sm:aspect-[5/4] rounded-[20px] overflow-hidden"
+        style={{
+          containerType: 'size',
+          background: 'radial-gradient(ellipse 90% 60% at 50% 0%, rgba(68,243,169,0.16), transparent 70%), repeating-linear-gradient(180deg, #14553c 0 12.5%, #0f4530 12.5% 25%)',
+          boxShadow: 'inset 0 0 60px rgba(0,0,0,0.55)',
+        }}>
+        <div className="absolute inset-3 rounded-xl border-2 border-white/25 pointer-events-none" />
+        <div className="absolute left-1/2 top-3 w-[30%] aspect-[2/1] -translate-x-1/2 rounded-b-full border-2 border-t-0 border-white/25 pointer-events-none" />
+        <div className="absolute left-1/2 top-3 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/40 pointer-events-none" />
+        <div className="absolute left-1/2 bottom-3 w-[56%] h-[19%] -translate-x-1/2 border-2 border-b-0 border-white/25 pointer-events-none" />
+        <div className="absolute left-1/2 bottom-3 w-[26%] h-[8%] -translate-x-1/2 border-2 border-b-0 border-white/25 pointer-events-none" />
+        <div className="absolute left-3 bottom-3 w-4 h-4 border-t-2 border-r-2 border-white/25 rounded-tr-full pointer-events-none" />
+        <div className="absolute right-3 bottom-3 w-4 h-4 border-t-2 border-l-2 border-white/25 rounded-tl-full pointer-events-none" />
 
         {filas.map((fila, i) => {
-          const top = filas.length > 1 ? 86 - (i / (filas.length - 1)) * 70 : 50;
+          const top = filas.length > 1 ? 86 - (i / (filas.length - 1)) * 71 : 50;
+          const antes = filas.slice(0, i).reduce((n, f) => n + f.length, 0);
+          // Con cuatro en línea (4-1-1) se abren hasta las bandas para no encimarse.
           return fila.map((puesto, k) => (
             <div key={puesto.jugador.id} className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-500"
-              style={{ top: `${top}%`, left: `${(100 / (fila.length + 1)) * (k + 1)}%` }}>
-              <Ficha puesto={puesto} elegido={elegido === puesto.jugador.id} onClick={puedeEditar ? () => tocar(puesto.jugador.id) : undefined} />
+              style={{ top: `${top}%`, left: `${fila.length >= 4 ? 13 + (k * 74) / (fila.length - 1) : (100 / (fila.length + 1)) * (k + 1)}%`, zIndex: elegido === puesto.jugador.id ? 2 : 1 }}>
+              <Ficha puesto={puesto} orden={antes + k} elegido={elegido === puesto.jugador.id} onClick={puedeEditar ? () => tocar(puesto.jugador.id) : undefined} />
             </div>
           ));
         })}
       </div>
 
       {titular.banca.length > 0 && (
-        <div className="mt-3">
-          <p className="text-xs font-bold text-white/80 mb-1.5">Banca ({titular.banca.length})</p>
-          <div className="flex flex-wrap gap-1.5">
-            {titular.banca.map((j) => {
+        <div className="mt-4">
+          <p className="text-xs font-bold text-white/80 mb-2">Banca ({titular.banca.length})</p>
+          <div className="flex flex-wrap gap-2">
+            {titular.banca.map((j, i) => {
               const sel = elegido === j.id;
               return (
-                <button key={j.id} type="button" disabled={!puedeEditar} onClick={() => tocar(j.id)} aria-pressed={puedeEditar ? sel : undefined}
-                  aria-label={`Banca: ${j.name}${sel ? ', elegido para cambiar' : ''}`} title={`${j.name} · ${j.position || 'Sin posición'}`}
-                  className={`flex items-center gap-1 px-2.5 rounded-full text-xs font-semibold enabled:cursor-pointer ${puedeEditar ? 'h-9' : 'h-7'}`}
-                  style={sel ? { background: '#ffd08b', color: '#2b1d00', boxShadow: BRILLO_ELEGIDO } : { background: '#262a31', color: 'rgba(255,255,255,0.8)' }}>
-                  {nombreCorto(j.name)}
-                  {j.rating ? <span className="flex items-center gap-px tabular-nums" style={{ color: sel ? '#2b1d00' : '#ffd08b' }}><Star size={9} fill="currentColor" strokeWidth={0} />{j.rating}</span> : null}
-                </button>
+                <Lamina key={j.id} nombre={j.name} rotulo={rotulo(j)} foto={j.photo_url} estrellas={j.rating} puesto={siglaPosicion(j.position)}
+                  tono={tonoPorEstrellas(j.rating)} elegido={sel} alto="68px" orden={i} onClick={puedeEditar ? () => tocar(j.id) : undefined}
+                  ariaLabel={`Banca: ${j.name}${sel ? ', elegido para cambiar' : ''}`} title={`${j.name} · ${j.position || 'Sin posición'}`} />
               );
             })}
           </div>
