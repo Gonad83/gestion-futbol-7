@@ -29,7 +29,7 @@ interface Props {
   title?: string;
 }
 
-/** Lámina de jugador al estilo de las cartas de FIFA: nota, puesto, foto y nombre. */
+/** Lámina de jugador al estilo de las cartas de FIFA: puesto, foto, estrellas y nombre. */
 export function Lamina({ nombre, rotulo, foto, estrellas, puesto, tono, fueraDePuesto, camiseta, elegido = false, alto, orden = 0, onClick, ariaLabel, title }: Props) {
   const llenas = Math.max(0, Math.min(MAX_ESTRELLAS, Math.round(estrellas ?? 0)));
   return (
@@ -43,10 +43,7 @@ export function Lamina({ nombre, rotulo, foto, estrellas, puesto, tono, fueraDeP
           ? <img src={foto} alt="" className="lamina-foto" loading="lazy" />
           : <span className="lamina-foto lamina-iniciales" aria-hidden="true">{iniciales(nombre)}</span>}
         <span className="lamina-esquina" aria-hidden="true" />
-        <span className="lamina-nota">
-          {estrellas ? <b>{estrellas}</b> : null}
-          <i>{puesto}</i>
-        </span>
+        <span className="lamina-puesto">{puesto}</span>
         {fueraDePuesto && (
           <span className="lamina-aviso" aria-hidden="true"><ArrowLeftRight size="0.9em" strokeWidth={3} /></span>
         )}

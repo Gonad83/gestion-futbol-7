@@ -221,27 +221,25 @@
   letter-spacing: -0.04em;
   opacity: 0.4;
 }
-/* La esquina toma el color de la lámina para que la nota se lea sobre cualquier foto,
+/* La esquina toma el color de la lámina para que el puesto se lea sobre cualquier foto,
    y abajo la foto se funde con la franja del nombre. */
 .lamina-esquina {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(135deg, var(--base) 0%, var(--base) 24%, transparent 46%),
+    linear-gradient(135deg, var(--base) 0%, var(--base) 20%, transparent 40%),
     linear-gradient(180deg, transparent 42%, var(--base) 61%);
 }
-.lamina-nota {
+.lamina-puesto {
   position: absolute;
-  top: 0.95em;
+  top: 1em;
   left: 0.6em;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   line-height: 1;
   font-family: 'Lexend', system-ui, sans-serif;
+  font-size: 1.3em;
+  font-weight: 900;
+  letter-spacing: 0.02em;
 }
-.lamina-nota b { font-size: 2em; font-weight: 900; letter-spacing: -0.04em; }
-.lamina-nota i { font-size: 0.95em; font-weight: 800; font-style: normal; letter-spacing: 0.04em; margin-top: 0.1em; }
 .lamina-aviso {
   position: absolute;
   top: 0.9em;
