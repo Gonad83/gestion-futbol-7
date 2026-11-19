@@ -24,7 +24,8 @@ const HOSTS_DE_PAGO = ['mercadopago.cl', 'mercadopago.com', 'mpago.la', 'mpago.l
 
 type Tipo = 'inicio' | 'mitad';
 interface Mes { year: number; month: number }
-interface Aviso { nombre: string; email: string; pendientes: Mes[]; total: number }
+/** `abonado` es lo ya pagado a cuenta de los meses pendientes; `total` es el saldo que queda. */
+interface Aviso { nombre: string; email: string; pendientes: Mes[]; abonado: number; total: number }
 /** Escudo y foto de portada del equipo (los mismos de la app). */
 interface Marca { equipo: string; logo: string; banner: string }
 
@@ -88,7 +89,8 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
   const esInicio = tipo === 'inicio';
   const acento = esInicio ? '#44f3a9' : '#ffd08b';
   const brillo = esInicio ? 'rgba(68,243,169,0.18)' : 'rgba(255,208,139,0.18)';
-  const cifra = esInicio ? cuota : a.total;
+  // Día 1: la cuota del mes (o su saldo, si ya abonó parte). Día 15: todo lo que debe.
+  const cifra = esInicio && anteriores.length > 0 ? cuota : a.total;
   const n = a.pendientes.length;
   // Quien debe varias cuotas no tiene que pagarlas todas juntas: puede abonar.
   const variasCuotas = n > 1;
@@ -140,7 +142,7 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
 
   const estiloBoton = 'display:block;padding:16px;border-radius:14px;background:#44f3a9;background-image:linear-gradient(135deg,#44f3a9,#00d68f);color:#003822;font-family:' + LEXEND + ';font-size:16px;font-weight:700;text-decoration:none;text-align:center;';
   const botonPrincipal = pago
-    ? `<a href="${escapar(pago)}" style="${estiloBoton}">${variasCuotas ? 'Pagar o abonar' : `Pagar ${clp(cuota)}`}</a>`
+    ? `<a href="${escapar(pago)}" style="${estiloBoton}">${variasCuotas ? 'Pagar o abonar' : `Pagar ${clp(a.total)}`}</a>`
     : `<a href="${SITIO}/profile" style="${estiloBoton}">Subir mi comprobante</a>`;
   const botonSecundario = pago
     ? `<a href="${SITIO}/profile" style="display:block;margin-top:10px;padding:14px;border-radius:14px;background:#262a31;color:#9acbff;font-size:14px;font-weight:700;text-decoration:none;text-align:center;">Ya transferí: subir comprobante</a>`
@@ -149,6 +151,12 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
     <tr><td style="padding:10px 28px 0;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(154,203,255,0.08);border-radius:14px;">
         <tr><td style="padding:14px 18px;color:rgba(255,255,255,0.75);font-size:13px;line-height:1.55;"><strong style="color:#9acbff;">No tienes que pagar todo de una vez.</strong> Puedes abonar de a una cuota (${clp(cuota)}) o lo que puedas este mes: cada abono cubre primero el mes más antiguo.</td></tr>
+      </table>
+    </td></tr>` : '';
+  const notaAbono = a.abonado > 0 ? `
+    <tr><td style="padding:0 28px 8px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(68,243,169,0.08);border-radius:14px;">
+        <tr><td style="padding:14px 18px;color:rgba(255,255,255,0.75);font-size:13px;line-height:1.55;"><strong style="color:#44f3a9;">Ya abonaste ${clp(a.abonado)}.</strong> Te queda un saldo de <strong style="color:#ffffff;">${clp(a.total)}</strong>.</td></tr>
       </table>
     </td></tr>` : '';
   const paso1 = pago
@@ -175,7 +183,7 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@700;900&family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
 <title>${escapar(titulo)}</title></head>
 <body style="margin:0;padding:0;background:#10141a;font-family:'Manrope','Helvetica Neue',Arial,sans-serif;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapar(esInicio ? `${clp(cuota)} · ${equipo}` : `${bajada}: ${clp(a.total)} · ${equipo}`)}</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapar(esInicio ? `${clp(cifra)} · ${equipo}` : `${bajada}: ${clp(a.total)} · ${equipo}`)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#10141a;">
 <tr><td align="center" style="padding:28px 12px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#1c2026;border-radius:24px;overflow:hidden;">${portada}
@@ -198,7 +206,7 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
     <tr><td style="padding:26px 28px 18px;">
       <p style="margin:0 0 10px;color:#ffffff;font-family:${LEXEND};font-size:17px;font-weight:700;">Hola ${escapar(a.nombre)} 👋</p>
       <p style="margin:0;color:rgba(255,255,255,0.7);font-size:15px;line-height:1.6;">${mensaje}</p>
-    </td></tr>${filaDeDatos}${cajaDeMeses}
+    </td></tr>${filaDeDatos}${cajaDeMeses}${notaAbono}
     <tr><td style="padding:14px 28px 6px;">${botonPrincipal}${botonSecundario}</td></tr>${abono}
     <tr><td style="padding:22px 28px 14px;">
       <p style="margin:0 0 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;">Cómo queda registrado</p>
@@ -219,7 +227,7 @@ function plantilla(tipo: Tipo, a: Aviso, marca: Marca, cuota: number, hoy: Mes, 
 </body></html>`;
 
   const asunto = esInicio
-    ? `Cuota de ${mesActual}: ${clp(cuota)} — ${equipo}`
+    ? `Cuota de ${mesActual}: ${clp(cifra)} — ${equipo}`
     : `Recordatorio: tienes ${bajada} (${clp(a.total)}) — ${equipo}`;
   return { asunto: asunto.replace(/[\r\n]+/g, ' '), html };
 }
@@ -266,21 +274,30 @@ serve(async (req) => {
       if (!jugadores?.length) continue;
 
       const { data: pagos, error: errPagos } = await db.from('payments')
-        .select('player_id, month, year, status').in('player_id', jugadores.map((j) => j.id));
+        .select('player_id, month, year, status, amount').in('player_id', jugadores.map((j) => j.id));
       if (errPagos) throw errPagos;
 
       const avisos: Aviso[] = [];
       for (const j of jugadores) {
-        const pendientes = mesesPendientes(j.created_at, (pagos ?? []).filter((p) => p.player_id === j.id), hoy);
+        const suyos = (pagos ?? []).filter((p) => p.player_id === j.id);
+        const pendientes = mesesPendientes(j.created_at, suyos, hoy);
         const debeElMes = pendientes.some((p) => p.year === hoy.year && p.month === hoy.month);
         const leToca = tipo === 'inicio' ? debeElMes : pendientes.length > 0;
         if (!leToca || !j.email || j.notify === false) continue;
-        avisos.push({ nombre: j.name, email: String(j.email).trim().toLowerCase(), pendientes, total: pendientes.length * cuota });
+        // Abonos: filas sin pagar con un monto menor a la cuota, en meses que aún debe.
+        // (Una fila pendiente con el monto completo de la cuota es solo la deuda anotada.)
+        const debe = new Set(pendientes.map((p) => `${p.year}-${p.month}`));
+        const abonado = suyos.reduce((suma, p) => {
+          const monto = Number(p.amount ?? 0);
+          const esAbono = (p.status === 'Pendiente' || p.status === 'Atrasado') && monto > 0 && monto < cuota && debe.has(`${p.year}-${p.month}`);
+          return esAbono ? suma + monto : suma;
+        }, 0);
+        avisos.push({ nombre: j.name, email: String(j.email).trim().toLowerCase(), pendientes, abonado, total: Math.max(0, pendientes.length * cuota - abonado) });
       }
       avisos.sort((a, b) => b.pendientes.length - a.pendientes.length);
 
       if (simular) {
-        resumen.push({ equipo: nombreEquipo, tipo, cuota, destinatarios: avisos.map((a) => ({ nombre: a.nombre, meses: a.pendientes.length, total: a.total })) });
+        resumen.push({ equipo: nombreEquipo, tipo, cuota, destinatarios: avisos.map((a) => ({ nombre: a.nombre, meses: a.pendientes.length, abonado: a.abonado, total: a.total })) });
         continue;
       }
       if (avisos.length === 0) { resumen.push({ equipo: nombreEquipo, enviados: 0 }); continue; }
@@ -303,7 +320,8 @@ serve(async (req) => {
       let correos;
       if (prueba) {
         if (!correoDueno) { resumen.push({ equipo: nombreEquipo, error: 'El equipo no tiene dueño con correo' }); continue; }
-        correos = [armar(avisos[0], correoDueno, '[PRUEBA] ')];
+        // La muestra usa a alguien con abono, si hay, para ver el caso más completo.
+        correos = [armar(avisos.find((a) => a.abonado > 0) ?? avisos[0], correoDueno, '[PRUEBA] ')];
       } else {
         // Reservar el envío del mes: si ya existe, este aviso ya salió.
         const { error: yaEnviado } = await db.from('recordatorios_cuota')
