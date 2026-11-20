@@ -9,6 +9,7 @@ import { aviso, confirmar } from '../lib/avisos';
 import { enlacesDelPartido } from '../lib/enlaceAsistencia';
 import { fechaSinHora } from '../lib/formato';
 import { guardarAsistencia } from '../lib/api/dashboard';
+import { formatoHabitual } from '../lib/matchmaking';
 
 /** Cupo sugerido según el formato: los dos equipos completos. */
 const CUPO_SUGERIDO: Record<string, number> = { '5vs5': 10, '7vs7': 14, '11vs11': 22 };
@@ -76,6 +77,23 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
     };
     fetchMyPlayer();
   }, [match, user]);
+
+  // Partido nuevo: formato y cupo sugeridos según cómo juega el equipo de verdad
+  // (el formato más repetido en sus últimos partidos), no un 7vs7 fijo.
+  useEffect(() => {
+    if (!isOpen || match?.id || !teamId || !isAdmin) return;
+    let vivo = true;
+    Promise.all([
+      supabase.from('matches').select('match_type').eq('team_id', teamId).eq('event_type', 'Deportivo')
+        .order('date', { ascending: false }).limit(10),
+      supabase.from('team_settings').select('preferred_format').eq('id', teamId).maybeSingle(),
+    ]).then(([partidos, ajustes]) => {
+      if (!vivo || partidos.error) return;
+      const formato = formatoHabitual((partidos.data ?? []).map((p) => p.match_type), ajustes.data?.preferred_format);
+      setFormData((prev) => ({ ...prev, match_type: formato, cupo: prev.cupo ? String(CUPO_SUGERIDO[formato]) : '' }));
+    });
+    return () => { vivo = false; };
+  }, [isOpen, match?.id, teamId, isAdmin]);
 
   const fetchAttendances = async () => {
     if (!match?.id) return;

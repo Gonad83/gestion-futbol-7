@@ -14,8 +14,7 @@ import {
   nombreDeInvitado,
   textoAsistencia,
   textoEquipos,
-  type JugadorMM,
-} from './matchmaking';
+  type JugadorMM, formatoHabitual, formacionesDe } from './matchmaking';
 
 const j = (id: string, rating: number, position = 'Mediocampista', extra: Partial<JugadorMM> = {}): JugadorMM => ({
   id, name: `Jugador ${id}`, rating, position, ...extra,
@@ -204,5 +203,25 @@ describe('textos para compartir', () => {
     expect(datos.raw_data.formationB).toBe('2-3-1');
     expect(datosListaFinal(undefined, { teamA: [], teamB: [], colorA: 'x', colorB: 'y', formationA: '', formationB: '' }))
       .toMatchObject({ match_date: 'Próximo partido', match_location: 'Cancha habitual', team_a_color: 'x' });
+  });
+});
+
+describe('formatoHabitual', () => {
+  it('elige el formato más jugado aunque el preferido diga otra cosa', () => {
+    expect(formatoHabitual(['5vs5', '7vs7', '5vs5', '5vs5'], '7vs7')).toBe('5vs5');
+  });
+  it('en empate gana el más reciente', () => {
+    expect(formatoHabitual(['7vs7', '5vs5', '5vs5', '7vs7'])).toBe('7vs7');
+  });
+  it('sin partidos usa el preferido y, si no sirve, 7vs7', () => {
+    expect(formatoHabitual([], '11vs11')).toBe('11vs11');
+    expect(formatoHabitual([null, 'raro'], 'Todos')).toBe('7vs7');
+  });
+});
+
+describe('formacionesDe', () => {
+  it('5vs5 usa formaciones de cuatro jugadores de campo', () => {
+    expect(formacionesDe('5vs5').every((f) => f.value.split('-').reduce((a, b) => a + Number(b), 0) === 4)).toBe(true);
+    expect(formacionesDe(undefined)[0].value).toBe('3-2-1');
   });
 });

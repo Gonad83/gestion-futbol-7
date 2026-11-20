@@ -8,6 +8,7 @@ import { EncabezadoPartido } from './EncabezadoPartido';
 import { ModalInvitado } from './ModalInvitado';
 import { Pizarra } from './Pizarra';
 import { SinPartido } from './SinPartido';
+import { CanchaMovil } from './CanchaMovil';
 
 /**
  * Pruebas de humo: cada bloque de Matchmaking se dibuja sin romperse, con y
@@ -89,4 +90,20 @@ describe('bloques de Matchmaking', () => {
     );
     expect(html).toContain('Pedro');
   });
+
+  it('cancha del celular: los suplentes se pueden tocar para cambiarlos', () => {
+    // 5vs5 con 7 por lado: 5 en cancha y 2 en la banca de cada equipo.
+    const a = plantel.slice(0, 7);
+    const b = [...plantel.slice(7, 12), invitado, jugador(50)];
+    const props = { teamA: a, teamB: b, formationA: '2-0-2', formationB: '2-0-2', colorA: 'blue', colorB: 'white', handleSwap: nada };
+    const sinMarcas = (html: string) => html.replace(/<!-- -->/g, '');
+    const editable = sinMarcas(renderToString(<CanchaMovil {...props} swapSelection={{ team: 'A', index: 5 }} canEdit />));
+    expect(editable).toContain('Banca A');
+    expect(editable).toMatch(/<button[^>]*aria-pressed="true"[^>]*aria-label="Jugador 5, suplente del equipo A, elegido para cambiar"/);
+    expect((editable.match(/suplente del equipo/g) ?? []).length).toBe(4);
+    const soloMirar = sinMarcas(renderToString(<CanchaMovil {...props} swapSelection={null} canEdit={false} />));
+    expect(soloMirar).not.toContain('suplente del equipo');
+    expect(soloMirar).toContain('Banca B');
+  });
 });
+

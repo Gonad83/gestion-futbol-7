@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { Info, RotateCcw, Shield, Star } from 'lucide-react';
 import type { DashboardStats, JugadorDash } from '../../lib/api/dashboard';
 import { Lamina } from '../../components/Lamina';
-import { FORMATIONS, JERSEY_COLORS } from '../../lib/matchmaking';
+import { JERSEY_COLORS, formacionesDe } from '../../lib/matchmaking';
 import { armarTitular, intercambiarPuestos, LINEAS, type Puesto, type TitularGuardado } from './titular';
 
-const FORMACIONES = FORMATIONS['7vs7'];
+
 const NOMBRE_LINEA = { Portero: 'Portero', Defensa: 'Defensa', Medio: 'Medio', Delantero: 'Delantero' } as const;
 
 const SIGLA_LINEA = { Portero: 'POR', Defensa: 'DEF', Medio: 'MED', Delantero: 'DEL' } as const;
@@ -44,6 +44,8 @@ interface Props {
  */
 export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Props) {
   const [elegido, setElegido] = useState<string | null>(null);
+  // Las formaciones dependen del formato del próximo partido (en 5vs5, cuatro jugadores de campo).
+  const FORMACIONES = formacionesDe(stats.nextMatch?.match_type);
   const formacion = FORMACIONES.some((f) => f.value === guardado?.formacion) ? guardado!.formacion : FORMACIONES[0].value;
   const fijos = guardado?.puestos;
   const color = JERSEY_COLORS.some((c) => c.value === guardado?.color) ? guardado!.color! : 'emerald';

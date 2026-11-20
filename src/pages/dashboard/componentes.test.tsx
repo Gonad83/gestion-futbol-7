@@ -154,5 +154,15 @@ describe('bloques del panel de inicio', () => {
     expect(html).toContain('1 tal vez');
     expect(html).toContain('Tal vez');
   });
+
+  it('equipo titular de un partido 5vs5: formaciones de cinco y cinco puestos', () => {
+    const stats: DashboardStats = { ...llenas, nextMatch: { ...llenas.nextMatch!, match_type: '5vs5' } };
+    // Una formación guardada de 7vs7 no sirve en 5vs5: se usa la primera de 5vs5.
+    const capitan = dibujar(<TarjetaTitular stats={stats} guardado={{ formacion: '3-2-1', puestos: [] }} puedeEditar onGuardar={nada} />);
+    expect(capitan).toContain('El Rombo');
+    expect(capitan).not.toContain('Catenaccio');
+    const jugador = dibujar(<TarjetaTitular stats={stats} guardado={{ formacion: '3-2-1', puestos: [] }} puedeEditar={false} onGuardar={nada} />);
+    expect(jugador.replace(/<!-- -->/g, '')).toContain('Formación 1-2-1');
+  });
 });
 

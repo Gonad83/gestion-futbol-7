@@ -84,6 +84,27 @@ const JERSEY_EMOJI: Record<string, string> = {
   black: '⬛', white: '⬜', blue: '🟦', emerald: '🟩', yellow: '🟨', red: '🟥', purple: '🟪', lightblue: '🔵',
 };
 
+export type FormatoPartido = '5vs5' | '7vs7' | '11vs11';
+const FORMATOS: FormatoPartido[] = ['5vs5', '7vs7', '11vs11'];
+
+/**
+ * El formato con que el equipo juega de verdad: el más repetido en sus últimos
+ * partidos (empate: el más reciente). Sin partidos, el formato preferido de
+ * Ajustes y, si no, 7vs7. `tipos` va del más reciente al más antiguo.
+ */
+export function formatoHabitual(tipos: (string | null | undefined)[], preferido?: string | null): FormatoPartido {
+  const validos = tipos.filter((t): t is FormatoPartido => FORMATOS.includes(t as FormatoPartido));
+  if (validos.length === 0) return FORMATOS.includes(preferido as FormatoPartido) ? (preferido as FormatoPartido) : '7vs7';
+  const cuenta = new Map<FormatoPartido, number>();
+  validos.forEach((t) => cuenta.set(t, (cuenta.get(t) ?? 0) + 1));
+  const max = Math.max(...cuenta.values());
+  return validos.find((t) => cuenta.get(t) === max)!;
+}
+
+/** Formaciones para el equipo titular según el formato del partido. */
+export const formacionesDe = (formato: string | null | undefined): Formacion[] =>
+  formato === '5vs5' || formato === '11vs11' ? FORMATIONS[formato] : FORMATIONS['7vs7'];
+
 export const FREE_GUEST_LIMIT = 4;
 export const FREE_PLAYER_LIMIT = 10;
 /** Con menos confirmados no se pueden armar dos equipos. */

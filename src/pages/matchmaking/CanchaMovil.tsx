@@ -40,7 +40,9 @@ interface Props {
  * de ancho quedaban encimadas). B arriba, A abajo; tocar dos fichas las cambia.
  */
 export function CanchaMovil({ teamA, teamB, formationA, formationB, colorA, colorB, swapSelection, canEdit, handleSwap }: Props) {
-  const banca = (equipo: JugadorMM[], formacion: string) => equipo.filter((_, i) => posicionVertical(i, 'A', formacion) === null);
+  // La banca guarda su posición en el equipo: tocar a un suplente y luego a un titular los cambia.
+  const banca = (equipo: JugadorMM[], formacion: string) =>
+    equipo.map((jugador, index) => ({ jugador, index })).filter(({ index }) => posicionVertical(index, 'A', formacion) === null);
   const bancaA = banca(teamA, formationA);
   const bancaB = banca(teamB, formationB);
   const fichas = (equipo: JugadorMM[], team: Equipo, formacion: string, color: string) => {
@@ -64,7 +66,7 @@ export function CanchaMovil({ teamA, teamB, formationA, formationB, colorA, colo
     <div className="space-y-3">
       {canEdit && (
         <p className="flex items-center justify-center gap-1.5 text-xs" style={{ color: swapSelection ? '#ffd08b' : 'rgba(255,255,255,0.55)' }} aria-live="polite">
-          <Info size={13} /> {swapSelection ? 'Toca otro jugador para intercambiarlos' : 'Toca dos jugadores para cambiarlos de lugar'}
+          <Info size={13} /> {swapSelection ? 'Toca otro jugador (en la cancha o la banca) para intercambiarlos' : 'Toca dos jugadores para cambiarlos de lugar, también los de la banca'}
         </p>
       )}
 
@@ -93,8 +95,30 @@ export function CanchaMovil({ teamA, teamB, formationA, formationB, colorA, colo
         <div className="grid grid-cols-2 gap-2 text-xs">
           {([['A', bancaA, colorA], ['B', bancaB, colorB]] as const).map(([t, lista, c]) => (
             <div key={t} className="p-2.5 rounded-xl" style={{ background: '#181c22' }}>
-              <p className="font-bold mb-1" style={{ color: hexCamiseta(c) }}>Banca {t}</p>
-              <p className="text-white/70 leading-snug">{lista.length ? lista.map(p => nombreCorto(p.name)).join(', ') : '—'}</p>
+              <p className="font-bold mb-1.5" style={{ color: hexCamiseta(c) }}>Banca {t}</p>
+              {lista.length === 0 ? <p className="text-white/50">—</p> : (
+                <ul className="flex flex-wrap gap-1.5">
+                  {lista.map(({ jugador, index }) => {
+                    const elegido = swapSelection?.team === t && swapSelection?.index === index;
+                    return (
+                      <li key={jugador.id}>
+                        {canEdit ? (
+                          <button type="button" onClick={() => handleSwap(t, index)} aria-pressed={elegido}
+                            aria-label={`${jugador.name}, suplente del equipo ${t}${elegido ? ', elegido para cambiar' : ''}`}
+                            className="min-h-[44px] px-3 rounded-full font-semibold cursor-pointer transition-colors"
+                            style={elegido
+                              ? { background: '#ffd08b', color: '#2b1d05' }
+                              : { background: '#262a31', color: 'rgba(255,255,255,0.85)', border: `1px solid ${hexCamiseta(c)}55` }}>
+                            {nombreCorto(jugador.name)}
+                          </button>
+                        ) : (
+                          <span className="inline-block px-2.5 py-1 rounded-full text-white/75" style={{ background: '#262a31' }}>{nombreCorto(jugador.name)}</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           ))}
         </div>
