@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { mostrarTelefono, normalizarTelefono } from '../lib/formato';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { subirFoto } from '../lib/subirFoto';
@@ -27,6 +28,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
     name: '',
     nickname: '',
     email: '',
+    phone: '',
     position: 'Delantero Centro (9)',
     secondary_position: '',
     rating: 4,
@@ -56,6 +58,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
     if (player) {
       setFormData({
         ...player,
+        phone: mostrarTelefono(player.phone),
         forma: subStat(player, 'forma'),
         tecnica: subStat(player, 'tecnica'),
         vision: subStat(player, 'vision'),
@@ -65,7 +68,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
       setPhotoPreview(player.photo_url || '');
     } else {
       setFormData({
-        name: '', nickname: '', email: '', position: 'Delantero Centro (9)', secondary_position: '', rating: 4, forma: 4, tecnica: 4, vision: 4, ataque: 4, defensa: 4, status: 'Activo', photo_url: '', birth_date: ''
+        name: '', nickname: '', email: '', phone: '', position: 'Delantero Centro (9)', secondary_position: '', rating: 4, forma: 4, tecnica: 4, vision: 4, ataque: 4, defensa: 4, status: 'Activo', photo_url: '', birth_date: ''
       });
       setPhotoPreview('');
     }
@@ -110,6 +113,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
         nickname: cleanData.nickname || null,
         secondary_position: cleanData.secondary_position || null,
         email: cleanData.email || null,
+        phone: normalizarTelefono(cleanData.phone),
       };
 
       if (player?.id) {
@@ -254,6 +258,10 @@ export default function PlayerModal({ isOpen, onClose, onSave, player, teamId }:
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-sm text-slate-300 mb-1">Correo Electrónico</label>
               <input type="email" className="input-field" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="jugador@correo.com" />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-sm text-slate-300 mb-1">Celular</label>
+              <input type="tel" inputMode="tel" autoComplete="tel" className="input-field" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="9 1234 5678" />
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-sm text-slate-300 mb-1">Fecha de Nacimiento</label>

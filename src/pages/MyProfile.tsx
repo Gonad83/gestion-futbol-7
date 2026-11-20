@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { Camera, UserCircle, Star, ChevronRight } from 'lucide-react';
 import { aviso } from '../lib/avisos';
+import { mostrarTelefono, normalizarTelefono } from '../lib/formato';
 import { BarraGuardar } from '../components/BarraGuardar';
 import { AnilloAsistencia } from './players/ListaPlantilla';
 import { MisPagos } from './profile/MisPagos';
@@ -31,6 +32,7 @@ interface Datos {
   secondary_position: string;
   status: string;
   birth_date: string;
+  phone: string;
 }
 
 const etiqueta = 'block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1.5';
@@ -81,6 +83,7 @@ export default function MyProfile() {
       secondary_position: playerProfile.secondary_position || '',
       status: playerProfile.status || 'Activo',
       birth_date: playerProfile.birth_date || '',
+      phone: mostrarTelefono(playerProfile.phone),
     };
     setDatos(d);
     setOriginal(JSON.stringify(d));
@@ -125,6 +128,7 @@ export default function MyProfile() {
         photo_url: urlFoto,
         status: datos.status,
         birth_date: datos.birth_date || null,
+        phone: normalizarTelefono(datos.phone),
       }).eq('id', playerProfile.id).select();
       if (error) throw error;
       if (!actualizado || actualizado.length === 0) {
@@ -227,6 +231,11 @@ export default function MyProfile() {
         <div>
           <label htmlFor="pf-apodo" className={etiqueta}>Apodo (opcional)</label>
           <input id="pf-apodo" type="text" className="input-field" value={datos.nickname} onChange={e => cambiar('nickname')(e.target.value)} placeholder="Ej. La Pulga" />
+        </div>
+        <div>
+          <label htmlFor="pf-tel" className={etiqueta}>Celular</label>
+          <input id="pf-tel" type="tel" inputMode="tel" autoComplete="tel" className="input-field" value={datos.phone} onChange={e => cambiar('phone')(e.target.value)} placeholder="9 1234 5678" />
+          <p className="text-xs text-white/50 mt-1.5">Solo lo ve tu equipo.</p>
         </div>
         <div>
           <label htmlFor="pf-nac" className={etiqueta}>Fecha de nacimiento</label>

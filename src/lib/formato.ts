@@ -32,3 +32,23 @@ export function escapeHtml(texto: unknown): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+/**
+ * Celular en el formato que guarda la base (+569XXXXXXXX). Acepta "912345678",
+ * "9 1234 5678", "+56 9 1234 5678"… Vacío → null. Si no parece un número, lanza error.
+ */
+export function normalizarTelefono(texto: string | null | undefined): string | null {
+  const digitos = (texto ?? '').replace(/\D/g, '');
+  if (!digitos) return null;
+  if (digitos.length === 9 && digitos.startsWith('9')) return `+56${digitos}`;
+  if (digitos.length === 11 && digitos.startsWith('569')) return `+${digitos}`;
+  if (digitos.length >= 8 && digitos.length <= 15) return `+${digitos}`;
+  throw new Error('El teléfono no es válido. Escríbelo así: 9 1234 5678.');
+}
+
+/** "+56912345678" → "+56 9 1234 5678" para mostrarlo. */
+export function mostrarTelefono(tel: string | null | undefined): string {
+  if (!tel) return '';
+  const m = tel.match(/^\+569(\d{4})(\d{4})$/);
+  return m ? `+56 9 ${m[1]} ${m[2]}` : tel;
+}
