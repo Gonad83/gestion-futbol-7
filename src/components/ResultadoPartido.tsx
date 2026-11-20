@@ -88,7 +88,7 @@ export function ResultadoPartido({ matchId, teamId, puedeEditar, alGuardar, part
     try {
       const { data: equipo } = await supabase.from('team_settings').select('team_name').eq('id', teamId).maybeSingle();
       const cuando = partido
-        ? new Intl.DateTimeFormat('es-CL', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(partido.date)).replace(/./g, '')
+        ? new Intl.DateTimeFormat('es-CL', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(partido.date)).replace(/\./g, '')
         : '';
       const anotadores = datos.filas.filter((f) => f.goles > 0 || f.asistencias > 0)
         .sort((a, b) => b.goles - a.goles || b.asistencias - a.asistencias);
