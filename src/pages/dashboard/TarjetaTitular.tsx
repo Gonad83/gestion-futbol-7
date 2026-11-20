@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Info, RotateCcw, Shield, Star } from 'lucide-react';
 import type { DashboardStats, JugadorDash } from '../../lib/api/dashboard';
 import { Lamina } from '../../components/Lamina';
@@ -42,20 +42,23 @@ interface Props {
  * los mejores por estrellas en su puesto; el capitán puede tocar dos jugadores
  * para rotarlos o meter a uno de la banca, y eso queda guardado para todos.
  */
+/** La formación guardada si existe en este formato; si no, la primera del formato. */
+const formacionValida = (formaciones: { value: string }[], guardada?: string) =>
+  formaciones.some((f) => f.value === guardada) ? guardada! : formaciones[0].value;
+
 export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Props) {
   const [elegido, setElegido] = useState<string | null>(null);
   // Las formaciones dependen del formato del próximo partido (en 5vs5, cuatro jugadores de campo).
   const FORMACIONES = formacionesDe(stats.nextMatch?.match_type);
-  const formacion = FORMACIONES.some((f) => f.value === guardado?.formacion) ? guardado!.formacion : FORMACIONES[0].value;
+  const formacion = formacionValida(FORMACIONES, guardado?.formacion);
   const fijos = guardado?.puestos;
   const color = JERSEY_COLORS.some((c) => c.value === guardado?.color) ? guardado!.color! : 'emerald';
   const aMano = Boolean(fijos?.some(Boolean));
 
-  const titular = useMemo(() => {
-    const partidos = Object.fromEntries(stats.topParticipations.map((p) => [p.id, p.count]));
-    const noVan = new Set(stats.declinedIds);
-    return armarTitular(stats.allPlayers.filter((j) => !noVan.has(j.id)), formacion, partidos, fijos);
-  }, [stats.allPlayers, stats.topParticipations, stats.declinedIds, formacion, fijos]);
+  // Sin useMemo: el compilador de React ya guarda el resultado mientras no cambien los datos.
+  const partidos = Object.fromEntries(stats.topParticipations.map((p) => [p.id, p.count]));
+  const noVan = new Set(stats.declinedIds);
+  const titular = armarTitular(stats.allPlayers.filter((j) => !noVan.has(j.id)), formacion, partidos, fijos);
   const bajas = stats.allPlayers.filter((j) => j.status === 'Activo' && stats.declinedIds.includes(j.id));
 
   const filas = LINEAS.map((l) => titular.lineas[l]).filter((f) => f.length > 0);
