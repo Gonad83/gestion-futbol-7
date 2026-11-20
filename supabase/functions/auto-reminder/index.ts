@@ -253,6 +253,19 @@ serve(async (req) => {
         enviados += pendientes.length;
       }
 
+      // Además del correo, un push a quienes tienen los avisos activados en el celular.
+      const sinResponder = (jugadores ?? []).filter((j) => j.notify !== false && !respondieron.has(j.id)).map((j) => j.id);
+      if (sinResponder.length > 0) {
+        const { data: tokenPush } = await db.from('cron_tokens').select('token').eq('nombre', 'push').maybeSingle();
+        if (tokenPush?.token) {
+          await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/enviar-push`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-cron-token': tokenPush.token },
+            body: JSON.stringify({ tipo: 'recordatorio', match_id: partido.id, player_ids: sinResponder }),
+          }).catch((e) => console.error('push recordatorio:', e));
+        }
+      }
+
       await db.from('matches').update({ auto_reminder_sent_at: ahora.toISOString() }).eq('id', partido.id);
       resumen.push({ partido: partido.id, social, fecha, enviados: pendientes.length });
     }

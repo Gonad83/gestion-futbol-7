@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { subirFoto } from '../lib/subirFoto';
+import { AvisosCelular } from '../components/AvisosCelular';
 import { useAuth } from '../hooks/useAuth';
 import { Camera, UserCircle, Star } from 'lucide-react';
 import { aviso } from '../lib/avisos';
@@ -245,6 +246,10 @@ export default function MyProfile() {
           ))}
         </div>
         <p className="text-xs text-white/50">Si estás lesionado o inactivo, el capitán lo verá al armar los equipos.</p>
+      </Seccion>
+
+      <Seccion titulo="Avisos">
+        <AvisosCelular modo="ajuste" />
       </Seccion>
 
       <BarraGuardar visible={hayCambios} guardando={guardando} guardar={guardar} />

@@ -6,6 +6,7 @@ import { AvisoCuota, MosaicosInicio } from './dashboard/ResumenInicio';
 import { TarjetaMvp } from './dashboard/TarjetaMvp';
 import { TarjetaParticipaciones } from './dashboard/TarjetaParticipaciones';
 import { TarjetaGoleadores } from './dashboard/TarjetaGoleadores';
+import { AvisosCelular } from '../components/AvisosCelular';
 import { ModalAsistencia } from './dashboard/ModalAsistencia';
 import { TarjetaTitular } from './dashboard/TarjetaTitular';
 
@@ -53,6 +54,7 @@ export default function Dashboard() {
             copied={d.copied}
           />
           <AvisoCuota stats={d.stats} myPlayer={d.myPlayer} teamSettings={d.teamSettings} />
+          {d.myPlayer && <AvisosCelular modo="tarjeta" />}
           <MosaicosInicio stats={d.stats} isAdmin={isAdmin} myPlayer={d.myPlayer} />
           <TarjetaTitular stats={d.stats} guardado={d.teamSettings.titular ?? null} puedeEditar={isAdmin} onGuardar={d.cambiarTitular} />
         </div>

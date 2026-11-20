@@ -33,3 +33,30 @@ self.addEventListener('fetch', e => {
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
 });
+
+// ── Notificaciones push (ver supabase/functions/enviar-push) ─────────────────
+self.addEventListener('push', e => {
+  let datos = {};
+  try { datos = e.data ? e.data.json() : {}; } catch { datos = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(datos.title || 'MiClubPro', {
+    body: datos.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: datos.tag || undefined,
+    renotify: !!datos.tag,
+    data: { url: datos.url || '/dashboard' },
+  }));
+});
+
+// Al tocar la notificación: si la app ya está abierta, se enfoca; si no, se abre.
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const destino = new URL(e.notification.data?.url || '/dashboard', self.location.origin).href;
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(ventanas => {
+      const abierta = ventanas.find(v => v.url.startsWith(self.location.origin));
+      if (abierta) return abierta.focus().then(v => (v && 'navigate' in v ? v.navigate(destino) : v));
+      return self.clients.openWindow(destino);
+    })
+  );
+});
