@@ -50,7 +50,8 @@ export interface JugadorConAsistencia extends JugadorDash {
   attendanceStatus: EstadoAsistencia;
 }
 
-export type EstadoAsistencia = 'Voy' | 'No voy' | 'Pendiente';
+/** 'Espera': confirmó con el partido lleno; entra solo si alguien se baja. */
+export type EstadoAsistencia = 'Voy' | 'No voy' | 'Tal vez' | 'Espera' | 'Pendiente';
 
 export interface PartidoDash {
   id: string;
@@ -99,6 +100,10 @@ export interface DashboardStats {
   declinedCount: number;
   /** Quiénes dijeron "No voy" al próximo partido (no entran al equipo titular). */
   declinedIds: string[];
+  /** Respondieron "Tal vez". */
+  maybeCount: number;
+  /** Lista de espera, en orden de llegada (el primero entra primero). */
+  waitIds: string[];
   pendingCount: number;
   morosos: Moroso[];
   balance: number;
@@ -133,6 +138,8 @@ export const STATS_VACIAS: DashboardStats = {
   confirmedCount: 0,
   declinedCount: 0,
   declinedIds: [],
+  maybeCount: 0,
+  waitIds: [],
   pendingCount: 0,
   morosos: [],
   balance: 0,
@@ -330,19 +337,24 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
   let confirmedCount = 0;
   let declinedCount = 0;
   let declinedIds: string[] = [];
+  let maybeCount = 0;
+  let waitIds: string[] = [];
   let confirmedPlayers: JugadorDash[] = [];
   let guests: Invitado[] = [];
   let myConfirmStatus: EstadoAsistencia = 'Pendiente';
 
   if (nextMatch) {
     const [respuestas, invitados] = await Promise.all([
-      filas<{ player_id: string; status: string }>(supabase.from('attendance').select('player_id, status').eq('match_id', nextMatch.id), 15000),
+      filas<{ player_id: string; status: string; updated_at: string }>(supabase.from('attendance').select('player_id, status, updated_at').eq('match_id', nextMatch.id), 15000),
       filas<Invitado>(supabase.from('match_guests').select('id, name').eq('match_id', nextMatch.id), 8000),
     ]);
     const van = respuestas.filter((a) => a.status === 'Voy');
     confirmedCount = van.length;
     declinedIds = respuestas.filter((a) => a.status === 'No voy').map((a) => a.player_id);
     declinedCount = declinedIds.length;
+    maybeCount = respuestas.filter((a) => a.status === 'Tal vez').length;
+    waitIds = respuestas.filter((a) => a.status === 'Espera')
+      .sort((a, b) => a.updated_at.localeCompare(b.updated_at)).map((a) => a.player_id);
     const idsQueVan = new Set(van.map((a) => a.player_id));
     confirmedPlayers = allPlayers.filter((p) => idsQueVan.has(p.id));
     guests = invitados;
@@ -366,7 +378,9 @@ export async function cargarDashboard(teamId: number): Promise<DatosDashboard> {
       confirmedCount,
       declinedCount,
       declinedIds,
-      pendingCount: nextMatch ? Math.max(0, activos.length - confirmedCount - declinedCount) : 0,
+      maybeCount,
+      waitIds,
+      pendingCount: nextMatch ? Math.max(0, activos.length - confirmedCount - declinedCount - maybeCount - waitIds.length) : 0,
       morosos: calcularMorosos(activos, pagos, Number(s?.quota_amount ?? CUOTA_POR_DEFECTO)),
       // Igual que en Caja: meses pagados y abonos, más ingresos, menos gastos.
       balance: totalRecibido(pagados) + suma(ingresos) - suma(gastos),
@@ -474,15 +488,25 @@ export async function quitarInvitado(guestId: string) {
 }
 
 /** Guarda la respuesta de un jugador para un partido; "Pendiente" borra la que hubiera. */
-export async function guardarAsistencia(matchId: string, playerId: string, estado: EstadoAsistencia) {
+/**
+ * Guarda la respuesta y devuelve cómo quedó: si el partido tiene cupo y está
+ * lleno, la base deja "Voy" como "Espera" (lista de espera).
+ */
+export async function guardarAsistencia(matchId: string, playerId: string, estado: EstadoAsistencia): Promise<EstadoAsistencia> {
   const { data: existente, error: errLeer } = await supabase.from('attendance').select('id').eq('match_id', matchId).eq('player_id', playerId).maybeSingle();
   if (errLeer) throw new Error(errLeer.message);
-  const { error } = estado === 'Pendiente'
-    ? (existente ? await supabase.from('attendance').delete().eq('id', existente.id) : { error: null })
-    : existente
-      ? await supabase.from('attendance').update({ status: estado }).eq('id', existente.id)
-      : await supabase.from('attendance').insert({ match_id: matchId, player_id: playerId, status: estado });
+  if (estado === 'Pendiente') {
+    if (existente) {
+      const { error } = await supabase.from('attendance').delete().eq('id', existente.id);
+      if (error) throw new Error(error.message);
+    }
+    return 'Pendiente';
+  }
+  const { data, error } = existente
+    ? await supabase.from('attendance').update({ status: estado }).eq('id', existente.id).select('status').single()
+    : await supabase.from('attendance').insert({ match_id: matchId, player_id: playerId, status: estado }).select('status').single();
   if (error) throw new Error(error.message);
+  return (data?.status as EstadoAsistencia) ?? estado;
 }
 
 /** Guarda el equipo titular armado a mano para que lo vea todo el equipo (solo el capitán puede). */

@@ -64,7 +64,10 @@ export default function ConfirmarAsistencia() {
     return () => clearTimeout(t);
   }, [state, isLoggedIn, countdown]);
 
-  const isGoing = status === 'Voy';
+  // Lo que quedó guardado manda: con el partido lleno, "Voy" queda en lista de espera.
+  const estadoFinal = (result?.status as string | undefined) ?? status;
+  const enEspera = estadoFinal === 'Espera';
+  const isGoing = estadoFinal === 'Voy' || enEspera;
 
   return (
     <div
@@ -106,11 +109,13 @@ export default function ConfirmarAsistencia() {
                 className="text-2xl font-black text-white mb-1"
                 style={{ fontFamily: 'Lexend, sans-serif' }}
               >
-                {isGoing ? '¡Confirmado!' : 'Declinado'}
+                {enEspera ? 'Lista de espera' : isGoing ? '¡Confirmado!' : 'Declinado'}
               </h1>
               {result?.player_name && (
                 <p className="text-white/50 text-sm">
-                  {result.player_name}, tu respuesta fue registrada.
+                  {enEspera
+                    ? `${result.player_name}, el partido está lleno: quedaste en la lista de espera. Si alguien se baja, entras solo y te avisamos por correo.`
+                    : `${result.player_name}, tu respuesta fue registrada.`}
                 </p>
               )}
             </div>

@@ -210,7 +210,8 @@ serve(async (req) => {
       }
 
       const [{ data: respuestas, error: errResp }, { data: jugadores, error: errJug }] = await Promise.all([
-        db.from('attendance').select('player_id').eq('match_id', partido.id),
+        // Quien dijo "Tal vez" sí recibe el recordatorio: todavía no decide.
+        db.from('attendance').select('player_id').eq('match_id', partido.id).in('status', ['Voy', 'No voy', 'Espera']),
         db.from('players').select('id, name, email, notify').eq('team_id', partido.team_id).eq('status', 'Activo').not('email', 'is', null),
       ]);
       if (errResp) throw errResp;

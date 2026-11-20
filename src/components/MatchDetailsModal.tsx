@@ -3,11 +3,15 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2 } from 'lucide-react';
+import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2, HelpCircle, Hourglass } from 'lucide-react';
 import { sendNewMatchEmail, sendMatchReminder, sendEventEmail } from '../lib/sendEmail';
 import { aviso, confirmar } from '../lib/avisos';
 import { enlacesDelPartido } from '../lib/enlaceAsistencia';
 import { fechaSinHora } from '../lib/formato';
+import { guardarAsistencia } from '../lib/api/dashboard';
+
+/** Cupo sugerido según el formato: los dos equipos completos. */
+const CUPO_SUGERIDO: Record<string, number> = { '5vs5': 10, '7vs7': 14, '11vs11': 22 };
 import { Capa } from './Capa';
 import { ResultadoPartido } from './ResultadoPartido';
 
@@ -32,7 +36,9 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
     match_type: '7vs7',
     status: 'Programado',
     event_type: 'Deportivo',
-    description: ''
+    description: '',
+    /** '' = sin límite. */
+    cupo: '14',
   });
   const [recurring, setRecurring] = useState(false);
   const [repeatDay, setRepeatDay] = useState(2); // 0=Dom, 1=Lun, 2=Mar, ...
@@ -54,11 +60,12 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
           match_type: match.match_type || '7vs7',
           status: match.status,
           event_type: match.event_type || 'Deportivo',
-          description: match.description || ''
+          description: match.description || '',
+          cupo: match.cupo ? String(match.cupo) : '',
         });
       }
     } else if (match?.date) {
-      setFormData(prev => ({ ...prev, date: format(new Date(match.date), 'yyyy-MM-dd'), time: '20:00', location: '', match_type: '7vs7', status: 'Programado' }));
+      setFormData(prev => ({ ...prev, date: format(new Date(match.date), 'yyyy-MM-dd'), time: '20:00', location: '', match_type: '7vs7', status: 'Programado', cupo: '14' }));
     }
     
     const fetchMyPlayer = async () => {
@@ -117,6 +124,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
             date: d.toISOString(),
             location: formData.location,
             match_type: formData.event_type === 'Recreacional' ? '7vs7' : formData.match_type,
+            cupo: formData.event_type === 'Recreacional' || !formData.cupo ? null : Number(formData.cupo),
             status: formData.status,
             event_type: formData.event_type,
             description: formData.description,
@@ -142,6 +150,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         date: matchDate.toISOString(),
         location: formData.location,
         match_type: formData.event_type === 'Recreacional' ? '7vs7' : formData.match_type,
+        cupo: formData.event_type === 'Recreacional' || !formData.cupo ? null : Number(formData.cupo),
         status: formData.status,
         event_type: formData.event_type,
         description: formData.description,
@@ -254,22 +263,15 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
     }
   };
 
-  const handleAttendance = async (status: 'Voy' | 'No voy') => {
+  const handleAttendance = async (status: 'Voy' | 'No voy' | 'Tal vez') => {
     if (!myPlayerId || !match?.id) return;
     setLoading(true);
     try {
-      if (myAttendance) {
-        await supabase.from('attendance').update({ status }).eq('id', myAttendance.id);
-      } else {
-        await supabase.from('attendance').insert([{
-          match_id: match.id,
-          player_id: myPlayerId,
-          status
-        }]);
-      }
+      const final = await guardarAsistencia(match.id, myPlayerId, status);
+      if (final === 'Espera') aviso.info('El partido está lleno: quedaste en la lista de espera. Si alguien se baja, entras y te avisamos por correo.');
       await fetchAttendances();
     } catch (e) {
-      console.error(e);
+      aviso.error('No se guardó tu respuesta: ' + (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -349,11 +351,20 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                       </div>
                       <div>
                         <label className="block text-sm text-slate-300 mb-1">Formato</label>
-                        <select className="input-field bg-slate-900" value={formData.match_type} onChange={e => setFormData({...formData, match_type: e.target.value})}>
+                        <select className="input-field bg-slate-900" value={formData.match_type}
+                          onChange={e => setFormData({ ...formData, match_type: e.target.value, cupo: formData.cupo ? String(CUPO_SUGERIDO[e.target.value] ?? formData.cupo) : '' })}>
                           <option value="5vs5">5 vs 5</option>
                           <option value="7vs7">7 vs 7</option>
                           <option value="11vs11">11 vs 11</option>
                         </select>
+                      </div>
+                      <div>
+                        <label htmlFor="cupo-partido" className="block text-sm text-slate-300 mb-1">Cupo</label>
+                        <select id="cupo-partido" className="input-field bg-slate-900" value={formData.cupo} onChange={e => setFormData({ ...formData, cupo: e.target.value })}>
+                          <option value="">Sin límite</option>
+                          {[8, 10, 12, 14, 16, 18, 22].map(n => <option key={n} value={String(n)}>{n} jugadores</option>)}
+                        </select>
+                        <p className="text-xs text-slate-400 mt-1">Lleno el cupo, quienes confirman quedan en lista de espera y entran solos si alguien se baja.</p>
                       </div>
                     </>
                   )}
@@ -513,17 +524,35 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                   {myPlayerId ? (
                     <>
                       <h3 className="font-semibold text-white mb-4 text-center">{match.event_type === 'Recreacional' ? '¿Te sumas?' : '¿Vas a jugar?'}</h3>
+                      {myAttendance?.status === 'Espera' && (
+                        <p role="status" className="mb-3 text-center text-sm text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+                          Estás en la lista de espera (puesto {attendances.filter(a => a.status === 'Espera').sort((a, b) => String(a.updated_at).localeCompare(String(b.updated_at))).findIndex(a => a.player_id === myPlayerId) + 1}). Si alguien se baja, entras solo.
+                        </p>
+                      )}
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handleAttendance('Voy')}
                           disabled={loading}
                           className={`flex-1 py-2 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
-                            myAttendance?.status === 'Voy' 
+                            myAttendance?.status === 'Voy' || myAttendance?.status === 'Espera'
                               ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' 
                               : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'
                           }`}
                         >
                           <CheckCircle2 size={18} /> <span className="text-xs sm:text-sm">{match.event_type === 'Recreacional' ? 'Me sumo' : 'Confirmo'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleAttendance('Tal vez')}
+                          disabled={loading}
+                          aria-pressed={myAttendance?.status === 'Tal vez'}
+                          className={`flex-1 py-2 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
+                            myAttendance?.status === 'Tal vez'
+                              ? 'bg-sky-400 text-slate-900'
+                              : 'bg-sky-400/10 text-sky-300 hover:bg-sky-400/20 border border-sky-400/30'
+                          }`}
+                        >
+                          <HelpCircle size={18} /> <span className="text-xs sm:text-sm">Tal vez</span>
                         </button>
 
                         <button 
@@ -592,6 +621,35 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                           </div>
                         ))}
                       </div>
+
+                      {/* LISTA DE ESPERA */}
+                      {attendances.some(a => a.status === 'Espera') && (
+                        <div className="pt-4 border-t border-glass-border">
+                          <h4 className="text-[11px] font-bold uppercase tracking-wider text-amber-300/80 mb-3 px-1 flex items-center gap-1.5"><Hourglass size={12} /> Lista de espera</h4>
+                          <ol className="space-y-2">
+                            {attendances.filter(a => a.status === 'Espera')
+                              .sort((a, b) => String(a.updated_at).localeCompare(String(b.updated_at)))
+                              .map((att, i) => (
+                                <li key={att.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
+                                  <span className="w-6 text-center text-xs font-black text-amber-300">{i + 1}</span>
+                                  <span className="text-sm text-white">{att.player?.name}</span>
+                                </li>
+                              ))}
+                          </ol>
+                        </div>
+                      )}
+
+                      {/* TAL VEZ */}
+                      {attendances.some(a => a.status === 'Tal vez') && (
+                        <div className="pt-4 border-t border-glass-border">
+                          <h4 className="text-[11px] font-bold uppercase tracking-wider text-sky-300/80 mb-3 px-1 flex items-center gap-1.5"><HelpCircle size={12} /> Tal vez</h4>
+                          <div className="space-y-2">
+                            {attendances.filter(a => a.status === 'Tal vez').map(att => (
+                              <div key={att.id} className="p-2.5 rounded-lg bg-sky-400/5 border border-sky-400/10 text-sm text-white/80">{att.player?.name}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* BAJAS */}
                       {attendances.some(a => a.status === 'No voy') && (

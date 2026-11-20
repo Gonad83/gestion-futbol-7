@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, CheckCircle2, XCircle, MapPin, ChevronRight, Copy, Users } from 'lucide-react';
+import { CalendarDays, CheckCircle2, XCircle, MapPin, ChevronRight, Copy, Users, HelpCircle, Hourglass } from 'lucide-react';
 import { differenceInCalendarDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { DashboardStats, JugadorDash, Invitado } from '../../lib/api/dashboard';
@@ -10,7 +10,7 @@ interface Props {
   myPlayer: JugadorDash | null;
   myConfirmStatus: string;
   confirmingMyStatus: boolean;
-  handleMyConfirm: (estado: 'Voy' | 'No voy') => void;
+  handleMyConfirm: (estado: 'Voy' | 'No voy' | 'Tal vez') => void;
   confirmedPlayers: JugadorDash[];
   guestsDash: Invitado[];
   isMatchmaker: boolean;
@@ -50,7 +50,9 @@ export function PartidoHero({ stats, myPlayer, myConfirmStatus, confirmingMyStat
   const fecha = new Date(partido.date);
   const recreacional = partido.event_type === 'Recreacional';
   const van = confirmedPlayers.length + guestsDash.length;
-  const total = Math.max(stats.activePlayers, van, 1);
+  const cupo: number | null = typeof partido.cupo === 'number' ? partido.cupo : null;
+  const total = cupo ?? Math.max(stats.activePlayers, van, 1);
+  const puestoEspera = myPlayer ? stats.waitIds.indexOf(myPlayer.id) + 1 : 0;
   const caras = [...confirmedPlayers.map(p => ({ id: p.id, nombre: p.name, foto: p.photo_url })), ...guestsDash.map(g => ({ id: g.id, nombre: g.name, foto: null }))];
 
   return (
@@ -73,7 +75,10 @@ export function PartidoHero({ stats, myPlayer, myConfirmStatus, confirmingMyStat
 
       <div className="mt-4 p-3.5 rounded-2xl" style={{ background: 'rgba(10,14,20,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-white/80"><span className="font-headline font-bold text-white text-base tabular-nums">{van}</span> de {total} confirmados</p>
+          <p className="text-sm text-white/80">
+            <span className="font-headline font-bold text-white text-base tabular-nums">{van}</span> de {total} {cupo ? 'cupos' : 'confirmados'}
+            {cupo !== null && van >= cupo && <span className="ml-1.5 text-xs font-bold text-amber-300">· Lleno</span>}
+          </p>
           {caras.length > 0 && (
             <div className="flex -space-x-2" aria-hidden="true">
               {caras.slice(0, 4).map(c => (
@@ -94,25 +99,46 @@ export function PartidoHero({ stats, myPlayer, myConfirmStatus, confirmingMyStat
           <span className="h-full bg-soccer-green" style={{ width: `${Math.min(100, (van / total) * 100)}%` }} />
           <span className="h-full bg-red-400/50" style={{ width: `${Math.min(100, (stats.declinedCount / total) * 100)}%` }} />
         </div>
-        <p className="text-xs text-white/50 mt-2 tabular-nums">{stats.declinedCount} no van · {stats.pendingCount} sin responder</p>
+        <p className="text-xs text-white/50 mt-2 tabular-nums">
+          {stats.declinedCount} no van
+          {stats.maybeCount > 0 && ` · ${stats.maybeCount} tal vez`}
+          {stats.waitIds.length > 0 && ` · ${stats.waitIds.length} en espera`}
+          {' · '}{stats.pendingCount} sin responder
+        </p>
       </div>
 
+      {myPlayer && puestoEspera > 0 && (
+        <p role="status" className="mt-4 flex items-start gap-2 p-3 rounded-2xl text-sm text-amber-100"
+          style={{ background: 'rgba(255,208,139,0.08)', border: '1px solid rgba(255,208,139,0.3)' }}>
+          <Hourglass size={16} className="shrink-0 mt-0.5 text-amber-300" />
+          <span>Estás en la <strong>lista de espera</strong> (puesto {puestoEspera}). Si alguien se baja, entras solo y te avisamos por correo.</span>
+        </p>
+      )}
+
       {myPlayer && (
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <button type="button" onClick={() => handleMyConfirm('Voy')} disabled={confirmingMyStatus} aria-pressed={myConfirmStatus === 'Voy'}
-            className="h-14 rounded-full flex items-center justify-center gap-2 font-headline font-bold text-lg transition-all cursor-pointer disabled:opacity-60"
-            style={myConfirmStatus === 'Voy'
-              ? { background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822', boxShadow: '0 8px 24px -8px rgba(68,243,169,0.6)' }
-              : { background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1.5px solid rgba(68,243,169,0.35)' }}>
-            <CheckCircle2 size={20} /> Confirmo
-          </button>
-          <button type="button" onClick={() => handleMyConfirm('No voy')} disabled={confirmingMyStatus} aria-pressed={myConfirmStatus === 'No voy'}
-            className="h-14 rounded-full flex items-center justify-center gap-2 font-headline font-bold text-lg transition-all cursor-pointer disabled:opacity-60"
-            style={myConfirmStatus === 'No voy'
-              ? { background: '#f87171', color: '#2b1418' }
-              : { background: '#262a31', color: 'rgba(255,255,255,0.8)', border: '1.5px solid #31353c' }}>
-            <XCircle size={20} /> No voy
-          </button>
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          {([
+            { estado: 'Voy', texto: puestoEspera > 0 ? 'En espera' : 'Confirmo', Icono: puestoEspera > 0 ? Hourglass : CheckCircle2,
+              activo: puestoEspera > 0
+                ? { background: 'rgba(255,208,139,0.18)', color: '#ffd08b', border: '1.5px solid rgba(255,208,139,0.5)' }
+                : { background: 'linear-gradient(135deg, #44f3a9, #00d68f)', color: '#003822', boxShadow: '0 8px 24px -8px rgba(68,243,169,0.6)' },
+              inactivo: { background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1.5px solid rgba(68,243,169,0.35)' } },
+            { estado: 'Tal vez', texto: 'Tal vez', Icono: HelpCircle,
+              activo: { background: '#9acbff', color: '#0b2236' },
+              inactivo: { background: '#262a31', color: 'rgba(255,255,255,0.8)', border: '1.5px solid #31353c' } },
+            { estado: 'No voy', texto: 'No voy', Icono: XCircle,
+              activo: { background: '#f87171', color: '#2b1418' },
+              inactivo: { background: '#262a31', color: 'rgba(255,255,255,0.8)', border: '1.5px solid #31353c' } },
+          ] as const).map(({ estado, texto, Icono, activo, inactivo }) => {
+            const marcado = myConfirmStatus === estado || (estado === 'Voy' && myConfirmStatus === 'Espera');
+            return (
+              <button key={estado} type="button" onClick={() => handleMyConfirm(estado)} disabled={confirmingMyStatus} aria-pressed={marcado}
+                className="h-14 rounded-full flex items-center justify-center gap-1.5 font-headline font-bold text-[15px] transition-all cursor-pointer disabled:opacity-60"
+                style={marcado ? activo : inactivo}>
+                <Icono size={18} /> {texto}
+              </button>
+            );
+          })}
         </div>
       )}
 

@@ -137,4 +137,22 @@ describe('bloques del panel de inicio', () => {
     expect(html).toContain('4 goles');
     expect(html).toContain('2 asistencias');
   });
+
+  it('partido con cupo lleno y el jugador en lista de espera', () => {
+    const stats: DashboardStats = { ...llenas, nextMatch: { ...llenas.nextMatch!, cupo: 2 }, waitIds: ['x', 'b'], maybeCount: 1 };
+    const html = dibujar(
+      <PartidoHero
+        stats={stats} myPlayer={beto} myConfirmStatus="Espera" confirmingMyStatus={false} handleMyConfirm={nada}
+        confirmedPlayers={[ana]} guestsDash={[{ id: 'g1', name: 'Invitado Uno' }]}
+        isMatchmaker={false} openAttendanceModal={nada} copyForWhatsApp={nada} copied={false} ahora={new Date('2026-12-18T12:00:00Z')}
+      />,
+    );
+    expect(html).toContain('de <!-- -->2<!-- --> <!-- -->cupos');
+    expect(html).toContain('Lleno');
+    expect(html).toContain('puesto <!-- -->2');
+    expect(html).toContain('En espera');
+    expect(html).toContain('1 tal vez');
+    expect(html).toContain('Tal vez');
+  });
 });
+

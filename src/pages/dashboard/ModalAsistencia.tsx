@@ -37,6 +37,8 @@ export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanc
           <span className="flex items-center gap-1 text-soccer-green"><CheckCircle2 size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Voy').length} Confirmados</span>
           <span className="flex items-center gap-1 text-red-400 ml-3"><XCircle size={11} />{attendanceList.filter(p => p.attendanceStatus === 'No voy').length} No Voy</span>
           <span className="flex items-center gap-1 text-amber-400 ml-3"><Clock size={11} />{attendanceList.filter(p => p.attendanceStatus === 'Pendiente').length} Pendiente</span>
+          {attendanceList.some(p => p.attendanceStatus === 'Tal vez') && <span className="ml-3 text-[#9acbff]">{attendanceList.filter(p => p.attendanceStatus === 'Tal vez').length} Tal vez</span>}
+          {attendanceList.some(p => p.attendanceStatus === 'Espera') && <span className="ml-3 text-amber-300">{attendanceList.filter(p => p.attendanceStatus === 'Espera').length} En espera</span>}
         </div>
 
         <div className="overflow-y-auto custom-scrollbar space-y-2 pr-1 flex-1">
@@ -56,6 +58,8 @@ export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanc
                     <div>
                       <p className="text-sm font-semibold text-white leading-tight">{player.name}</p>
                       {player.nickname && <p className="text-[11px] text-white/50">"{player.nickname}"</p>}
+                      {player.attendanceStatus === 'Tal vez' && <p className="text-[11px] font-bold text-[#9acbff]">Tal vez</p>}
+                      {player.attendanceStatus === 'Espera' && <p className="text-[11px] font-bold text-amber-300">En lista de espera · "Confirmo" lo hace entrar igual</p>}
                     </div>
                   </div>
                   <div className="flex gap-1.5">

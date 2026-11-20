@@ -60,9 +60,11 @@ serve(async (req) => {
       });
     }
 
-    const { error: upsertError } = await supabaseAdmin
+    // Si el partido tiene cupo y está lleno, la base deja "Voy" como "Espera".
+    const { data: guardado, error: upsertError } = await supabaseAdmin
       .from('attendance')
-      .upsert({ match_id, player_id, status }, { onConflict: 'match_id,player_id' });
+      .upsert({ match_id, player_id, status }, { onConflict: 'match_id,player_id' })
+      .select('status').single();
 
     if (upsertError) throw upsertError;
 
@@ -71,7 +73,7 @@ serve(async (req) => {
       player_name: player.name,
       match_date: match.date,
       match_location: match.location,
-      status,
+      status: guardado?.status ?? status,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (err: any) {

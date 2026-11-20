@@ -55,9 +55,10 @@ export function useDashboard(teamId: number | null) {
   const [copied, setCopied] = useState(false);
   const [copiedVote, setCopiedVote] = useState(false);
 
-  const fetchDashboardData = useCallback(async () => {
+  /** `silencioso`: actualiza los datos sin mostrar la pantalla de carga. */
+  const fetchDashboardData = useCallback(async (silencioso = false) => {
     if (!teamId) return;
-    setLoading(true);
+    if (!silencioso) setLoading(true);
     try {
       const datos = await cargarDashboard(teamId);
       if (datos.teamSettings) setTeamSettings(datos.teamSettings);
@@ -141,23 +142,12 @@ export function useDashboard(teamId: number | null) {
     if (!matchId) return;
     try {
       await guardarAsistencia(matchId, playerId, newStatus);
+      // Se vuelve a leer todo: al bajar a alguien puede entrar otro desde la lista de espera.
+      setAttendanceList(unirAsistencia(stats.allPlayers, await asistenciaDelPartido(matchId)));
+      await fetchDashboardData(true);
     } catch (e) {
       aviso.error('No se guardó la asistencia: ' + (e as Error).message);
-      return;
     }
-    // Se parte de la lista más reciente (prev), no de la que había al hacer clic:
-    // así dos cambios seguidos no se pisan.
-    setAttendanceList((prev) => {
-      const updated = prev.map((p) => (p.id === playerId ? { ...p, attendanceStatus: newStatus } : p));
-      setStats((s) => ({
-        ...s,
-        confirmedCount: updated.filter((p) => p.attendanceStatus === 'Voy').length,
-        declinedCount: updated.filter((p) => p.attendanceStatus === 'No voy').length,
-        declinedIds: updated.filter((p) => p.attendanceStatus === 'No voy').map((p) => p.id),
-        pendingCount: updated.filter((p) => p.attendanceStatus === 'Pendiente').length,
-      }));
-      return updated;
-    });
   };
 
   const copyForWhatsApp = async () => {
@@ -263,32 +253,21 @@ export function useDashboard(teamId: number | null) {
     }
   };
 
-  const handleMyConfirm = async (newStatus: 'Voy' | 'No voy') => {
+  const handleMyConfirm = async (newStatus: 'Voy' | 'No voy' | 'Tal vez') => {
     if (!matchId || !myPlayer || confirmingMyStatus) return;
-    if (myConfirmStatus === newStatus) return;
+    if (myConfirmStatus === newStatus || (newStatus === 'Voy' && myConfirmStatus === 'Espera')) return;
     setConfirmingMyStatus(true);
     const prevStatus = myConfirmStatus;
     setMyConfirmStatus(newStatus);
     try {
-      await guardarAsistencia(matchId, myPlayer.id, newStatus);
-      setStats((s) => {
-        let confirmed = s.confirmedCount;
-        let declined = s.declinedCount;
-        if (prevStatus === 'Voy') confirmed = Math.max(0, confirmed - 1);
-        else if (prevStatus === 'No voy') declined = Math.max(0, declined - 1);
-        if (newStatus === 'Voy') confirmed++;
-        else declined++;
-        const sinMi = s.declinedIds.filter((id) => id !== myPlayer.id);
-        const declinedIds = newStatus === 'No voy' ? [...sinMi, myPlayer.id] : sinMi;
-        return { ...s, confirmedCount: confirmed, declinedCount: declined, declinedIds, pendingCount: Math.max(0, s.activePlayers - confirmed - declined) };
-      });
-      if (newStatus === 'Voy') {
-        setConfirmedPlayers((prev) => (prev.some((p) => p.id === myPlayer.id) ? prev : [...prev, myPlayer]));
-      } else {
-        setConfirmedPlayers((prev) => prev.filter((p) => p.id !== myPlayer.id));
-      }
-    } catch {
+      const final = await guardarAsistencia(matchId, myPlayer.id, newStatus);
+      setMyConfirmStatus(final);
+      if (final === 'Espera') aviso.info('El partido está lleno: quedaste en la lista de espera. Si alguien se baja, entras y te avisamos por correo.');
+      // Los conteos se vuelven a leer: si alguien se bajó, puede haber entrado otro desde la lista de espera.
+      await fetchDashboardData(true);
+    } catch (e) {
       setMyConfirmStatus(prevStatus);
+      aviso.error('No se guardó tu respuesta: ' + (e as Error).message);
     } finally {
       setConfirmingMyStatus(false);
     }
