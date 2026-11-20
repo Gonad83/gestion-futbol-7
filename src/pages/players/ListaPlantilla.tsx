@@ -94,8 +94,12 @@ export function FilaJugador({ jugador: j, isAdmin, enRiesgo, confiab, onAbrir, o
             ) : enRiesgo ? (
               <span className="px-1.5 py-0.5 rounded-md text-[11px] font-bold text-orange-300" style={{ background: 'rgba(251,146,60,0.15)' }}>Riesgo deserción</span>
             ) : j.rating ? (
-              <span className="flex items-center gap-0.5 text-[11px] font-bold text-[#ffd08b] tabular-nums">
-                <Star size={11} fill="#ffd08b" strokeWidth={0} /> {j.rating}/7
+              <span className="flex items-center gap-px" role="img" aria-label={`Nivel ${j.rating} de 7`}>
+                {Array.from({ length: 7 }, (_, i) => (
+                  <Star key={i} size={11} aria-hidden="true"
+                    fill={i < Number(j.rating) ? '#ffd08b' : 'transparent'}
+                    color={i < Number(j.rating) ? '#ffd08b' : 'rgba(255,255,255,0.25)'} strokeWidth={i < Number(j.rating) ? 0 : 1.5} />
+                ))}
               </span>
             ) : null}
             {confiab && <ChipConfiabilidad c={confiab} />}
