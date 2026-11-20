@@ -169,12 +169,12 @@ export function useDashboard(teamId: number | null) {
     lines.push(`📅 ${format(new Date(match.date), "EEEE dd 'de' MMMM • HH:mm", { locale: es })}`);
     if (match.location) lines.push(`📍 ${match.location}`);
     lines.push('');
-    lines.push(`✅ *Van (${van.length + invitados.length}):*`);
+    lines.push(`✅ *Confirmados (${van.length + invitados.length}):*`);
     van.forEach((p, i) => lines.push(`${i + 1}. ${p.name}`));
     invitados.forEach((g, i) => lines.push(`${van.length + i + 1}. ${sinMarcaDeInvitado(g.name)} (Invitado)`));
     if (noVan.length > 0) {
       lines.push('');
-      lines.push(`❌ *No van (${noVan.length}):*`);
+      lines.push(`❌ *No asisten (${noVan.length}):*`);
       noVan.forEach((p) => lines.push(`• ${p.name}`));
     }
     if (sinResp.length > 0) {

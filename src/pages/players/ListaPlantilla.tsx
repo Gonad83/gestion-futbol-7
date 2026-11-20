@@ -1,4 +1,5 @@
-import { Star, ChevronRight } from 'lucide-react';
+import { Star, ChevronRight, ShieldCheck } from 'lucide-react';
+import type { Confiabilidad } from '../../lib/temporada';
 import { GRUPOS, colorAsistencia, grupoDe, iniciales, type JugadorPlantilla } from './plantilla';
 
 /** Anillo con el porcentaje de asistencia del año. */
@@ -47,12 +48,29 @@ interface FilaProps {
   jugador: JugadorPlantilla;
   isAdmin: boolean;
   enRiesgo: boolean;
+  confiab?: Confiabilidad;
   onAbrir: (j: JugadorPlantilla) => void;
   onFoto: (url: string) => void;
 }
 
+const COLOR_CONFIAB = { alta: '#44f3a9', media: '#ffd08b', baja: '#fb923c' } as const;
+const TEXTO_CONFIAB = { alta: 'Confiable', media: 'Regular', baja: 'Poco confiable' } as const;
+
+/** Qué tanto responde y cuántas veces se bajó a última hora (solo lo ve el capitán). */
+export function ChipConfiabilidad({ c }: { c: Confiabilidad }) {
+  const detalle = `Respondió ${c.respondidas} de los últimos ${c.partidos} partidos` +
+    (c.ultimaHora ? ` y se bajó ${c.ultimaHora === 1 ? '1 vez' : `${c.ultimaHora} veces`} a última hora` : '');
+  return (
+    <span title={detalle} aria-label={`${TEXTO_CONFIAB[c.nivel]}, ${c.puntaje} de 100. ${detalle}`}
+      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold tabular-nums"
+      style={{ color: COLOR_CONFIAB[c.nivel], background: 'rgba(255,255,255,0.05)' }}>
+      <ShieldCheck size={11} aria-hidden="true" /> {TEXTO_CONFIAB[c.nivel]} {c.puntaje}
+    </span>
+  );
+}
+
 /** Una fila por jugador. El capitán la toca para editar; los demás, para ver la foto. */
-export function FilaJugador({ jugador: j, isAdmin, enRiesgo, onAbrir, onFoto }: FilaProps) {
+export function FilaJugador({ jugador: j, isAdmin, enRiesgo, confiab, onAbrir, onFoto }: FilaProps) {
   const accion = isAdmin ? () => onAbrir(j) : j.photo_url ? () => onFoto(j.photo_url!) : undefined;
   return (
     <li>
@@ -80,6 +98,7 @@ export function FilaJugador({ jugador: j, isAdmin, enRiesgo, onAbrir, onFoto }: 
                 <Star size={11} fill="#ffd08b" strokeWidth={0} /> {j.rating}/7
               </span>
             ) : null}
+            {confiab && <ChipConfiabilidad c={confiab} />}
           </span>
         </span>
         <AnilloAsistencia porcentaje={j.participationPct} />
@@ -93,12 +112,14 @@ interface ListaProps {
   jugadores: JugadorPlantilla[];
   isAdmin: boolean;
   totalPartidos: number;
+  /** Índice de confiabilidad por jugador; solo se pasa al capitán. */
+  confiabilidad?: Map<string, Confiabilidad>;
   onAbrir: (j: JugadorPlantilla) => void;
   onFoto: (url: string) => void;
 }
 
 /** Lista agrupada por posición: arqueros, defensas, medios, delanteros. */
-export function ListaPlantilla({ jugadores, isAdmin, totalPartidos, onAbrir, onFoto }: ListaProps) {
+export function ListaPlantilla({ jugadores, isAdmin, totalPartidos, confiabilidad, onAbrir, onFoto }: ListaProps) {
   return (
     <div className="space-y-6">
       {GRUPOS.map(g => {
@@ -112,7 +133,7 @@ export function ListaPlantilla({ jugadores, isAdmin, totalPartidos, onAbrir, onF
             </div>
             <ul className="space-y-2">
               {delGrupo.map(j => (
-                <FilaJugador key={j.id} jugador={j} isAdmin={isAdmin} onAbrir={onAbrir} onFoto={onFoto}
+                <FilaJugador key={j.id} jugador={j} isAdmin={isAdmin} onAbrir={onAbrir} onFoto={onFoto} confiab={confiabilidad?.get(j.id)}
                   enRiesgo={isAdmin && j.participationPct < 25 && totalPartidos >= 4} />
               ))}
             </ul>

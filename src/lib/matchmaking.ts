@@ -283,10 +283,10 @@ export function textoAsistencia(
   const sinRespuesta = activos.filter((p) => !idsConfirmados.has(p.id) && !bajas.find((d) => d.id === p.id));
 
   const lines = encabezado(`⚽ *${teamName}*`, match);
-  lines.push(`✅ *Van (${confirmados.length}):*`);
+  lines.push(`✅ *Confirmados (${confirmados.length}):*`);
   confirmados.forEach((p, i) => lines.push(`${i + 1}. ${sinMarcaDeInvitado(p.name)}${p.isGuest ? ' (Invitado)' : ''}`));
   if (bajas.length > 0) {
-    lines.push('', `❌ *No van (${bajas.length}):*`);
+    lines.push('', `❌ *No asisten (${bajas.length}):*`);
     bajas.forEach((p) => lines.push(`• ${p.name}`));
   }
   if (sinRespuesta.length > 0) {

@@ -23,6 +23,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Settings = lazy(() => import('./pages/Settings'));
 const AdminPlayers = lazy(() => import('./pages/AdminPlayers'));
 const MyProfile = lazy(() => import('./pages/MyProfile'));
+const Temporada = lazy(() => import('./pages/Temporada'));
 const Vote = lazy(() => import('./pages/Vote'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const RegisterCaptain = lazy(() => import('./pages/RegisterCaptain'));
@@ -111,6 +112,7 @@ function App() {
               <Route path="/finance" element={<Finance />} />
               <Route path="/inter-generaciones" element={<SoloInterGeneraciones />} />
               <Route path="/profile" element={<MyProfile />} />
+              <Route path="/temporada" element={<Temporada />} />
               <Route path="/vote" element={<Vote />} />
               <Route path="/arena" element={<Arena />} />
               <Route path="/superadmin" element={<SuperAdmin />} />

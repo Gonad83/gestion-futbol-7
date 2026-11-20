@@ -188,8 +188,8 @@ describe('textos para compartir', () => {
   it('asistencia: van, no van y sin respuesta', () => {
     const activos = [A[0], B[0], j('c', 3, 'Defensa', { name: 'Caro' })];
     const texto = textoAsistencia('Los Cóndores', partido, A, [B[0]], activos);
-    expect(texto).toContain('✅ *Van (2):*\n1. Ana\n2. Pedro (Invitado)');
-    expect(texto).toContain('❌ *No van (1):*\n• Beto');
+    expect(texto).toContain('✅ *Confirmados (2):*\n1. Ana\n2. Pedro (Invitado)');
+    expect(texto).toContain('❌ *No asisten (1):*\n• Beto');
     expect(texto).toContain('⏳ *Sin respuesta (1):*\n• Caro');
     expect(texto).toContain('_Total activos: 3_');
   });

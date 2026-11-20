@@ -533,7 +533,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
 
               {/* RESULTADO: partidos deportivos ya jugados */}
               {!isNew && match?.id && teamId && match.event_type !== 'Recreacional' && match.status !== 'Cancelado' && new Date(match.date) < new Date() && (
-                <ResultadoPartido matchId={match.id} teamId={teamId} puedeEditar={isAdmin || isMatchmaker} alGuardar={onSave} />
+                <ResultadoPartido matchId={match.id} teamId={teamId} puedeEditar={isAdmin || isMatchmaker} alGuardar={onSave} partido={match} />
               )}
 
               {/* ATTENDANCE CONTROLS */}

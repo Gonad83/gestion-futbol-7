@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase';
 import { subirFoto } from '../lib/subirFoto';
 import { AvisosCelular } from '../components/AvisosCelular';
 import { useAuth } from '../hooks/useAuth';
-import { Camera, UserCircle, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Camera, UserCircle, Star, ChevronRight } from 'lucide-react';
 import { aviso } from '../lib/avisos';
 import { BarraGuardar } from '../components/BarraGuardar';
 import { AnilloAsistencia } from './players/ListaPlantilla';
@@ -207,6 +208,9 @@ export default function MyProfile() {
             <p className="text-xs text-white/55">asistencia</p>
           </div>
         </div>
+        <Link to="/temporada" className="mt-3 h-11 px-4 rounded-full flex items-center justify-between text-sm font-bold text-white" style={{ background: '#262a31' }}>
+          Ver mi temporada y compartirla <ChevronRight size={16} />
+        </Link>
       </section>
 
       {playerProfile.team_id && <MisPagos playerId={playerProfile.id} teamId={playerProfile.team_id} />}

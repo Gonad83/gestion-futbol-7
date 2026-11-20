@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Minus, Plus, Trophy } from 'lucide-react';
+import { Minus, Plus, Share2, Trophy } from 'lucide-react';
 import { JERSEY_COLORS, hexCamiseta } from '../lib/matchmaking';
 import { avisoDescuadre, cargarResultado, guardarResultado, type FilaPlanilla, type Lado, type Resultado } from '../lib/api/resultado';
 import { aviso, confirmar } from '../lib/avisos';
+import { supabase } from '../lib/supabase';
+import { compartirImagen, dibujarTarjeta } from '../lib/tarjetaImagen';
 
 const nombreColor = (c: string | null, letra: 'A' | 'B') =>
   c ? `Equipo ${JERSEY_COLORS.find((x) => x.value === c)?.name ?? letra}` : `Equipo ${letra}`;
@@ -25,7 +27,10 @@ function Contador({ valor, cambiar, etiqueta, grande = false }: { valor: number;
  * goles y asistencias de cada jugador. El capitán o un subcapitán lo carga;
  * el resto del equipo lo ve.
  */
-export function ResultadoPartido({ matchId, teamId, puedeEditar, alGuardar }: { matchId: string; teamId: number; puedeEditar: boolean; alGuardar?: () => void }) {
+export function ResultadoPartido({ matchId, teamId, puedeEditar, alGuardar, partido }: {
+  matchId: string; teamId: number; puedeEditar: boolean; alGuardar?: () => void;
+  partido?: { date: string; location?: string | null };
+}) {
   const [datos, setDatos] = useState<Resultado | null>(null);
   const [error, setError] = useState(false);
   const [editando, setEditando] = useState(false);
@@ -33,6 +38,7 @@ export function ResultadoPartido({ matchId, teamId, puedeEditar, alGuardar }: { 
   const [golesB, setGolesB] = useState(0);
   const [filas, setFilas] = useState<FilaPlanilla[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const [compartiendo, setCompartiendo] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -76,6 +82,36 @@ export function ResultadoPartido({ matchId, teamId, puedeEditar, alGuardar }: { 
     }
   };
 
+  /** Imagen del resultado para mandar al grupo. */
+  const compartir = async () => {
+    setCompartiendo(true);
+    try {
+      const { data: equipo } = await supabase.from('team_settings').select('team_name').eq('id', teamId).maybeSingle();
+      const cuando = partido
+        ? new Intl.DateTimeFormat('es-CL', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(partido.date)).replace(/./g, '')
+        : '';
+      const anotadores = datos.filas.filter((f) => f.goles > 0 || f.asistencias > 0)
+        .sort((a, b) => b.goles - a.goles || b.asistencias - a.asistencias);
+      const detalle = (f: FilaPlanilla) => [f.goles > 0 && `${f.goles} ${f.goles === 1 ? 'gol' : 'goles'}`, f.asistencias > 0 && `${f.asistencias} asist.`].filter(Boolean).join(' · ');
+      const imagen = await dibujarTarjeta({
+        equipo: equipo?.team_name || 'MiClubPro',
+        titulo: 'Resultado',
+        destacado: `${datos.golesA} – ${datos.golesB}`,
+        bajada: `${nombreA} vs ${nombreB}`,
+        filas: [
+          ...(cuando ? [{ etiqueta: cuando.charAt(0).toUpperCase() + cuando.slice(1), valor: partido?.location ?? '' }] : []),
+          ...anotadores.map((f) => ({ etiqueta: f.nickname || f.name, valor: detalle(f) })),
+        ],
+      });
+      const r = await compartirImagen(imagen, 'resultado.png', `${nombreA} ${datos.golesA} – ${datos.golesB} ${nombreB}`);
+      if (r === 'descargada') aviso.ok('Imagen descargada: adjúntala en WhatsApp.');
+    } catch (e) {
+      aviso.error('No se pudo crear la imagen: ' + (e as Error).message);
+    } finally {
+      setCompartiendo(false);
+    }
+  };
+
   // ── Vista ─────────────────────────────────────────────────────────────────
   if (!editando) {
     const anotadores = datos.filas.filter((f) => f.goles > 0 || f.asistencias > 0);
@@ -103,6 +139,12 @@ export function ResultadoPartido({ matchId, teamId, puedeEditar, alGuardar }: { 
           </>
         ) : (
           <p className="text-sm text-white/60">Este partido todavía no tiene resultado.</p>
+        )}
+        {hayResultado && (
+          <button type="button" onClick={compartir} disabled={compartiendo}
+            className="mt-4 w-full h-11 rounded-full text-sm font-bold cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60" style={{ background: '#44f3a9', color: '#003822' }}>
+            <Share2 size={16} /> {compartiendo ? 'Creando imagen…' : 'Compartir resultado'}
+          </button>
         )}
         {puedeEditar && (
           <button type="button" onClick={() => setEditando(true)}

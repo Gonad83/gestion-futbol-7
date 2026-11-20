@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { SugerenciasNivel } from './admin/SugerenciasNivel';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase, withTimeout } from '../lib/supabase';
@@ -333,6 +334,8 @@ export default function AdminPlayers() {
           <p className="text-xs text-white/55">{nextMatch ? `van el ${format(new Date(nextMatch.date), 'EEE d', { locale: es })}` : 'sin partido'}</p>
         </div>
       </section>
+
+      {teamId && <SugerenciasNivel teamId={teamId} alCambiar={fetchPlayers} />}
 
       <div className="relative">
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />

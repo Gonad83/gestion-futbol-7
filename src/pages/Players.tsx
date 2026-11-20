@@ -6,6 +6,8 @@ import SubStatStars from '../components/SubStatStars';
 import PlayerModal from '../components/PlayerModal';
 import { Capa } from '../components/Capa';
 import { ListaPlantilla, ResumenPlantilla } from './players/ListaPlantilla';
+import { cargarTemporada } from '../lib/api/temporada';
+import { confiabilidadPlantel, type Confiabilidad } from '../lib/temporada';
 import { GRUPOS, filtrarPlantilla, grupoDe, type GrupoId, type JugadorPlantilla } from './players/plantilla';
 
 const getPositionWeight = (pos: string) => {
@@ -49,8 +51,20 @@ export default function Players() {
   const [filterPos, setFilterPos] = useState<GrupoId | 'Todos'>('Todos');
   const [busqueda, setBusqueda] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('list');
+  const [confiabilidad, setConfiabilidad] = useState<Map<string, Confiabilidad>>();
 
   useEffect(() => { if (teamId) fetchPlayers(); }, [teamId]);
+
+  // Solo el capitán ve qué tan confiable es cada uno (últimos 10 partidos: con 6 meses sobra).
+  useEffect(() => {
+    if (!teamId || !isAdmin) return;
+    let vivo = true;
+    const desde = new Date(Date.now() - 183 * 24 * 60 * 60 * 1000).toISOString();
+    cargarTemporada(teamId, desde)
+      .then((d) => vivo && setConfiabilidad(confiabilidadPlantel(d)))
+      .catch(() => { /* sin índice: la lista se ve igual */ });
+    return () => { vivo = false; };
+  }, [teamId, isAdmin]);
 
   const fetchPlayers = async () => {
     setLoading(true);
@@ -163,7 +177,7 @@ export default function Players() {
           {isAdmin && players.length === 0 && <button onClick={handleNew} className="btn-primary">Crear primer jugador</button>}
         </div>
       ) : viewMode === 'list' ? (
-        <ListaPlantilla jugadores={filtered} isAdmin={isAdmin} totalPartidos={totalMatchesYear} onAbrir={handleEdit} onFoto={setZoomPhoto} />
+        <ListaPlantilla jugadores={filtered} isAdmin={isAdmin} totalPartidos={totalMatchesYear} confiabilidad={isAdmin ? confiabilidad : undefined} onAbrir={handleEdit} onFoto={setZoomPhoto} />
       ) : (
         /* ── VISTA TARJETAS (pantallas grandes) ── */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
