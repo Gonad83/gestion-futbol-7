@@ -27,11 +27,18 @@ describe('confiabilidad', () => {
         { match_id: 'm1', player_id: 'j1', status: 'Voy', updated_at: '2026-01-05T00:00:00Z' },
         { match_id: 'm2', player_id: 'j1', status: 'Voy', updated_at: '2026-02-05T00:00:00Z' },
         { match_id: 'm3', player_id: 'j1', status: 'No voy', updated_at: '2026-03-10T20:00:00Z' }, // 3 h antes
-        // m4 sin responder
+        // m4 sin responder (otro sí respondió: el partido cuenta)
+        { match_id: 'm4', player_id: 'j2', status: 'Voy', updated_at: null },
       ],
     });
     const c = confiabilidad(d, d.jugadores[0])!;
     expect(c).toMatchObject({ partidos: 4, respondidas: 3, ultimaHora: 1, puntaje: 65, nivel: 'media' });
+  });
+
+  it('no cuenta partidos en que nadie respondió (duplicados o no jugados)', () => {
+    const voy = (m: string) => ({ match_id: m, player_id: 'j1', status: 'Voy', updated_at: null });
+    const d = base({ partidos: [1, 2, 3, 4].map((n) => partido(n)), asistencia: [voy('m1'), voy('m2'), voy('m3')] });
+    expect(confiabilidad(d, d.jugadores[0])).toMatchObject({ partidos: 3, respondidas: 3, puntaje: 100 });
   });
 
   it('no cuenta partidos de antes de entrar al equipo', () => {

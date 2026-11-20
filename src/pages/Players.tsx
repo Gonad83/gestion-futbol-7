@@ -79,20 +79,24 @@ export default function Players() {
 
       const data = (playersRes as any).data;
       const yearMatches = (yearMatchesRes as any).data || [];
-      const matchIds = yearMatches.map((m: any) => m.id);
-      setTotalMatchesYear(matchIds.length);
+      const todos: string[] = yearMatches.map((m: any) => m.id);
 
-      let attendanceCounts: Record<string, number> = {};
-      if (matchIds.length > 0) {
+      // Solo cuentan los partidos en que alguien respondió: los duplicados o
+      // las fechas que no se jugaron no bajan el porcentaje de nadie.
+      const attendanceCounts: Record<string, number> = {};
+      const conRespuesta = new Set<string>();
+      if (todos.length > 0) {
         const { data: attData } = await supabase
           .from('attendance')
-          .select('player_id')
-          .eq('status', 'Voy')
-          .in('match_id', matchIds);
+          .select('player_id, match_id, status')
+          .in('match_id', todos);
         attData?.forEach((a: any) => {
-          if (a.player_id) attendanceCounts[a.player_id] = (attendanceCounts[a.player_id] || 0) + 1;
+          conRespuesta.add(a.match_id);
+          if (a.status === 'Voy' && a.player_id) attendanceCounts[a.player_id] = (attendanceCounts[a.player_id] || 0) + 1;
         });
       }
+      const matchIds = todos.filter((id) => conRespuesta.has(id));
+      setTotalMatchesYear(matchIds.length);
 
       if (data) {
         const sorted = data.filter((p: any) => p.status !== 'Inactivo').sort((a: any, b: any) => {

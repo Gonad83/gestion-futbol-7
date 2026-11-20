@@ -57,10 +57,16 @@ function resultadoPara(p: PartidoT, lado: 'A' | 'B' | undefined): Resultado | nu
   return propios > rivales ? 'G' : propios < rivales ? 'P' : 'E';
 }
 
-/** Partidos desde que el jugador entró al equipo (el día de alta cuenta). */
-function partidosDesdeAlta(partidos: PartidoT[], j: JugadorT) {
+/**
+ * Partidos desde que el jugador entró al equipo (el día de alta cuenta). Los
+ * partidos en que nadie respondió ni se anotó nada no cuentan: suelen ser
+ * copias duplicadas o fechas que no se jugaron.
+ */
+function partidosDesdeAlta(d: DatosTemporada, j: JugadorT) {
   const alta = j.created_at ? j.created_at.slice(0, 10) : '';
-  return partidos.filter((p) => p.date.slice(0, 10) >= alta).sort(porFecha);
+  const conActividad = new Set([...d.asistencia, ...d.stats].map((a) => a.match_id));
+  d.armados.forEach((e) => conActividad.add(e.match_id));
+  return d.partidos.filter((p) => p.date.slice(0, 10) >= alta && conActividad.has(p.id)).sort(porFecha);
 }
 
 // ── Confiabilidad ──────────────────────────────────────────────────────────
@@ -79,7 +85,7 @@ export interface Confiabilidad {
  */
 export function confiabilidad(d: DatosTemporada, jugador: JugadorT, ultimos = 10): Confiabilidad | null {
   const { asistencia } = indices(d);
-  const lista = partidosDesdeAlta(d.partidos, jugador).slice(-ultimos);
+  const lista = partidosDesdeAlta(d, jugador).slice(-ultimos);
   if (lista.length < 3) return null;
   let respondidas = 0;
   let ultimaHora = 0;
@@ -167,7 +173,7 @@ const jugo = (a: AsistenciaT | undefined, enPlanilla: boolean) => enPlanilla || 
 
 export function resumenTemporada(d: DatosTemporada, jugador: JugadorT, anio: number): ResumenTemporada {
   const { asistencia, lado, stat } = indices(d);
-  const delAnio = partidosDesdeAlta(d.partidos, jugador).filter((p) => new Date(p.date).getFullYear() === anio);
+  const delAnio = partidosDesdeAlta(d, jugador).filter((p) => new Date(p.date).getFullYear() === anio);
   const mvpsPorPartido = new Set(d.mvps.filter((m) => m.player_id === jugador.id).map((m) => m.match_id));
 
   let jugados = 0, goles = 0, asistencias = 0, mvps = 0, ganados = 0, empatados = 0, perdidos = 0;
