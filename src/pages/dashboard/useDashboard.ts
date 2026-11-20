@@ -108,6 +108,12 @@ export function useDashboard(teamId: number | null) {
     }
   };
 
+  /** Un invitado sumado desde otro lado (refuerzos de confianza): se ve en las dos listas. */
+  const sumarInvitado = (g: Invitado) => {
+    setGuestList((prev) => [...prev, g]);
+    setGuestsDash((prev) => [...prev, g]);
+  };
+
   const removeGuest = async (guestId: string) => {
     await quitarInvitado(guestId);
     setGuestList((prev) => prev.filter((g) => g.id !== guestId));
@@ -289,7 +295,7 @@ export function useDashboard(teamId: number | null) {
     loading, teamSettings, cambiarTitular, stats, myPlayer, myConfirmStatus, confirmingMyStatus, confirmedPlayers,
     guestsDash, guestInputDash, setGuestInputDash, addingGuestDash, addGuestDash, removeGuestDash,
     showAttendanceModal, setShowAttendanceModal, attendanceList, attendanceLoading,
-    guestList, guestInput, setGuestInput, addGuest, removeGuest, handleAttendanceChange, openAttendanceModal,
+    guestList, guestInput, setGuestInput, addGuest, sumarInvitado, removeGuest, handleAttendanceChange, openAttendanceModal,
     copied, copiedVote, copyForWhatsApp, shareVoteWhatsApp, closeVoting, notifyVoting, handleMyConfirm,
   };
 }

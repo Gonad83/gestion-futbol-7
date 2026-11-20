@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { DashboardStats, Invitado, JugadorConAsistencia, EstadoAsistencia } from '../../lib/api/dashboard';
 import { Capa } from '../../components/Capa';
+import { PanelRefuerzos } from '../../components/PanelRefuerzos';
 
 interface Props {
   stats: DashboardStats;
@@ -13,12 +14,15 @@ interface Props {
   guestInput: string;
   setGuestInput: (valor: string) => void;
   addGuest: () => void;
+  /** Para los refuerzos; sin él no se muestra el panel. */
+  teamId?: number | null;
+  sumarInvitado?: (invitado: Invitado) => void;
   removeGuest: (id: string) => void;
   handleAttendanceChange: (playerId: string, estado: EstadoAsistencia) => void;
   setShowAttendanceModal: (abierto: boolean) => void;
 }
 
-export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanceLoading, guestList, guestInput, setGuestInput, addGuest, removeGuest, handleAttendanceChange, setShowAttendanceModal }: Props) {
+export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanceLoading, guestList, guestInput, setGuestInput, addGuest, teamId, sumarInvitado, removeGuest, handleAttendanceChange, setShowAttendanceModal }: Props) {
   return (
     <Capa>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
@@ -125,6 +129,9 @@ export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanc
                       style={{ background: 'rgba(154,203,255,0.15)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}
                     >+ Agregar</button>
                   </div>
+                  {teamId && sumarInvitado && stats.nextMatch && (
+                    <PanelRefuerzos matchId={stats.nextMatch.id} teamId={teamId} nombresActuales={guestList.map(g => g.name)} alSumar={sumarInvitado} />
+                  )}
                 </div>
               )}
             </>

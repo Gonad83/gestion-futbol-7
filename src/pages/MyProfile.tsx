@@ -9,6 +9,7 @@ import { aviso } from '../lib/avisos';
 import { BarraGuardar } from '../components/BarraGuardar';
 import { AnilloAsistencia } from './players/ListaPlantilla';
 import { MisPagos } from './profile/MisPagos';
+import { MiRefuerzo, PedidosRefuerzo } from './profile/MiRefuerzo';
 
 const POSITION_GROUPS = [
   { group: 'Portero', roles: ['Portero'] },
@@ -214,6 +215,9 @@ export default function MyProfile() {
       </section>
 
       {playerProfile.team_id && <MisPagos playerId={playerProfile.id} teamId={playerProfile.team_id} />}
+
+      <PedidosRefuerzo />
+      <MiRefuerzo playerId={playerProfile.id} />
 
       <Seccion titulo="Mis datos">
         <div>

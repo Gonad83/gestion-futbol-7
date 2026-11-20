@@ -7,6 +7,7 @@ import { TarjetaMvp } from './dashboard/TarjetaMvp';
 import { TarjetaParticipaciones } from './dashboard/TarjetaParticipaciones';
 import { TarjetaGoleadores } from './dashboard/TarjetaGoleadores';
 import { AvisosCelular } from '../components/AvisosCelular';
+import { PedidosRefuerzo } from './profile/MiRefuerzo';
 import { ModalAsistencia } from './dashboard/ModalAsistencia';
 import { TarjetaTitular } from './dashboard/TarjetaTitular';
 
@@ -54,6 +55,7 @@ export default function Dashboard() {
             copied={d.copied}
           />
           <AvisoCuota stats={d.stats} myPlayer={d.myPlayer} teamSettings={d.teamSettings} />
+          {d.myPlayer && <PedidosRefuerzo soloPendientes />}
           {d.myPlayer && <AvisosCelular modo="tarjeta" />}
           <MosaicosInicio stats={d.stats} isAdmin={isAdmin} myPlayer={d.myPlayer} />
           <TarjetaTitular stats={d.stats} guardado={d.teamSettings.titular ?? null} puedeEditar={isAdmin} onGuardar={d.cambiarTitular} />
@@ -83,6 +85,8 @@ export default function Dashboard() {
           guestInput={d.guestInput}
           setGuestInput={d.setGuestInput}
           addGuest={d.addGuest}
+          teamId={teamId}
+          sumarInvitado={d.sumarInvitado}
           removeGuest={d.removeGuest}
           handleAttendanceChange={d.handleAttendanceChange}
           setShowAttendanceModal={d.setShowAttendanceModal}

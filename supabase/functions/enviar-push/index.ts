@@ -8,6 +8,8 @@ import { llavesVapid, webpush } from '../_shared/push.ts';
 //   { tipo: 'partido_nuevo', match_id }                 → todo el equipo
 //   { tipo: 'cupo_liberado', match_id, player_ids }     → quienes entraron
 //   { tipo: 'recordatorio',  match_id, player_ids }     → quienes no respondieron
+//   { tipo: 'refuerzo', match_id, solicitud_id }        → el refuerzo de otro equipo al que le piden jugar
+//   { tipo: 'refuerzo_respuesta', match_id, solicitud_id } → capitán y subcapitanes del partido
 //   { tipo: 'prueba', endpoint, p256dh, auth }          → una suscripción suelta (diagnóstico)
 
 const ZONA = 'America/Santiago';
@@ -57,6 +59,8 @@ Deno.serve(async (req) => {
     const lugar = partido.location ? ` · ${partido.location}` : '';
     let aviso: Aviso;
     let jugadores: string[] = [];
+    // Equipo de quienes reciben: el del partido, salvo el refuerzo, que es de otro equipo.
+    let equipoDestino: number = partido.team_id;
 
     if (cuerpo.tipo === 'partido_nuevo') {
       aviso = social
@@ -72,6 +76,26 @@ Deno.serve(async (req) => {
         ? { title: '🎉 ¿Te sumas?', body: `${cuando}${lugar}. Todavía no respondes.`, url: '/dashboard', tag: `recordatorio-${partido.id}` }
         : { title: '⚽ ¿Vas al partido?', body: `${cuando}${lugar}. Todavía no respondes.`, url: '/dashboard', tag: `recordatorio-${partido.id}` };
       jugadores = Array.isArray(cuerpo.player_ids) ? cuerpo.player_ids.map(String) : [];
+    } else if (cuerpo.tipo === 'refuerzo' || cuerpo.tipo === 'refuerzo_respuesta') {
+      const { data: sol } = await db.from('solicitudes_refuerzo')
+        .select('id, estado, player_id, players!inner(name, nickname, team_id)')
+        .eq('id', cuerpo.solicitud_id).eq('match_id', partido.id).maybeSingle();
+      if (!sol) return json({ enviados: 0, motivo: 'sin pedido' });
+      const refuerzo = sol.players as unknown as { name: string; nickname: string | null; team_id: number };
+      if (cuerpo.tipo === 'refuerzo') {
+        if (sol.estado !== 'Pendiente') return json({ enviados: 0, motivo: 'ya respondido' });
+        const { data: equipo } = await db.from('team_settings').select('team_name').eq('id', partido.team_id).maybeSingle();
+        aviso = { title: `🤝 ${String(equipo?.team_name || 'Un equipo').slice(0, 40)} te pide de refuerzo`, body: `${cuando}${lugar}. ¿Juegas?`, url: '/profile#refuerzos', tag: `refuerzo-${sol.id}` };
+        jugadores = [sol.player_id];
+        equipoDestino = refuerzo.team_id;
+      } else {
+        const nombre = refuerzo.nickname || refuerzo.name;
+        aviso = sol.estado === 'Aceptada'
+          ? { title: `✅ ${nombre} juega de refuerzo`, body: `${cuando}${lugar}. Ya está en la lista como invitado.`, url: '/dashboard', tag: `refuerzo-${sol.id}` }
+          : { title: `${nombre} no puede jugar`, body: `${cuando}${lugar}. Busca otro refuerzo.`, url: '/dashboard', tag: `refuerzo-${sol.id}` };
+        const { data } = await db.from('players').select('id').eq('team_id', partido.team_id).in('match_role', ['captain', 'subcaptain']);
+        jugadores = (data ?? []).map((j: { id: string }) => j.id);
+      }
     } else {
       return json({ error: 'Tipo desconocido' }, 400);
     }
@@ -80,7 +104,7 @@ Deno.serve(async (req) => {
     // Solo jugadores del equipo del partido, aunque la lista venga de otro lado.
     const { data: subs } = await db.from('push_suscripciones')
       .select('id, endpoint, p256dh, auth, players!inner(team_id, notify)')
-      .in('player_id', jugadores.slice(0, 500)).eq('players.team_id', partido.team_id);
+      .in('player_id', jugadores.slice(0, 500)).eq('players.team_id', equipoDestino);
 
     let enviados = 0;
     const vencidas: number[] = [];
