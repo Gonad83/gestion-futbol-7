@@ -52,7 +52,7 @@ function pitchPos(idx: number, formation: string): React.CSSProperties {
   }
   return {
     position: 'absolute',
-    bottom: `${5 + (li / (lines.length - 1)) * 80}%`,
+    bottom: `${3 + (li / Math.max(lines.length - 1, 1)) * 70}%`,
     left:   `${(100 / (lines[li] + 1)) * (pi + 1)}%`,
     transform: 'translateX(-50%)',
     zIndex: 10 + li,
@@ -108,7 +108,7 @@ const rotuloDe = (j: any) => { const n = (j.name || '').trim(); return j.nicknam
 /** Alto de lámina que cabe en la cancha para una formación (mismo cálculo que la cancha propia). */
 const altoEnCancha = (formation: string) => {
   const lineas = [1, ...formation.split('-').map(Number)];
-  return `min(${(80 / Math.max(lineas.length - 1, 1) * 0.92).toFixed(2)}cqh, ${((100 / (Math.max(...lineas) + 1)) * 0.92 * (4 / 3)).toFixed(2)}cqw, 24cqh)`;
+  return `min(${(70 / Math.max(lineas.length - 1, 1) * 0.95).toFixed(2)}cqh, ${((100 / (Math.max(...lineas) + 1)) * 0.92 * (4 / 3)).toFixed(2)}cqw, 23cqh)`;
 };
 
 /** La figura del equipo: quien más veces fue MVP (a igualdad, el de más estrellas). Sin títulos, no hay figura. */
@@ -570,7 +570,7 @@ export default function Arena() {
 
   // Las láminas se ajustan a la cancha: caben las líneas a lo alto y la más poblada a lo ancho.
   const lineasFormacion = [1, ...formation.split('-').map(Number)];
-  const altoTitular = `min(${(80 / Math.max(lineasFormacion.length - 1, 1) * 0.92).toFixed(2)}cqh, ${((100 / (Math.max(...lineasFormacion) + 1)) * 0.92 * (4 / 3)).toFixed(2)}cqw, 24cqh)`;
+  const altoTitular = `min(${(70 / Math.max(lineasFormacion.length - 1, 1) * 0.95).toFixed(2)}cqh, ${((100 / (Math.max(...lineasFormacion) + 1)) * 0.92 * (4 / 3)).toFixed(2)}cqw, 23cqh)`;
   const lamina = (player: (typeof starters)[number], orden: number, arquero: boolean, elegido: boolean, alto: string, onClick: (e: React.MouseEvent) => void) => {
     const nombre = player.name.replace(/\s*\(I\)\s*$/i, '').trim();
     return (
