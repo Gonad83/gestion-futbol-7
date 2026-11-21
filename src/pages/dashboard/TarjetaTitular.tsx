@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Info, RotateCcw, Shield, Star } from 'lucide-react';
 import type { DashboardStats, JugadorDash } from '../../lib/api/dashboard';
 import { Lamina } from '../../components/Lamina';
+import { contarTitulos } from '../../hooks/useTitulosMvp';
 import { JERSEY_COLORS, formacionesDe } from '../../lib/matchmaking';
 import { armarTitular, intercambiarPuestos, LINEAS, type Puesto, type TitularGuardado } from './titular';
 
@@ -18,11 +19,11 @@ const nombreCorto = (nombre: string) => {
 const rotulo = (j: JugadorDash) => j.nickname?.trim() || j.name.trim().split(/\s+/).pop() || j.name;
 const siglaPosicion = (posicion: string | null) => (posicion ? posicion.trim().slice(0, 3).toUpperCase() : '—');
 
-function Ficha({ puesto, color, elegido, orden, onClick }: { puesto: Puesto<JugadorDash>; color: string; elegido: boolean; orden: number; onClick?: () => void }) {
+function Ficha({ puesto, color, titulos, elegido, orden, onClick }: { puesto: Puesto<JugadorDash>; color: string; titulos?: number; elegido: boolean; orden: number; onClick?: () => void }) {
   const { jugador: j, linea, fueraDePuesto } = puesto;
   return (
     <Lamina nombre={j.name} rotulo={rotulo(j)} foto={j.photo_url} estrellas={j.rating} puesto={SIGLA_LINEA[linea]}
-      color={color} fueraDePuesto={fueraDePuesto} elegido={elegido}
+      color={color} fueraDePuesto={fueraDePuesto} titulos={titulos} elegido={elegido}
       alto="min(21cqh, 30cqw)" orden={orden} onClick={onClick}
       ariaLabel={`${NOMBRE_LINEA[linea]}: ${j.name}${fueraDePuesto ? ' (fuera de su puesto)' : ''}${elegido ? ', elegido para cambiar' : ''}`}
       title={`${j.name} · ${j.position || 'Sin posición'}${fueraDePuesto ? ' (fuera de su puesto)' : ''}`} />
@@ -57,6 +58,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
 
   // Sin useMemo: el compilador de React ya guarda el resultado mientras no cambien los datos.
   const partidos = Object.fromEntries(stats.topParticipations.map((p) => [p.id, p.count]));
+  const titulos = contarTitulos(stats.mvpHistory);
   const noVan = new Set(stats.declinedIds);
   const titular = armarTitular(stats.allPlayers.filter((j) => !noVan.has(j.id)), formacion, partidos, fijos);
   const bajas = stats.allPlayers.filter((j) => j.status === 'Activo' && stats.declinedIds.includes(j.id));
@@ -154,7 +156,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
           return fila.map((puesto, k) => (
             <div key={puesto.jugador.id} className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-500"
               style={{ top: `${top}%`, left: `${fila.length >= 4 ? 13 + (k * 74) / (fila.length - 1) : (100 / (fila.length + 1)) * (k + 1)}%`, zIndex: elegido === puesto.jugador.id ? 2 : 1 }}>
-              <Ficha puesto={puesto} color={color} orden={antes + k} elegido={elegido === puesto.jugador.id} onClick={puedeEditar ? () => tocar(puesto.jugador.id) : undefined} />
+              <Ficha puesto={puesto} color={color} titulos={titulos[puesto.jugador.id]} orden={antes + k} elegido={elegido === puesto.jugador.id} onClick={puedeEditar ? () => tocar(puesto.jugador.id) : undefined} />
             </div>
           ));
         })}
@@ -168,7 +170,7 @@ export function TarjetaTitular({ stats, guardado, puedeEditar, onGuardar }: Prop
               const sel = elegido === j.id;
               return (
                 <Lamina key={j.id} nombre={j.name} rotulo={rotulo(j)} foto={j.photo_url} estrellas={j.rating} puesto={siglaPosicion(j.position)}
-                  color={color} elegido={sel} alto="68px" orden={i} onClick={puedeEditar ? () => tocar(j.id) : undefined}
+                  color={color} titulos={titulos[j.id]} elegido={sel} alto="68px" orden={i} onClick={puedeEditar ? () => tocar(j.id) : undefined}
                   ariaLabel={`Banca: ${j.name}${sel ? ', elegido para cambiar' : ''}`} title={`${j.name} · ${j.position || 'Sin posición'}`} />
               );
             })}

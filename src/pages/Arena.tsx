@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Lamina } from '../components/Lamina';
 import { useAuth } from '../hooks/useAuth';
+import { useTitulosMvp } from '../hooks/useTitulosMvp';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { aviso, confirmar } from '../lib/avisos';
@@ -346,6 +347,7 @@ function FichaRival({ equipo, jugadores, formato, solicitud, onDesafiar, onCerra
 /* ─── component ─────────────────────────────────────────────── */
 export default function Arena() {
   const { isAdmin, isMatchmaker, teamId } = useAuth();
+  const titulosMvp = useTitulosMvp();
   const [arenaTab, setArenaTab] = useState<ArenaTab>('amistosos');
 
   /* ── Formation builder state ── */
@@ -595,7 +597,7 @@ export default function Arena() {
     return (
       <Lamina nombre={nombre} rotulo={player.nickname?.trim() || nombre.split(/\s+/).pop() || nombre} foto={player.photo_url}
         estrellas={player.rating} puesto={arquero ? 'POR' : player.position?.trim().slice(0, 3).toUpperCase() || 'INV'}
-        color={color} elegido={elegido}
+        color={color} titulos={titulosMvp[player.id]} elegido={elegido}
         alto={alto} orden={orden} onClick={onClick} ariaLabel={`${player.name}${elegido ? ', elegido para cambiar' : ''}`} title={player.name} />
     );
   };
