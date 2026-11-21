@@ -10,6 +10,8 @@ import { useTitulosMvp } from '../hooks/useTitulosMvp';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { aviso, confirmar } from '../lib/avisos';
+import { buildBest, isDef, isFwd, isGK, isMid } from './arena/alineacion';
+import { SalaAmistoso } from './arena/SalaAmistoso';
 
 /* ─── constants ─────────────────────────────────────────────── */
 const FORMATIONS = [
@@ -39,26 +41,6 @@ const LS_KEY = 'arena_lineup_v2';
 const clp = (n: number) => n === 0 ? 'Gratis' : `$${Math.round(n).toLocaleString('es-CL')}`;
 
 /* ─── helpers ───────────────────────────────────────────────── */
-const isGK  = (p: any) => /portero|arco|arquero/i.test(p.position || '');
-const isDef = (p: any) => /defensa|lateral|central|stopper/i.test(p.position || '');
-const isMid = (p: any) => /medio|volante|enganche|interior/i.test(p.position || '');
-const isFwd = (p: any) => /delantero|extremo|punta|ariete/i.test(p.position || '');
-
-function buildBest(players: any[], formation: string) {
-  const parts = formation.split('-').map(Number);
-  const slots = { gk: 1, def: parts[0] || 0, mid: parts[1] || 0, fwd: parts[2] || 0 };
-  const pool  = [...players].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-  const sel: any[] = [];
-  const used = new Set<string>();
-  const pick = (test: (p: any) => boolean, n: number) =>
-    pool.filter(p => !used.has(p.id) && test(p)).slice(0, n)
-        .forEach(p => { used.add(p.id); sel.push(p); });
-  pick(isGK, slots.gk); pick(isDef, slots.def); pick(isMid, slots.mid); pick(isFwd, slots.fwd);
-  const total = slots.gk + slots.def + slots.mid + slots.fwd;
-  pool.filter(p => !used.has(p.id)).slice(0, total - sel.length)
-      .forEach(p => { used.add(p.id); sel.push(p); });
-  return sel;
-}
 
 function pitchPos(idx: number, formation: string): React.CSSProperties {
   const parts = formation.split('-').map(Number);
@@ -376,6 +358,7 @@ export default function Arena() {
   /* Plantillas de los rivales (por equipo) y la ficha de rival que está abierta. */
   const [plantillas,   setPlantillas]   = useState<Record<number, any[]>>({});
   const [rival,        setRival]        = useState<{ equipo: any; formato: string; solicitud?: any } | null>(null);
+  const [sala,         setSala]         = useState<any | null>(null);
 
   /* ── Torneos state ── */
   const [myTournaments,  setMyTournaments]  = useState<any[]>([]);
@@ -430,17 +413,17 @@ export default function Arena() {
     // De los otros equipos solo se ve su ficha pública (equipos_arena): la fila
     // completa, con el código para unirse, es solo para sus miembros.
     const [mine, open, fichas] = await Promise.all([
-      supabase.from('friendly_requests').select('*').eq('team_id', teamId).neq('status', 'cancelled').order('date'),
+      supabase.from('friendly_requests').select('*').or(`team_id.eq.${teamId},challenger_team_id.eq.${teamId}`).neq('status', 'cancelled').order('date'),
       supabase.from('friendly_requests').select('*').eq('status', 'open').order('date'),
       supabase.rpc('equipos_arena'),
     ]);
     const ficha = new Map(((fichas.data || []) as any[]).map(f => [f.id, f]));
-    setMyRequests((mine.data || []).map((r: any) => ({ ...r, challenger: ficha.get(r.challenger_team_id) ?? null })));
+    setMyRequests((mine.data || []).map((r: any) => ({ ...r, local: ficha.get(r.team_id) ?? null, challenger: ficha.get(r.challenger_team_id) ?? null })));
     const abiertos = (open.data || []).filter((r: any) => r.team_id !== teamId);
     setOpenRequests(abiertos.map((r: any) => ({ ...r, team: ficha.get(r.team_id) ?? null })));
     const rivales = new Set<number>([
       ...abiertos.map((r: any) => r.team_id),
-      ...(mine.data || []).map((r: any) => r.challenger_team_id).filter(Boolean),
+      ...(mine.data || []).flatMap((r: any) => [r.team_id, r.challenger_team_id]).filter((id: any) => id && id !== teamId),
     ]);
     cargarPlantillas([...rivales]);
   };
@@ -477,18 +460,14 @@ export default function Arena() {
     fetchFriendlies();
   };
   const handleAcceptReq = async (id: string) => {
-    await supabase.from('friendly_requests').update({ status: 'matched' }).eq('id', id);
-    const req = myRequests.find(r => r.id === id);
-    if (req) {
-      await supabase.from('matches').insert({
-        team_id: teamId,
-        date: `${req.date}T${req.time}:00`,
-        location: req.location,
-        match_type: req.format,
-        event_type: 'Amistoso',
-        status: 'Programado',
-      });
-    }
+    const { error } = await supabase.rpc('aceptar_amistoso', { p_solicitud: id });
+    if (error) aviso.error('No se pudo aceptar: ' + error.message);
+    fetchFriendlies();
+  };
+  const handleRetirarDesafio = async (id: string) => {
+    if (!(await confirmar('¿Retirar tu desafío?'))) return;
+    const { error } = await supabase.from('friendly_requests').update({ status: 'open', challenger_team_id: null }).eq('id', id).eq('status', 'challenged');
+    if (error) aviso.error('Error: ' + error.message);
     fetchFriendlies();
   };
   const handleRejectReq  = async (id: string) => { await supabase.from('friendly_requests').update({ status: 'open', challenger_team_id: null }).eq('id', id); fetchFriendlies(); };
@@ -688,7 +667,7 @@ export default function Arena() {
           {arenaTab === 'amistosos' && (
             <>
               {/* My requests */}
-              {isAdmin && (
+              {isMatchmaker && (
                 <div className="rounded-2xl overflow-hidden" style={cardStyle}>
                   <div className="px-5 py-4 flex items-center gap-3" style={headerStyle}>
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(68,243,169,0.1)', color: '#44f3a9' }}>
@@ -739,36 +718,48 @@ export default function Arena() {
                     <div className="divide-y" style={divStyle}>
                       {myRequests.map(req => {
                         const badge = reqBadge[req.status] || reqBadge.open;
+                        const soyLocal = req.team_id === teamId;
+                        const rivalEq = soyLocal ? req.challenger : req.local;
+                        const pendiente = req.status === 'challenged';
                         return (
-                          <div key={req.id} className="px-5 py-4 space-y-2">
+                          <div key={req.id} className="px-5 py-4 space-y-2.5">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`text-[11px] font-black px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.label}</span>
                                 <span className="text-xs font-bold text-white">{req.format}</span>
                                 <span className="text-[11px] text-white/50 flex items-center gap-1"><Clock size={9} /> {fmtDate(req.date)} · {req.time}</span>
                               </div>
-                              {(req.status === 'open' || req.status === 'challenged') && (
-                                <button onClick={() => handleCancelReq(req.id)} className="text-red-400/50 hover:text-red-400 transition-colors"><X size={13} /></button>
+                              {soyLocal && (req.status === 'open' || pendiente) && (
+                                <button onClick={() => handleCancelReq(req.id)} aria-label="Cancelar solicitud" className="text-red-400/50 hover:text-red-400 transition-colors"><X size={13} /></button>
+                              )}
+                              {!soyLocal && pendiente && (
+                                <button onClick={() => handleRetirarDesafio(req.id)} aria-label="Retirar desafío" className="text-red-400/50 hover:text-red-400 transition-colors"><X size={13} /></button>
                               )}
                             </div>
                             <p className="text-[11px] text-white/50 flex items-center gap-1"><MapPin size={9} /> {req.location}</p>
-                            {req.status === 'challenged' && req.challenger && (
-                              <div className="p-3 rounded-xl flex items-center justify-between gap-3" style={{ background: 'rgba(255,208,139,0.06)', border: '1px solid rgba(255,208,139,0.15)' }}>
+                            {rivalEq && (pendiente || req.status === 'matched') && (
+                              <div className="p-3 rounded-xl space-y-2.5" style={pendiente
+                                ? { background: 'rgba(255,208,139,0.06)', border: '1px solid rgba(255,208,139,0.15)' }
+                                : { background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
                                 <div>
-                                  <p className="text-xs font-black text-amber-400">⚔️ {req.challenger.team_name} quiere jugar</p>
-                                  {(req.challenger.city || req.challenger.commune) && <p className="text-[11px] text-white/50 mt-0.5">{[req.challenger.commune, req.challenger.city].filter(Boolean).join(', ')}</p>}
+                                  <p className={`text-xs font-black ${pendiente ? 'text-amber-400' : 'text-blue-400'}`}>
+                                    {!pendiente ? `✅ Confirmado con ${rivalEq.team_name}`
+                                      : soyLocal ? `⚔️ ${rivalEq.team_name} quiere jugar` : `⏳ Desafiaste a ${rivalEq.team_name} · esperando respuesta`}
+                                  </p>
+                                  {(rivalEq.city || rivalEq.commune) && <p className="text-[11px] text-white/50 mt-0.5">{[rivalEq.commune, rivalEq.city].filter(Boolean).join(', ')}</p>}
                                 </div>
-                                <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
-                                  {botonFicha(req.challenger, req.format)}
-                                  <button onClick={() => handleAcceptReq(req.id)} className="flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-lg" style={{ background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.25)' }}><Check size={11} /> Aceptar</button>
-                                  <button onClick={() => handleRejectReq(req.id)} className="flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}><X size={11} /> Rechazar</button>
+                                <div className="flex gap-2 flex-wrap">
+                                  <button type="button" onClick={() => setSala(req)} className="btn-primary flex items-center justify-center gap-1.5 text-[11px] px-3 py-2">
+                                    <Swords size={12} /> Abrir cancha
+                                  </button>
+                                  {botonFicha(rivalEq, req.format)}
+                                  {soyLocal && pendiente && (
+                                    <>
+                                      <button onClick={() => handleAcceptReq(req.id)} className="flex items-center gap-1 text-[11px] font-black px-3 py-2 rounded-xl" style={{ background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.25)' }}><Check size={11} /> Aceptar</button>
+                                      <button onClick={() => handleRejectReq(req.id)} className="flex items-center gap-1 text-[11px] font-black px-3 py-2 rounded-xl" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}><X size={11} /> Rechazar</button>
+                                    </>
+                                  )}
                                 </div>
-                              </div>
-                            )}
-                            {req.status === 'matched' && req.challenger && (
-                              <div className="p-3 rounded-xl flex items-center justify-between gap-3" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
-                                <p className="text-xs font-black text-blue-400">✅ Confirmado con {req.challenger.team_name}</p>
-                                {botonFicha(req.challenger, req.format)}
                               </div>
                             )}
                           </div>
@@ -1196,6 +1187,12 @@ export default function Arena() {
           </div>
         </div>
       </div>
+      {sala && teamId && (
+        <SalaAmistoso key={sala.id} solicitud={sala} miEquipoId={teamId} puedeCoordinar={isMatchmaker}
+          local={sala.local ?? (sala.team_id === teamId ? { id: teamId, team_name: teamName } : null)}
+          visita={sala.challenger ?? (sala.challenger_team_id === teamId ? { id: teamId, team_name: teamName } : null)}
+          onCerrar={() => { setSala(null); fetchFriendlies(); }} />
+      )}
       {rival && (
         <FichaRival key={rival.equipo?.id} equipo={rival.equipo} jugadores={plantillas[rival.equipo?.id]} formato={rival.formato} solicitud={rival.solicitud}
           onCerrar={() => setRival(null)}
