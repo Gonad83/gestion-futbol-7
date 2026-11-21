@@ -403,7 +403,7 @@ export default function Arena() {
     try {
       const [settRes, playRes] = await Promise.all([
         supabase.from('team_settings').select('team_name').eq('id', teamId).maybeSingle(),
-        withTimeout(supabase.from('players').select('*').eq('status', 'Activo') as any, 10000),
+        withTimeout(supabase.from('players').select('*').eq('team_id', teamId).eq('status', 'Activo') as any, 10000),
       ]);
       if (settRes.data?.team_name) setTeamName(settRes.data.team_name);
       const sorted: any[] = [...((playRes as any).data || [])].sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -1138,12 +1138,13 @@ export default function Arena() {
             )}
 
             {bench.length > 0 && (
-              <div className="flex flex-col rounded-2xl overflow-hidden" style={{ ...cardStyle, width: '68px' }}>
+              <div className="relative flex-shrink-0" style={{ width: '68px' }}>
+              <div className="absolute inset-0 flex flex-col rounded-2xl overflow-hidden" style={cardStyle}>
                 <div className="px-1 py-2 text-center flex-shrink-0" style={{ background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <p className="text-[7px] font-black uppercase tracking-widest text-white/25">SUP</p>
                   <p className="text-[8px] font-black text-white/40">{bench.length}</p>
                 </div>
-                <div className="flex flex-col gap-1.5 p-1.5 overflow-y-auto flex-1 custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
+                <div className="flex flex-col gap-1.5 p-1.5 overflow-y-auto flex-1 min-h-0 custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
                   {bench.map((player, i) => (
                     <div key={player.id} className="flex-shrink-0 flex justify-center"
                       style={{ filter: anySwap && !isBenchSel(i) ? 'brightness(0.45)' : undefined, transition: 'filter 0.2s' }}>
@@ -1152,6 +1153,7 @@ export default function Arena() {
                   ))}
                 </div>
                 {swap?.type === 'bench' && <p className="text-[7px] font-black text-soccer-green text-center p-1 animate-pulse">↑ titular</p>}
+              </div>
               </div>
             )}
           </div>
