@@ -1,5 +1,5 @@
 import type { CSSProperties, MouseEvent } from 'react';
-import { ArrowLeftRight, Star } from 'lucide-react';
+import { ArrowLeftRight, Star, Trophy } from 'lucide-react';
 
 /** La nota va de 1 a 7: se dibujan las siete, llenas hasta la del jugador. */
 const MAX_ESTRELLAS = 7;
@@ -20,6 +20,10 @@ interface Props {
   /** Color de camiseta (black, white, blue, emerald, yellow, red, purple, lightblue). */
   color: string;
   fueraDePuesto?: boolean;
+  /** Veces que fue MVP; con al menos una, la lámina lleva la copa con el número. */
+  titulos?: number | null;
+  /** Figura del equipo: halo dorado. */
+  figura?: boolean;
   elegido?: boolean;
   /** Alto de la lámina (cualquier medida CSS); el resto se escala solo. */
   alto: string;
@@ -31,10 +35,10 @@ interface Props {
 }
 
 /** Lámina de jugador al estilo de las cartas de FIFA: puesto, foto, estrellas y nombre. */
-export function Lamina({ nombre, rotulo, foto, estrellas, puesto, color, fueraDePuesto, elegido = false, alto, orden = 0, onClick, ariaLabel, title }: Props) {
+export function Lamina({ nombre, rotulo, foto, estrellas, puesto, color, fueraDePuesto, titulos, figura = false, elegido = false, alto, orden = 0, onClick, ariaLabel, title }: Props) {
   const llenas = Math.max(0, Math.min(MAX_ESTRELLAS, Math.round(estrellas ?? 0)));
   return (
-    <span className={`lamina-sombra flex ${elegido ? 'lamina-sombra-elegida' : ''}`}>
+    <span className={`lamina-sombra flex ${elegido ? 'lamina-sombra-elegida' : ''} ${figura ? 'lamina-sombra-figura' : ''}`}>
     <button type="button" onClick={onClick} disabled={!onClick} aria-pressed={onClick ? elegido : undefined}
       aria-label={ariaLabel} title={title}
       className={`lamina lamina-${COLORES.includes(color) ? color : 'blue'} scale-in ${elegido ? 'lamina-elegida' : ''}`}
@@ -47,6 +51,9 @@ export function Lamina({ nombre, rotulo, foto, estrellas, puesto, color, fueraDe
         <span className="lamina-puesto">{puesto}</span>
         {fueraDePuesto && (
           <span className="lamina-aviso" aria-hidden="true"><ArrowLeftRight size="0.9em" strokeWidth={3} /></span>
+        )}
+        {!fueraDePuesto && !!titulos && titulos > 0 && (
+          <span className="lamina-titulos" aria-hidden="true"><Trophy size="0.95em" strokeWidth={2.75} />{titulos}</span>
         )}
         {llenas > 0 && (
           <span className="lamina-estrellas" aria-hidden="true">

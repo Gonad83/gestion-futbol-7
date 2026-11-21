@@ -128,12 +128,36 @@ const altoEnCancha = (formation: string) => {
   return `min(${(80 / Math.max(lineas.length - 1, 1) * 0.92).toFixed(2)}cqh, ${((100 / (Math.max(...lineas) + 1)) * 0.92 * (4 / 3)).toFixed(2)}cqw, 24cqh)`;
 };
 
-function LaminaRival({ jugador, orden, alto, onClick, elegido }: { jugador: any; orden: number; alto: string; onClick?: (e: React.MouseEvent) => void; elegido?: boolean }) {
+/** La figura del equipo: quien más veces fue MVP (a igualdad, el de más estrellas). Sin títulos, no hay figura. */
+const figuraDe = (jugadores: any[]) =>
+  [...jugadores].filter(j => j.mvps > 0).sort((a, b) => b.mvps - a.mvps || (b.rating || 0) - (a.rating || 0) || a.name.localeCompare(b.name))[0] || null;
+const titulosTexto = (n: number) => `${n} ${n === 1 ? 'título' : 'títulos'} MVP`;
+
+function LaminaRival({ jugador, orden, alto, onClick, elegido, figura }: { jugador: any; orden: number; alto: string; onClick?: (e: React.MouseEvent) => void; elegido?: boolean; figura?: boolean }) {
   const nombre = (jugador.name || '').trim();
   return (
     <Lamina nombre={nombre} rotulo={rotuloDe(jugador)} foto={jugador.photo_url} estrellas={jugador.rating}
-      puesto={puestoCorto(jugador)} color="blue" alto={alto} orden={orden} elegido={elegido} onClick={onClick}
-      ariaLabel={`${nombre}, ${jugador.position || 'sin puesto'}`} title={nombre} />
+      puesto={puestoCorto(jugador)} color="blue" titulos={jugador.mvps} figura={figura} alto={alto} orden={orden} elegido={elegido} onClick={onClick}
+      ariaLabel={`${nombre}, ${jugador.position || 'sin puesto'}${jugador.mvps > 0 ? `, ${titulosTexto(jugador.mvps)}` : ''}`} title={nombre} />
+  );
+}
+
+/** Franja dorada con la figura del equipo. */
+function Figura({ jugador, onClick }: { jugador: any; onClick?: () => void }) {
+  return (
+    <button type="button" onClick={onClick} disabled={!onClick} className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left"
+      style={{ background: 'linear-gradient(90deg,rgba(255,208,139,0.16),rgba(255,208,139,0.04))', border: '1px solid rgba(255,208,139,0.28)' }}>
+      <Foto jugador={jugador} lado={44} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#ffd08b' }}>MVP del equipo</span>
+        <span className="block text-sm font-black text-white truncate">{jugador.name}</span>
+        <span className="block text-[11px] text-white/55 truncate">{jugador.position || 'Sin puesto'}</span>
+      </span>
+      <span className="flex-shrink-0 flex flex-col items-center" style={{ color: '#ffd08b' }}>
+        <span className="flex items-center gap-1 font-headline text-xl font-black italic leading-none"><Trophy size={17} />{jugador.mvps}</span>
+        <span className="text-[9px] font-black uppercase tracking-widest mt-1 text-white/45">{jugador.mvps === 1 ? 'título' : 'títulos'}</span>
+      </span>
+    </button>
   );
 }
 
@@ -178,6 +202,7 @@ function FichaRival({ equipo, jugadores, formato, solicitud, onDesafiar, onCerra
   const lista = jugadores || [];
   const titulares = buildBest(lista, formacion);
   const elegido = lista.find(j => j.id === elegidoId) || null;
+  const figura = figuraDe(lista);
   const usados = new Set<string>();
   const grupos = [
     ...LINEAS.map(l => ({ titulo: l.titulo, jugadores: lista.filter(j => !usados.has(j.id) && l.es(j) && (usados.add(j.id), true)) })),
@@ -239,6 +264,8 @@ function FichaRival({ equipo, jugadores, formato, solicitud, onDesafiar, onCerra
             ))}
           </div>
 
+          {figura && <Figura jugador={figura} onClick={() => { setVista('cancha'); setElegidoId(figura.id); }} />}
+
           {!jugadores ? (
             <div className="flex justify-center py-10"><RefreshCw className="animate-spin text-white/30" size={22} /></div>
           ) : lista.length === 0 ? (
@@ -260,7 +287,7 @@ function FichaRival({ equipo, jugadores, formato, solicitud, onDesafiar, onCerra
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 border-2 border-white/15 rounded-full pointer-events-none" />
                 {titulares.map((j, i) => (
                   <div key={j.id} className="pitch-player" style={{ ...pitchPos(i, formacion), filter: elegidoId && elegidoId !== j.id ? 'brightness(0.6)' : undefined }}>
-                    <LaminaRival jugador={j} orden={i} alto={altoEnCancha(formacion)} elegido={elegidoId === j.id} onClick={() => tocar(j.id)} />
+                    <LaminaRival jugador={j} orden={i} alto={altoEnCancha(formacion)} elegido={elegidoId === j.id} figura={figura?.id === j.id} onClick={() => tocar(j.id)} />
                   </div>
                 ))}
               </div>
@@ -271,7 +298,10 @@ function FichaRival({ equipo, jugadores, formato, solicitud, onDesafiar, onCerra
                     <p className="text-sm font-black text-white truncate">{elegido.name}</p>
                     <p className="text-[11px] text-white/55 truncate">{elegido.nickname ? `"${elegido.nickname}" · ` : ''}{elegido.position || 'Sin puesto'}</p>
                   </div>
-                  <Estrellas nota={elegido.rating} />
+                  <span className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <Estrellas nota={elegido.rating} />
+                    {elegido.mvps > 0 && <span className="text-[11px] font-black flex items-center gap-1" style={{ color: '#ffd08b' }}><Trophy size={11} />{titulosTexto(elegido.mvps)}</span>}
+                  </span>
                 </div>
               ) : (
                 <p className="text-[11px] text-white/40 text-center">Toca un jugador para ver quién es</p>
@@ -290,7 +320,10 @@ function FichaRival({ equipo, jugadores, formato, solicitud, onDesafiar, onCerra
                           <p className="text-sm font-black text-white truncate">{j.name}</p>
                           <p className="text-[11px] text-white/50 truncate">{j.nickname ? `"${j.nickname}" · ` : ''}{j.position || 'Sin puesto'}</p>
                         </div>
-                        <Estrellas nota={j.rating} />
+                        <span className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <Estrellas nota={j.rating} />
+                          {j.mvps > 0 && <span className="text-[11px] font-black flex items-center gap-1" style={{ color: '#ffd08b' }}><Trophy size={11} />{j.mvps} MVP</span>}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -570,18 +603,23 @@ export default function Arena() {
     const jugadores = plantillas[equipoId];
     if (!jugadores) return <div className="flex justify-center py-5"><RefreshCw className="animate-spin text-white/30" size={16} /></div>;
     if (jugadores.length === 0) return <p className="text-white/40 text-[11px] italic">Este equipo aún no carga su plantilla.</p>;
+    const figura = figuraDe(jugadores);
+    const enOrden = figura ? [figura, ...jugadores.filter(j => j.id !== figura.id)] : jugadores;
     return (
-      <div>
+      <div className="space-y-3">
+        {figura && <Figura jugador={figura} onClick={abrir} />}
+        <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-[11px] font-black uppercase tracking-widest text-white/50">Plantilla · {jugadores.length}</p>
           <p className="text-[11px] font-black flex items-center gap-1" style={{ color: '#ffd08b' }}><Star size={11} fill="currentColor" /> {promedioDe(jugadores)} prom.</p>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
-          {jugadores.map((j, i) => (
+          {enOrden.map((j, i) => (
             <div key={j.id} className="flex-shrink-0">
-              <LaminaRival jugador={j} orden={i} alto="104px" onClick={abrir} />
+              <LaminaRival jugador={j} orden={i} alto="104px" figura={figura?.id === j.id} onClick={abrir} />
             </div>
           ))}
+        </div>
         </div>
       </div>
     );

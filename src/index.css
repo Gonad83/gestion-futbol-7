@@ -258,6 +258,26 @@
   background: #10141a;
   color: #ffd08b;
 }
+/* Copa con las veces que fue MVP, en la esquina de la lámina. */
+.lamina-titulos {
+  position: absolute;
+  top: 0.9em;
+  right: 0.45em;
+  height: 1.7em;
+  padding: 0 0.5em;
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  border-radius: 9999px;
+  background: #10141a;
+  color: #ffd08b;
+  font-family: 'Lexend', system-ui, sans-serif;
+  font-size: 1em;
+  font-weight: 900;
+  line-height: 1;
+}
+/* La figura del equipo lleva un halo dorado. */
+.lamina-sombra-figura { filter: drop-shadow(0 0 0.5em rgba(255, 208, 139, 0.75)); }
 /* Estrellas amarillas sobre una pastilla oscura, para que se lean en cualquier color de lámina. */
 .lamina-estrellas {
   position: absolute;
