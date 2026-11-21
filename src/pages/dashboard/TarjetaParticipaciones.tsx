@@ -1,6 +1,8 @@
-import { Trophy } from 'lucide-react';
+import { Medal, Trophy } from 'lucide-react';
 import type { DashboardStats } from '../../lib/api/dashboard';
 import { RANK_COLORS } from './util';
+
+const MEDALLAS = ['Medalla de oro', 'Medalla de plata', 'Medalla de bronce'];
 
 interface Props {
   stats: DashboardStats;
@@ -37,10 +39,16 @@ export function TarjetaParticipaciones({ stats }: Props) {
                     border: `1px solid ${i < 3 ? rankColor + '22' : 'rgba(255,255,255,0.04)'}`,
                   }}>
                   {/* Rank */}
-                  <span className="font-headline font-black text-sm w-5 text-center flex-shrink-0"
-                    style={{ color: i < 3 ? rankColor : 'rgba(255,255,255,0.2)' }}>
-                    {i + 1}
-                  </span>
+                  {i < 3 ? (
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" role="img" aria-label={MEDALLAS[i]} title={MEDALLAS[i]}
+                      style={{ color: rankColor, background: rankColor + '1f', boxShadow: `0 0 10px ${rankColor}33` }}>
+                      <Medal size={16} strokeWidth={2.25} fill={rankColor + '55'} />
+                    </span>
+                  ) : (
+                    <span className="font-headline font-black text-sm w-6 text-center flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                      {i + 1}
+                    </span>
+                  )}
                   {/* Avatar */}
                   <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
                     style={{ background: '#31353c', border: `1.5px solid ${i < 3 ? rankColor + '50' : 'rgba(255,255,255,0.08)'}` }}>
