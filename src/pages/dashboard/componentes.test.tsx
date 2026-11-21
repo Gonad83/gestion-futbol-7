@@ -125,8 +125,11 @@ describe('bloques del panel de inicio', () => {
         guestList={[{ id: 'g1', name: 'Invitado Uno' }]}
       />,
     );
+    // Abre en la vista de lista: agrupada por respuesta, con "Confirmo" en vez de "Voy".
     expect(html).toContain('Ana Rojas');
     expect(html).toContain('Invitado Uno');
+    expect(html).toContain('Confirmo · 2');
+    expect(html).toContain('Sin responder · 1');
   });
 
   it('goleadores: vacía explica cómo empezar, llena muestra goles y asistencias', () => {

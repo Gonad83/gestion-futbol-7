@@ -241,7 +241,7 @@ export function SalaAmistoso({ solicitud, miEquipoId, local, visita, puedeCoordi
                     {elegido.mvps > 0 && <span className="text-[11px] font-black flex items-center gap-1 flex-shrink-0" style={{ color: '#ffd08b' }}><Trophy size={11} />{elegido.mvps} MVP</span>}
                   </div>
                 ) : (
-                  <p className="text-[11px] text-white/40 text-center">En la cancha van los que marcaron "Voy" en el partido. Toca un jugador para ver quién es.</p>
+                  <p className="text-[11px] text-white/40 text-center">En la cancha van los que marcaron "Confirmo" en el partido. Toca un jugador para ver quién es.</p>
                 )}
 
                 <div className="flex gap-2 flex-wrap items-center">

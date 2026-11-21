@@ -1,4 +1,5 @@
-import { X, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { X, CheckCircle2, XCircle, Clock, List, ListChecks } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { DashboardStats, Invitado, JugadorConAsistencia, EstadoAsistencia } from '../../lib/api/dashboard';
@@ -22,7 +23,56 @@ interface Props {
   setShowAttendanceModal: (abierto: boolean) => void;
 }
 
+/** Los grupos de la vista de lista, en el orden en que se leen. */
+const GRUPOS: { estado: EstadoAsistencia; titulo: string; color: string }[] = [
+  { estado: 'Voy', titulo: 'Confirmo', color: '#44f3a9' },
+  { estado: 'Espera', titulo: 'En espera', color: '#fcd34d' },
+  { estado: 'Tal vez', titulo: 'Tal vez', color: '#9acbff' },
+  { estado: 'No voy', titulo: 'No voy', color: '#f87171' },
+  { estado: 'Pendiente', titulo: 'Sin responder', color: '#fbbf24' },
+];
+
+/** Todo el plantel de un vistazo: nombres cortos agrupados por respuesta, sin botones. */
+function VistaLista({ attendanceList, guestList }: { attendanceList: JugadorConAsistencia[]; guestList: Invitado[] }) {
+  return (
+    <div className="space-y-3">
+      {GRUPOS.map(({ estado, titulo, color }) => {
+        const jugadores = attendanceList.filter(p => p.attendanceStatus === estado);
+        const invitados = estado === 'Voy' ? guestList : [];
+        if (jugadores.length + invitados.length === 0) return null;
+        return (
+          <div key={estado}>
+            <p className="text-[11px] font-black uppercase tracking-widest mb-1.5" style={{ color }}>
+              {`${titulo} · ${jugadores.length + invitados.length}`}
+            </p>
+            <div className="grid grid-cols-2 gap-1">
+              {jugadores.map(player => (
+                <div key={player.id} className="flex items-center gap-2 px-2 py-1 rounded-lg min-w-0" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                  <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: '#31353c' }}>
+                    {player.photo_url ? <img src={player.photo_url} alt="" className="w-full h-full object-cover" /> : player.name.charAt(0)}
+                  </div>
+                  <span className="text-xs font-semibold text-white truncate" title={player.name}>{player.name}</span>
+                </div>
+              ))}
+              {invitados.map(g => (
+                <div key={g.id} className="flex items-center gap-2 px-2 py-1 rounded-lg min-w-0" style={{ background: 'rgba(154,203,255,0.06)' }}>
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'rgba(154,203,255,0.15)', color: '#9acbff' }}>
+                    {g.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-xs font-semibold text-white truncate" title={g.name}>{g.name}</span>
+                  <span className="text-[9px] font-bold uppercase text-[#9acbff]/70 flex-shrink-0">Inv.</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanceLoading, guestList, guestInput, setGuestInput, addGuest, teamId, sumarInvitado, removeGuest, handleAttendanceChange, setShowAttendanceModal }: Props) {
+  const [vista, setVista] = useState<'lista' | 'marcar'>('lista');
   return (
     <Capa>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
@@ -45,11 +95,21 @@ export function ModalAsistencia({ stats, isMatchmaker, attendanceList, attendanc
           {attendanceList.some(p => p.attendanceStatus === 'Espera') && <span className="ml-3 text-amber-300">{attendanceList.filter(p => p.attendanceStatus === 'Espera').length} En espera</span>}
         </div>
 
+        <div className="flex gap-1 p-1 mb-4 rounded-xl" style={{ background: 'rgba(0,0,0,0.25)' }}>
+          {([['lista', 'Lista', List], ['marcar', 'Marcar', ListChecks]] as const).map(([clave, texto, Icono]) => (
+            <button key={clave} onClick={() => setVista(clave)} aria-pressed={vista === clave}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-black transition-all ${vista === clave ? 'bg-soccer-green text-black' : 'text-white/50 hover:text-white'}`}
+            ><Icono size={13} />{texto}</button>
+          ))}
+        </div>
+
         <div className="overflow-y-auto custom-scrollbar space-y-2 pr-1 flex-1">
           {attendanceLoading ? (
             <div className="flex justify-center py-8">
               <div className="w-7 h-7 rounded-full border-2 border-t-soccer-green animate-spin" />
             </div>
+          ) : vista === 'lista' ? (
+            <VistaLista attendanceList={attendanceList} guestList={guestList} />
           ) : (
             <>
               {/* Jugadores del squad */}
