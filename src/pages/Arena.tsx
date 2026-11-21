@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, withTimeout } from '../lib/supabase';
 import {
   RefreshCw, Save, CheckCircle2, RotateCcw, MapPin, Clock, Users,
-  Swords, Globe, Plus, X, Check, Filter, Trophy, CreditCard,
+  Swords, Globe, Plus, X, Check, Filter, Trophy, CreditCard, Star,
 } from 'lucide-react';
 import { Lamina } from '../components/Lamina';
 import { useAuth } from '../hooks/useAuth';
@@ -104,6 +104,212 @@ const regBadge: Record<string, { label: string; cls: string }> = {
   rejected:  { label: 'Rechazado',   cls: 'bg-red-500/10 text-red-400 border-red-500/20' },
 };
 
+/* ─── ficha del rival ───────────────────────────────────────── */
+const FORMACIONES_POR_FORMATO: Record<string, string[]> = {
+  '5vs5':   ['2-1-1', '1-2-1'],
+  '7vs7':   FORMATIONS.map(f => f.value),
+  '11vs11': ['4-3-3', '4-4-2'],
+};
+const LINEAS = [
+  { titulo: 'Arqueros',   es: isGK },
+  { titulo: 'Defensas',   es: isDef },
+  { titulo: 'Medios',     es: isMid },
+  { titulo: 'Delanteros', es: isFwd },
+];
+const promedioDe = (jugadores: any[]) => {
+  const conNota = jugadores.filter(j => j.rating);
+  return conNota.length ? (conNota.reduce((s, j) => s + j.rating, 0) / conNota.length).toFixed(1) : '—';
+};
+const puestoCorto = (j: any) => isGK(j) ? 'POR' : j.position?.trim().slice(0, 3).toUpperCase() || 'INV';
+const rotuloDe = (j: any) => { const n = (j.name || '').trim(); return j.nickname?.trim() || n.split(/\s+/).pop() || n; };
+/** Alto de lámina que cabe en la cancha para una formación (mismo cálculo que la cancha propia). */
+const altoEnCancha = (formation: string) => {
+  const lineas = [1, ...formation.split('-').map(Number)];
+  return `min(${(80 / Math.max(lineas.length - 1, 1) * 0.92).toFixed(2)}cqh, ${((100 / (Math.max(...lineas) + 1)) * 0.92 * (4 / 3)).toFixed(2)}cqw, 24cqh)`;
+};
+
+function LaminaRival({ jugador, orden, alto, onClick, elegido }: { jugador: any; orden: number; alto: string; onClick?: (e: React.MouseEvent) => void; elegido?: boolean }) {
+  const nombre = (jugador.name || '').trim();
+  return (
+    <Lamina nombre={nombre} rotulo={rotuloDe(jugador)} foto={jugador.photo_url} estrellas={jugador.rating}
+      puesto={puestoCorto(jugador)} color="blue" alto={alto} orden={orden} elegido={elegido} onClick={onClick}
+      ariaLabel={`${nombre}, ${jugador.position || 'sin puesto'}`} title={nombre} />
+  );
+}
+
+function Estrellas({ nota }: { nota?: number | null }) {
+  const llenas = Math.max(0, Math.min(7, Math.round(nota ?? 0)));
+  return (
+    <span className="flex gap-px" style={{ color: '#ffd08b' }} aria-label={`${llenas} de 7 estrellas`}>
+      {Array.from({ length: 7 }, (_, i) => <Star key={i} size={10} fill={i < llenas ? 'currentColor' : 'none'} className={i < llenas ? undefined : 'opacity-25'} />)}
+    </span>
+  );
+}
+
+function Foto({ jugador, lado }: { jugador: any; lado: number }) {
+  const nombre = (jugador.name || '').trim();
+  return (
+    <span className="rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center font-black text-white"
+      style={{ width: lado, height: lado, fontSize: lado * 0.36, background: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', border: '2px solid rgba(154,203,255,0.25)' }}>
+      {jugador.photo_url
+        ? <img src={jugador.photo_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+        : nombre.split(/\s+/).slice(0, 2).map((p: string) => p[0]?.toUpperCase()).join('')}
+    </span>
+  );
+}
+
+function FichaRival({ equipo, jugadores, formato, solicitud, onDesafiar, onCerrar }: {
+  equipo: any; jugadores: any[] | undefined; formato: string; solicitud?: any;
+  onDesafiar?: () => void; onCerrar: () => void;
+}) {
+  const formaciones = FORMACIONES_POR_FORMATO[formato] || FORMACIONES_POR_FORMATO['7vs7'];
+  const [vista, setVista] = useState<'cancha' | 'plantilla'>('cancha');
+  const [formacion, setFormacion] = useState(formaciones[0]);
+  const [elegidoId, setElegidoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const alTeclear = (e: KeyboardEvent) => { if (e.key === 'Escape') onCerrar(); };
+    window.addEventListener('keydown', alTeclear);
+    const antes = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', alTeclear); document.body.style.overflow = antes; };
+  }, [onCerrar]);
+
+  const lista = jugadores || [];
+  const titulares = buildBest(lista, formacion);
+  const elegido = lista.find(j => j.id === elegidoId) || null;
+  const usados = new Set<string>();
+  const grupos = [
+    ...LINEAS.map(l => ({ titulo: l.titulo, jugadores: lista.filter(j => !usados.has(j.id) && l.es(j) && (usados.add(j.id), true)) })),
+    { titulo: 'Otros', jugadores: lista.filter(j => !usados.has(j.id)) },
+  ].filter(g => g.jugadores.length > 0);
+  const lugar = [equipo?.commune, equipo?.city, equipo?.region].filter(Boolean).join(' · ');
+  const tocar = (id: string) => setElegidoId(actual => actual === id ? null : id);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 fade-in" style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)' }}
+      onClick={onCerrar} role="dialog" aria-modal="true" aria-label={`Equipo ${equipo?.team_name || ''}`}>
+      <div className="w-full sm:max-w-md max-h-[94dvh] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl scale-in"
+        style={{ background: '#10141a', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 30px 80px rgba(0,0,0,0.6)' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Cabecera */}
+        <div className="relative px-5 pt-5 pb-4 flex-shrink-0" style={{ background: 'linear-gradient(135deg,#12305a 0%,#1c2026 70%)' }}>
+          <button type="button" onClick={onCerrar} aria-label="Cerrar" className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-colors" style={{ background: 'rgba(0,0,0,0.35)' }}><X size={15} /></button>
+          <div className="flex items-center gap-3.5 pr-8">
+            <div className="w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center font-headline font-black text-2xl text-white overflow-hidden"
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', border: '2px solid rgba(154,203,255,0.35)' }}>
+              {equipo?.logo_url ? <img src={equipo.logo_url} alt="" className="w-full h-full object-cover" /> : (equipo?.team_name?.charAt(0) || '?')}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: '#9acbff' }}>Rival</p>
+              <h2 className="font-headline text-xl font-black text-white italic uppercase leading-tight truncate">{equipo?.team_name || 'Equipo'}</h2>
+              {lugar && <p className="text-[11px] text-white/55 flex items-center gap-1 mt-0.5"><MapPin size={10} />{lugar}</p>}
+            </div>
+          </div>
+          {equipo?.team_description && <p className="text-[11px] text-white/55 italic mt-3">"{equipo.team_description}"</p>}
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {[
+              [String(lista.length), 'Jugadores'],
+              [`${promedioDe(lista)} ★`, 'Promedio'],
+              [equipo?.age_range || 'Open', 'Edad'],
+            ].map(([valor, etiqueta]) => (
+              <div key={etiqueta} className="rounded-xl px-2 py-2 text-center" style={{ background: 'rgba(0,0,0,0.28)' }}>
+                <p className="font-headline text-base font-black text-white italic leading-none">{valor}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/45 mt-1">{etiqueta}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cuerpo */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 custom-scrollbar">
+          {solicitud && (
+            <div className="rounded-xl px-3.5 py-3 space-y-1" style={{ background: '#1c2026' }}>
+              <p className="text-xs font-black text-white flex items-center gap-1.5 flex-wrap"><Clock size={11} className="text-white/50" />{fmtDate(solicitud.date)} · {solicitud.time}<span style={{ color: '#9acbff' }}>{solicitud.format}</span></p>
+              <p className="text-[11px] text-white/55 flex items-center gap-1.5"><MapPin size={11} />{solicitud.location}</p>
+              {solicitud.notes && <p className="text-[11px] text-white/55 italic">"{solicitud.notes}"</p>}
+            </div>
+          )}
+
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(0,0,0,0.3)' }}>
+            {([['cancha', 'En la cancha'], ['plantilla', 'Plantilla']] as const).map(([clave, texto]) => (
+              <button key={clave} type="button" onClick={() => setVista(clave)} className="flex-1 py-2 rounded-lg text-xs font-black transition-all"
+                style={vista === clave ? { background: '#1c2026', color: '#9acbff' } : { color: 'rgba(255,255,255,0.35)' }}>{texto}</button>
+            ))}
+          </div>
+
+          {!jugadores ? (
+            <div className="flex justify-center py-10"><RefreshCw className="animate-spin text-white/30" size={22} /></div>
+          ) : lista.length === 0 ? (
+            <p className="text-white/50 text-xs text-center py-8">Este equipo aún no carga su plantilla.</p>
+          ) : vista === 'cancha' ? (
+            <>
+              <div className="flex gap-2 flex-wrap">
+                {formaciones.map(f => (
+                  <button key={f} type="button" onClick={() => { setFormacion(f); setElegidoId(null); }} className="px-3 py-1.5 rounded-xl text-xs font-black transition-all"
+                    style={formacion === f ? { background: 'rgba(154,203,255,0.15)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.4)' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.07)' }}>{f}</button>
+                ))}
+                <p className="text-[11px] text-white/40 self-center ml-auto">Su mejor {titulares.length}</p>
+              </div>
+              <div className="relative overflow-hidden mx-auto w-full"
+                style={{ aspectRatio: '3/4', maxHeight: '52dvh', containerType: 'size', background: 'linear-gradient(180deg,#0b2545 0%,#12305a 45%,#184277 100%)', border: '4px solid #0a0e14', borderRadius: '1.5rem' }}>
+                <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 9%,rgba(255,255,255,0.06) 9%,rgba(255,255,255,0.06) 10%)' }} />
+                <div className="absolute inset-3 border-2 border-white/15 rounded-xl pointer-events-none" />
+                <div className="absolute left-3 right-3 top-1/2 h-px bg-white/15 pointer-events-none" />
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 border-2 border-white/15 rounded-full pointer-events-none" />
+                {titulares.map((j, i) => (
+                  <div key={j.id} className="pitch-player" style={{ ...pitchPos(i, formacion), filter: elegidoId && elegidoId !== j.id ? 'brightness(0.6)' : undefined }}>
+                    <LaminaRival jugador={j} orden={i} alto={altoEnCancha(formacion)} elegido={elegidoId === j.id} onClick={() => tocar(j.id)} />
+                  </div>
+                ))}
+              </div>
+              {elegido ? (
+                <div className="rounded-xl px-3.5 py-3 flex items-center gap-3 scale-in" style={{ background: '#1c2026' }}>
+                  <Foto jugador={elegido} lado={48} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-white truncate">{elegido.name}</p>
+                    <p className="text-[11px] text-white/55 truncate">{elegido.nickname ? `"${elegido.nickname}" · ` : ''}{elegido.position || 'Sin puesto'}</p>
+                  </div>
+                  <Estrellas nota={elegido.rating} />
+                </div>
+              ) : (
+                <p className="text-[11px] text-white/40 text-center">Toca un jugador para ver quién es</p>
+              )}
+            </>
+          ) : (
+            <div className="space-y-4">
+              {grupos.map(g => (
+                <div key={g.titulo}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/45 mb-1.5">{g.titulo} · {g.jugadores.length}</p>
+                  <div className="rounded-xl overflow-hidden" style={{ background: '#1c2026' }}>
+                    {g.jugadores.map((j, i) => (
+                      <div key={j.id} className="flex items-center gap-3 px-3.5 py-2.5" style={i % 2 ? { background: 'rgba(255,255,255,0.02)' } : undefined}>
+                        <Foto jugador={j} lado={38} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-black text-white truncate">{j.name}</p>
+                          <p className="text-[11px] text-white/50 truncate">{j.nickname ? `"${j.nickname}" · ` : ''}{j.position || 'Sin puesto'}</p>
+                        </div>
+                        <Estrellas nota={j.rating} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {onDesafiar && (
+          <div className="px-5 py-3.5 flex-shrink-0" style={{ background: '#0a0e14' }}>
+            <button type="button" onClick={onDesafiar} className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2"><Swords size={15} /> Desafiar a {equipo?.team_name}</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── component ─────────────────────────────────────────────── */
 export default function Arena() {
   const { isAdmin, isMatchmaker, teamId } = useAuth();
@@ -132,6 +338,9 @@ export default function Arena() {
   const [showReqForm,  setShowReqForm]  = useState(false);
   const [publishing,   setPublishing]   = useState(false);
   const [reqForm,      setReqForm]      = useState({ date: '', time: '20:00', location: '', format: '7vs7', notes: '' });
+  /* Plantillas de los rivales (por equipo) y la ficha de rival que está abierta. */
+  const [plantillas,   setPlantillas]   = useState<Record<number, any[]>>({});
+  const [rival,        setRival]        = useState<{ equipo: any; formato: string; solicitud?: any } | null>(null);
 
   /* ── Torneos state ── */
   const [myTournaments,  setMyTournaments]  = useState<any[]>([]);
@@ -192,7 +401,22 @@ export default function Arena() {
     ]);
     const ficha = new Map(((fichas.data || []) as any[]).map(f => [f.id, f]));
     setMyRequests((mine.data || []).map((r: any) => ({ ...r, challenger: ficha.get(r.challenger_team_id) ?? null })));
-    setOpenRequests((open.data || []).filter((r: any) => r.team_id !== teamId).map((r: any) => ({ ...r, team: ficha.get(r.team_id) ?? null })));
+    const abiertos = (open.data || []).filter((r: any) => r.team_id !== teamId);
+    setOpenRequests(abiertos.map((r: any) => ({ ...r, team: ficha.get(r.team_id) ?? null })));
+    const rivales = new Set<number>([
+      ...abiertos.map((r: any) => r.team_id),
+      ...(mine.data || []).map((r: any) => r.challenger_team_id).filter(Boolean),
+    ]);
+    cargarPlantillas([...rivales]);
+  };
+
+  /** Abre o cierra la plantilla de un rival; del otro equipo llega solo lo de la lámina. */
+  const cargarPlantillas = async (equipos: number[]) => {
+    const traidas = await Promise.all(equipos.map(async id => {
+      const { data, error } = await supabase.rpc('plantilla_arena', { p_equipo: id });
+      return [id, error ? [] : (data || [])] as const;
+    }));
+    setPlantillas(prev => ({ ...prev, ...Object.fromEntries(traidas) }));
   };
 
   const handlePublishReq = async (e: React.FormEvent) => {
@@ -342,6 +566,33 @@ export default function Arena() {
         alto={alto} orden={orden} onClick={onClick} ariaLabel={`${player.name}${elegido ? ', elegido para cambiar' : ''}`} title={player.name} />
     );
   };
+  const tiraPlantilla = (equipoId: number, abrir: () => void) => {
+    const jugadores = plantillas[equipoId];
+    if (!jugadores) return <div className="flex justify-center py-5"><RefreshCw className="animate-spin text-white/30" size={16} /></div>;
+    if (jugadores.length === 0) return <p className="text-white/40 text-[11px] italic">Este equipo aún no carga su plantilla.</p>;
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11px] font-black uppercase tracking-widest text-white/50">Plantilla · {jugadores.length}</p>
+          <p className="text-[11px] font-black flex items-center gap-1" style={{ color: '#ffd08b' }}><Star size={11} fill="currentColor" /> {promedioDe(jugadores)} prom.</p>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
+          {jugadores.map((j, i) => (
+            <div key={j.id} className="flex-shrink-0">
+              <LaminaRival jugador={j} orden={i} alto="104px" onClick={abrir} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+  const botonFicha = (equipo: any, formato: string, solicitud?: any) => (
+    <button type="button" onClick={() => setRival({ equipo, formato, solicitud })}
+      className="flex items-center justify-center gap-1.5 text-[11px] font-black px-3 py-2 rounded-xl transition-all whitespace-nowrap"
+      style={{ background: 'rgba(154,203,255,0.08)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}>
+      <Users size={12} /> Ver equipo
+    </button>
+  );
   const textMatch = (value: string | null | undefined, query: string) =>
     !query.trim() || (value || '').toLowerCase().includes(query.trim().toLowerCase());
   const filteredOpen = openRequests.filter(r => {
@@ -467,15 +718,17 @@ export default function Arena() {
                                   <p className="text-xs font-black text-amber-400">⚔️ {req.challenger.team_name} quiere jugar</p>
                                   {(req.challenger.city || req.challenger.commune) && <p className="text-[11px] text-white/50 mt-0.5">{[req.challenger.commune, req.challenger.city].filter(Boolean).join(', ')}</p>}
                                 </div>
-                                <div className="flex gap-2 flex-shrink-0">
+                                <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+                                  {botonFicha(req.challenger, req.format)}
                                   <button onClick={() => handleAcceptReq(req.id)} className="flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-lg" style={{ background: 'rgba(68,243,169,0.12)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.25)' }}><Check size={11} /> Aceptar</button>
                                   <button onClick={() => handleRejectReq(req.id)} className="flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}><X size={11} /> Rechazar</button>
                                 </div>
                               </div>
                             )}
                             {req.status === 'matched' && req.challenger && (
-                              <div className="p-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
+                              <div className="p-3 rounded-xl flex items-center justify-between gap-3" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
                                 <p className="text-xs font-black text-blue-400">✅ Confirmado con {req.challenger.team_name}</p>
+                                {botonFicha(req.challenger, req.format)}
                               </div>
                             )}
                           </div>
@@ -518,32 +771,48 @@ export default function Arena() {
                   <div className="px-5 py-10 text-center"><Globe size={28} className="mx-auto text-white/10 mb-2" /><p className="text-white/50 text-xs">No hay solicitudes abiertas.</p></div>
                 ) : (
                   <div className="divide-y" style={divStyle}>
-                    {filteredOpen.map(req => (
-                      <div key={req.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.02] transition-colors">
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-black text-sm overflow-hidden"
-                          style={{ background: 'linear-gradient(135deg,#064e3b,#10b981)', color: '#fff', border: '2px solid rgba(68,243,169,0.2)' }}>
-                          {req.team?.logo_url ? <img src={req.team.logo_url} alt="" className="w-full h-full object-cover" /> : (req.team?.team_name?.charAt(0) || '?')}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-black text-sm text-white truncate">{req.team?.team_name}</p>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            {(req.team?.commune || req.team?.city) && <span className="text-[11px] text-white/50 flex items-center gap-1"><MapPin size={9} />{[req.team?.commune, req.team?.city].filter(Boolean).join(', ')}</span>}
-                            <span className="text-[11px] text-white/50 flex items-center gap-1"><Clock size={9} />{fmtDate(req.date)} · {req.time}</span>
-                            <span className="text-[11px] font-black" style={{ color: '#9acbff' }}>{req.format}</span>
-                            {req.team?.age_range && <span className="text-[11px] text-white/50">{req.team.age_range}</span>}
-                            {req.team?.preferred_format && <span className="text-[11px] text-white/50">pref. {req.team.preferred_format}</span>}
+                    {filteredOpen.map(req => {
+                      const abrir = () => setRival({ equipo: req.team, formato: req.format, solicitud: req });
+                      const lugar = [req.team?.commune, req.team?.city].filter(Boolean).join(', ');
+                      return (
+                        <div key={req.id} className="px-5 py-5 space-y-3.5">
+                          <div className="flex items-center gap-3">
+                            <button type="button" onClick={abrir} aria-label={`Ver equipo ${req.team?.team_name || ''}`}
+                              className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center font-headline font-black text-lg overflow-hidden"
+                              style={{ background: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', color: '#fff', border: '2px solid rgba(154,203,255,0.3)' }}>
+                              {req.team?.logo_url ? <img src={req.team.logo_url} alt="" className="w-full h-full object-cover" /> : (req.team?.team_name?.charAt(0) || '?')}
+                            </button>
+                            <button type="button" onClick={abrir} className="flex-1 min-w-0 text-left">
+                              <p className="font-headline font-black text-base text-white italic uppercase leading-tight truncate">{req.team?.team_name}</p>
+                              <p className="text-[11px] text-white/50 flex items-center gap-1 mt-0.5 truncate">
+                                {lugar && <><MapPin size={9} className="flex-shrink-0" />{lugar} · </>}{req.team?.age_range || 'Open'}
+                              </p>
+                            </button>
+                            <span className="flex-shrink-0 text-[11px] font-black px-2.5 py-1 rounded-full" style={{ background: 'rgba(154,203,255,0.12)', color: '#9acbff' }}>{req.format}</span>
                           </div>
-                          <p className="text-[11px] text-white/50 mt-0.5 flex items-center gap-1 truncate"><MapPin size={9} />{req.location}</p>
-                          {req.notes && <p className="text-[11px] text-white/50 mt-0.5 italic truncate">"{req.notes}"</p>}
+
+                          <div className="rounded-xl px-3.5 py-2.5 space-y-1" style={{ background: 'rgba(0,0,0,0.25)' }}>
+                            <p className="text-xs font-black text-white flex items-center gap-1.5"><Clock size={11} className="text-white/50" />{fmtDate(req.date)} · {req.time}</p>
+                            <p className="text-[11px] text-white/55 flex items-start gap-1.5"><MapPin size={11} className="flex-shrink-0 mt-0.5" />{req.location}</p>
+                            {req.notes && <p className="text-[11px] text-white/55 italic">"{req.notes}"</p>}
+                          </div>
+
+                          {tiraPlantilla(req.team_id, abrir)}
+
+                          <div className="flex gap-2">
+                            <button type="button" onClick={abrir} className="flex-1 flex items-center justify-center gap-1.5 text-xs font-black py-2.5 rounded-xl transition-all"
+                              style={{ background: 'rgba(154,203,255,0.08)', color: '#9acbff', border: '1px solid rgba(154,203,255,0.2)' }}>
+                              <Users size={13} /> Ver equipo
+                            </button>
+                            {isMatchmaker && (
+                              <button type="button" onClick={() => handleChallenge(req.id)} className="btn-primary flex-1 flex items-center justify-center gap-1.5 text-xs py-2.5">
+                                <Swords size={13} /> Desafiar
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {isMatchmaker && (
-                          <button onClick={() => handleChallenge(req.id)} className="flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
-                            style={{ background: 'rgba(68,243,169,0.08)', color: '#44f3a9', border: '1px solid rgba(68,243,169,0.2)' }}>
-                            ⚔️ Desafiar
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -885,6 +1154,12 @@ export default function Arena() {
           </div>
         </div>
       </div>
+      {rival && (
+        <FichaRival key={rival.equipo?.id} equipo={rival.equipo} jugadores={plantillas[rival.equipo?.id]} formato={rival.formato} solicitud={rival.solicitud}
+          onCerrar={() => setRival(null)}
+          onDesafiar={isMatchmaker && rival.solicitud?.status === 'open' && rival.solicitud.team_id !== teamId
+            ? () => { const id = rival.solicitud.id; setRival(null); handleChallenge(id); } : undefined} />
+      )}
     </div>
   );
 }
