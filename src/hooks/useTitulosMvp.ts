@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './useAuth';
 
 type Titulos = Record<string, number>;
 
@@ -11,28 +12,30 @@ export function contarTitulos(ganadores: { player_id: string | null }[]): Titulo
 }
 
 const VIGENCIA_MS = 60_000;
-let guardado: { pedido: Promise<Titulos>; hasta: number } | null = null;
+let guardado: { equipo: number; pedido: Promise<Titulos>; hasta: number } | null = null;
 
-/** Una sola consulta para todas las láminas en pantalla; la base ya entrega solo los MVP de mi equipo. */
-function pedirTitulos(): Promise<Titulos> {
-  if (guardado && guardado.hasta > Date.now()) return guardado.pedido;
-  const pedido = Promise.resolve(supabase.from('mvp_winners').select('player_id'))
+/** Una sola consulta para todas las láminas en pantalla: los MVP de los partidos de mi equipo. */
+function pedirTitulos(equipo: number): Promise<Titulos> {
+  if (guardado && guardado.equipo === equipo && guardado.hasta > Date.now()) return guardado.pedido;
+  const pedido = Promise.resolve(supabase.from('mvp_winners').select('player_id, matches!inner(team_id)').eq('matches.team_id', equipo))
     .then(({ data, error }) => {
       if (error) throw error;
       return contarTitulos(data || []);
     })
     .catch(() => { guardado = null; return {} as Titulos; });
-  guardado = { pedido, hasta: Date.now() + VIGENCIA_MS };
+  guardado = { equipo, pedido, hasta: Date.now() + VIGENCIA_MS };
   return pedido;
 }
 
 /** Títulos de MVP de los jugadores de mi equipo, por id de jugador. Vacío mientras carga o si falla. */
 export function useTitulosMvp(): Titulos {
+  const { teamId } = useAuth();
   const [titulos, setTitulos] = useState<Titulos>({});
   useEffect(() => {
+    if (!teamId) return;
     let vivo = true;
-    pedirTitulos().then(t => { if (vivo) setTitulos(t); });
+    pedirTitulos(teamId).then(t => { if (vivo) setTitulos(t); });
     return () => { vivo = false; };
-  }, []);
+  }, [teamId]);
   return titulos;
 }

@@ -458,8 +458,10 @@ async function cargarMvp(teamId: number, allPlayers: JugadorDash[]): Promise<Dat
 
     const { data: ganadores, error } = await withTimeout(
       Promise.resolve(
+        // Solo los MVP de partidos de este equipo: un superadmin puede leer los de todos.
         supabase.from('mvp_winners')
-          .select('player_id, player_name, player_photo_url, vote_count, week_date, created_at')
+          .select('player_id, player_name, player_photo_url, vote_count, week_date, created_at, matches!inner(team_id)')
+          .eq('matches.team_id', teamId)
           .order('week_date', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false }),
       ),
