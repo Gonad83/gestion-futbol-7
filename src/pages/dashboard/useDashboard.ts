@@ -3,6 +3,8 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { aviso, confirmar } from '../../lib/avisos';
 import { sinMarcaDeInvitado } from '../../lib/matchmaking';
+import { subirFoto } from '../../lib/subirFoto';
+import { supabase } from '../../lib/supabase';
 import type { TitularGuardado } from './titular';
 import {
   STATS_VACIAS,
@@ -291,8 +293,24 @@ export function useDashboard(teamId: number | null) {
     }
   };
 
+  /** Sube una foto nueva y la deja como portada del equipo; devuelve si quedó guardada. */
+  const cambiarPortada = async (archivo: File): Promise<boolean> => {
+    if (!teamId) return false;
+    try {
+      const url = await subirFoto(archivo, 'team_banner');
+      const { error } = await supabase.from('team_settings').update({ banner_url: url }).eq('id', teamId);
+      if (error) throw error;
+      setTeamSettings((s) => ({ ...s, banner_url: url }));
+      aviso.ok('Foto del equipo actualizada.');
+      return true;
+    } catch (e) {
+      aviso.error('No se pudo cambiar la foto: ' + (e instanceof Error ? e.message : 'error desconocido'));
+      return false;
+    }
+  };
+
   return {
-    loading, teamSettings, cambiarTitular, stats, myPlayer, myConfirmStatus, confirmingMyStatus, confirmedPlayers,
+    loading, teamSettings, cambiarTitular, cambiarPortada, stats, myPlayer, myConfirmStatus, confirmingMyStatus, confirmedPlayers,
     guestsDash, guestInputDash, setGuestInputDash, addingGuestDash, addGuestDash, removeGuestDash,
     showAttendanceModal, setShowAttendanceModal, attendanceList, attendanceLoading,
     guestList, guestInput, setGuestInput, addGuest, sumarInvitado, removeGuest, handleAttendanceChange, openAttendanceModal,

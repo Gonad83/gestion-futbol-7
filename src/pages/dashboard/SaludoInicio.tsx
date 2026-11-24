@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Copy, Check, Maximize2, ShieldCheck, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera, Copy, Check, Maximize2, ShieldCheck, X } from 'lucide-react';
 import { Capa } from '../../components/Capa';
 
 interface Props {
@@ -9,10 +9,26 @@ interface Props {
   codigo?: string | null;
   /** Foto de portada del equipo (Ajustes). Si hay, va de fondo detrás del saludo. */
   portada?: string | null;
+  /** Solo para el administrador: sube una foto nueva como portada. */
+  onCambiarPortada?: (archivo: File) => Promise<boolean>;
+}
+
+/** Botón que abre el selector de fotos del teléfono y entrega la elegida. */
+function ElegirFoto({ alElegir, subiendo, texto, className, style }: { alElegir: (archivo: File) => void; subiendo: boolean; texto: string; className: string; style?: React.CSSProperties }) {
+  const entrada = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button type="button" disabled={subiendo} onClick={e => { e.stopPropagation(); entrada.current?.click(); }} className={className} style={style}>
+        <Camera size={15} /> {subiendo ? 'Subiendo…' : texto}
+      </button>
+      <input ref={entrada} type="file" accept="image/*" className="hidden" onClick={e => e.stopPropagation()}
+        onChange={e => { const archivo = e.target.files?.[0]; e.target.value = ''; if (archivo) alElegir(archivo); }} />
+    </>
+  );
 }
 
 /** La foto de portada a pantalla completa; se cierra con la X, tocando fuera o con Escape. */
-function FotoCompleta({ foto, cerrar }: { foto: string; cerrar: () => void }) {
+function FotoCompleta({ foto, cerrar, alElegir, subiendo }: { foto: string; cerrar: () => void; alElegir?: (archivo: File) => void; subiendo: boolean }) {
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => { if (e.key === 'Escape') cerrar(); };
     window.addEventListener('keydown', alTeclear);
@@ -31,15 +47,26 @@ function FotoCompleta({ foto, cerrar }: { foto: string; cerrar: () => void }) {
           style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)' }}>
           <X size={20} />
         </button>
+        {alElegir && (
+          <div className="absolute left-0 right-0 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] flex justify-center">
+            <ElegirFoto alElegir={alElegir} subiendo={subiendo} texto="Cambiar foto" className="btn-primary px-5 py-3 text-sm flex items-center gap-2 disabled:opacity-60" />
+          </div>
+        )}
       </div>
     </Capa>
   );
 }
 
 /** "Hola, Gonzalo" con el rol y, para el capitán, el código de invitación a mano para copiarlo. */
-export function SaludoInicio({ nombre, rol, codigo, portada }: Props) {
+export function SaludoInicio({ nombre, rol, codigo, portada, onCambiarPortada }: Props) {
   const [copiado, setCopiado] = useState(false);
   const [fotoAbierta, setFotoAbierta] = useState(false);
+  const [subiendo, setSubiendo] = useState(false);
+  const cambiar = onCambiarPortada && (async (archivo: File) => {
+    setSubiendo(true);
+    await onCambiarPortada(archivo);
+    setSubiendo(false);
+  });
   const primerNombre = nombre.trim().split(/\s+/)[0] || 'crack';
 
   const copiar = async () => {
@@ -81,9 +108,14 @@ export function SaludoInicio({ nombre, rol, codigo, portada }: Props) {
             {copiado ? <Check size={12} className="text-soccer-green" /> : <Copy size={12} />}
           </button>
         )}
+        {!portada && cambiar && (
+          <ElegirFoto alElegir={cambiar} subiendo={subiendo} texto="Agregar foto del equipo"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold text-white/70 hover:text-white cursor-pointer disabled:opacity-60"
+            style={{ background: '#181c22', border: '1px solid rgba(255,255,255,0.08)' }} />
+        )}
       </div>
       </div>
-      {portada && fotoAbierta && <FotoCompleta foto={portada} cerrar={() => setFotoAbierta(false)} />}
+      {portada && fotoAbierta && <FotoCompleta foto={portada} cerrar={() => setFotoAbierta(false)} alElegir={cambiar} subiendo={subiendo} />}
     </div>
   );
 }
