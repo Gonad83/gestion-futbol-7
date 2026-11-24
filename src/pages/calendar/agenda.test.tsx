@@ -3,7 +3,7 @@ import { renderToString as dibujar } from 'react-dom/server';
 /** Sin los separadores que React mete entre textos, para poder buscar frases. */
 const renderToString = (e: Parameters<typeof dibujar>[0]) => dibujar(e).replaceAll('<!-- -->', '');
 import { describe, expect, it } from 'vitest';
-import { armarAgenda, cumplesDelMes, puntosDelDia, tituloPartido, type JugadorCal, type PartidoCal } from './agenda';
+import { armarAgenda, cumplesDelMes, edadQueCumple, puntosDelDia, tituloPartido, type JugadorCal, type PartidoCal } from './agenda';
 import { ItemAgenda, MesCompacto, YaJugados } from './BloquesCalendario';
 
 const nov = new Date(2026, 10, 15);
@@ -23,6 +23,8 @@ describe('Calendario', () => {
   it('títulos por defecto', () => {
     expect(tituloPartido({ id: '1', date: '', event_type: 'Deportivo', match_type: '6vs6' })).toBe('Partido 6vs6');
     expect(tituloPartido({ id: '1', date: '', event_type: 'Recreacional' })).toBe('Evento social');
+    expect(tituloPartido({ id: '1', date: '', event_type: 'Torneo' })).toBe('Torneo');
+    expect(tituloPartido({ id: '1', date: '', event_type: 'Torneo', description: 'Copa Generaciones' })).toBe('Copa Generaciones');
     expect(tituloPartido({ id: '1', date: '', description: '  Final  ' })).toBe('Final');
   });
 
@@ -41,9 +43,27 @@ describe('Calendario', () => {
 
   it('puntos de cada día', () => {
     const cumples = cumplesDelMes(jugadores, nov);
-    expect(puntosDelDia(new Date(2026, 10, 21), partidos, cumples)).toEqual({ partido: true, social: false, cumple: false });
-    expect(puntosDelDia(new Date(2026, 10, 23), partidos, cumples)).toEqual({ partido: false, social: true, cumple: false });
-    expect(puntosDelDia(new Date(2026, 10, 24), partidos, cumples)).toEqual({ partido: false, social: false, cumple: true });
+    expect(puntosDelDia(new Date(2026, 10, 21), partidos, cumples)).toEqual({ partido: true, torneo: false, social: false, cumple: false });
+    expect(puntosDelDia(new Date(2026, 10, 23), partidos, cumples)).toEqual({ partido: false, torneo: false, social: true, cumple: false });
+    expect(puntosDelDia(new Date(2026, 10, 24), partidos, cumples)).toEqual({ partido: false, torneo: false, social: false, cumple: true });
+    const conTorneo: PartidoCal[] = [{ id: 't1', date: '2026-11-28T10:00:00', event_type: 'Torneo', description: 'Copa Generaciones' }];
+    expect(puntosDelDia(new Date(2026, 10, 28), conTorneo, cumples)).toEqual({ partido: false, torneo: true, social: false, cumple: false });
+  });
+
+  it('años que cumple', () => {
+    expect(edadQueCumple(jugadores[0], new Date(2026, 10, 24, 12))).toBe(36);
+    expect(edadQueCumple({ id: 'z', name: 'Sin año', birth_date: 'nada' }, nov)).toBeNull();
+  });
+
+  it('la fecha lleva el mes y el día de la semana completo, no "MAR" a secas', () => {
+    const martes: PartidoCal = { id: 'm', date: '2026-12-08T21:00:00', event_type: 'Deportivo' };
+    const html = renderToString(<ItemAgenda evento={{ tipo: 'partido', fecha: new Date(martes.date), partido: martes }} confirmados={0} activos={14} abrir={() => {}} />);
+    expect(html).toContain('>dic<');
+    expect(html).toContain('Martes · 21:00');
+    const torneo: PartidoCal = { id: 't', date: '2026-12-05T10:00:00', event_type: 'Torneo', description: 'Copa Generaciones' };
+    const copa = renderToString(<ItemAgenda evento={{ tipo: 'partido', fecha: new Date(torneo.date), partido: torneo }} confirmados={0} activos={14} abrir={() => {}} />);
+    expect(copa).toContain('Copa Generaciones');
+    expect(copa).toContain('Torneo');
   });
 
   it('dibuja el mes, la agenda y lo ya jugado', () => {

@@ -3,13 +3,14 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2, HelpCircle, Hourglass } from 'lucide-react';
+import { X, MapPin, Clock, Users, CheckCircle2, XCircle, Trash2, Circle, Bell, Repeat2, HelpCircle, Hourglass, Pencil, Trophy } from 'lucide-react';
 import { sendNewMatchEmail, sendMatchReminder, sendEventEmail } from '../lib/sendEmail';
 import { aviso, confirmar } from '../lib/avisos';
 import { enlacesDelPartido } from '../lib/enlaceAsistencia';
 import { fechaSinHora } from '../lib/formato';
 import { guardarAsistencia } from '../lib/api/dashboard';
 import { formatoHabitual } from '../lib/matchmaking';
+import { tituloPartido } from '../pages/calendar/agenda';
 
 /** Cupo sugerido según el formato: los dos equipos completos. */
 const CUPO_SUGERIDO: Record<string, number> = { '5vs5': 10, '7vs7': 14, '11vs11': 22 };
@@ -41,6 +42,10 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
     /** '' = sin límite. */
     cupo: '14',
   });
+  // Un evento que ya existe se abre en su detalle; el formulario aparece al pedir editarlo.
+  const [editando, setEditando] = useState(!match?.id);
+  /** Último día de un torneo de varios días ('' = un solo día). */
+  const [torneoHasta, setTorneoHasta] = useState('');
   const [recurring, setRecurring] = useState(false);
   const [repeatDay, setRepeatDay] = useState(2); // 0=Dom, 1=Lun, 2=Mar, ...
   const [repeatStartDate, setRepeatStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -123,7 +128,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
       const [hours, minutes] = formData.time.split(':');
 
       // Recurring: bulk insert multiple matches (only for new events)
-      if (recurring && !match?.id) {
+      if (recurring && !match?.id && formData.event_type !== 'Torneo') {
         const cur = new Date(repeatStartDate + 'T12:00:00');
         // Sin fecha de inicio o de término, el ciclo de abajo no terminaría nunca.
         if (Number.isNaN(cur.getTime()) || Number.isNaN(new Date(repeatEndDate + 'T23:59:59').getTime())) {
@@ -159,6 +164,28 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         return;
       }
 
+      // Torneo de varios días: un evento por día, para que cada jugador confirme qué días va.
+      if (!match?.id && formData.event_type === 'Torneo' && torneoHasta && torneoHasta > formData.date) {
+        const dia = fechaSinHora(formData.date);
+        const ultimo = fechaSinHora(torneoHasta);
+        const dias: any[] = [];
+        while (dia <= ultimo && dias.length < 10) {
+          const d = new Date(dia);
+          d.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+          dias.push({
+            date: d.toISOString(), location: formData.location, match_type: formData.match_type, cupo: null,
+            status: formData.status, event_type: 'Torneo', description: formData.description, team_id: teamId,
+          });
+          dia.setDate(dia.getDate() + 1);
+        }
+        const { error: errorTorneo } = await supabase.from('matches').insert(dias);
+        if (errorTorneo) throw errorTorneo;
+        aviso.ok(`Torneo agendado: ${dias.length} días.`);
+        onSave();
+        onClose();
+        return;
+      }
+
       // La fecha del formulario es "aaaa-mm-dd": se lee como ese día en Chile, no en UTC
       // (antes quedaba un día antes). Al editar también se respeta si se cambió la fecha.
       const matchDate = fechaSinHora(formData.date);
@@ -168,7 +195,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
         date: matchDate.toISOString(),
         location: formData.location,
         match_type: formData.event_type === 'Recreacional' ? '7vs7' : formData.match_type,
-        cupo: formData.event_type === 'Recreacional' || !formData.cupo ? null : Number(formData.cupo),
+        cupo: formData.event_type !== 'Deportivo' || !formData.cupo ? null : Number(formData.cupo),
         status: formData.status,
         event_type: formData.event_type,
         description: formData.description,
@@ -325,7 +352,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                 <MapPin size={18} /> Detalles del Evento
               </h3>
               
-              {isAdmin ? (
+              {isAdmin && editando ? (
                 <form onSubmit={handleAdminSave} className="space-y-4">
                   {!match?.date && (
                     <div>
@@ -336,9 +363,10 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                   )}
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">Tipo de Evento</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       {[
                         { value: 'Deportivo',    emoji: '🏃', label: 'Deportivo' },
+                        { value: 'Torneo',       emoji: '🏆', label: 'Torneo' },
                         { value: 'Recreacional', emoji: '🎉', label: 'Recreacional' }
                       ].map(opt => (
                         <button
@@ -357,8 +385,24 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                       ))}
                     </div>
                   </div>
+                  {formData.event_type === 'Torneo' && (
+                    <>
+                      <div>
+                        <label htmlFor="nombre-torneo" className="block text-sm text-slate-300 mb-1">Nombre del torneo</label>
+                        <input id="nombre-torneo" type="text" required maxLength={80} className="input-field" value={formData.description}
+                          onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Ej. Copa Generaciones 2026" />
+                      </div>
+                      {!match?.id && (
+                        <div>
+                          <label htmlFor="torneo-hasta" className="block text-sm text-slate-300 mb-1">Último día (si dura más de uno)</label>
+                          <input id="torneo-hasta" type="date" className="input-field" min={formData.date} value={torneoHasta} onChange={e => setTorneoHasta(e.target.value)} />
+                          <p className="text-xs text-slate-400 mt-1">Se agenda un evento por cada día, para que cada jugador confirme qué días va.</p>
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div>
-                    <label className="block text-sm text-slate-300 mb-1">Hora</label>
+                    <label className="block text-sm text-slate-300 mb-1">{formData.event_type === 'Torneo' ? 'Hora de inicio' : 'Hora'}</label>
                     <input type="time" required className="input-field" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
                   </div>
                   {formData.event_type !== 'Recreacional' && (
@@ -376,14 +420,14 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                           <option value="11vs11">11 vs 11</option>
                         </select>
                       </div>
-                      <div>
+                      {formData.event_type === 'Deportivo' && <div>
                         <label htmlFor="cupo-partido" className="block text-sm text-slate-300 mb-1">Cupo</label>
                         <select id="cupo-partido" className="input-field bg-slate-900" value={formData.cupo} onChange={e => setFormData({ ...formData, cupo: e.target.value })}>
                           <option value="">Sin límite</option>
                           {[8, 10, 12, 14, 16, 18, 22].map(n => <option key={n} value={String(n)}>{n} jugadores</option>)}
                         </select>
                         <p className="text-xs text-slate-400 mt-1">Lleno el cupo, quienes confirman quedan en lista de espera y entran solos si alguien se baja.</p>
-                      </div>
+                      </div>}
                     </>
                   )}
                   {formData.event_type === 'Recreacional' && (
@@ -420,7 +464,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                   </div>
 
                   {/* Recurring options — only for new events */}
-                  {!match?.id && (
+                  {!match?.id && formData.event_type !== 'Torneo' && (
                     <div className="rounded-xl border border-glass-border bg-black/20 p-3 space-y-3">
                       <label className="flex items-center gap-2 cursor-pointer select-none">
                         <input
@@ -481,7 +525,7 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                   )}
 
                   <button type="submit" disabled={loading} className="btn-primary w-full mt-4">
-                    {loading ? 'Guardando...' : recurring && !match?.id ? 'Crear eventos recurrentes' : `Guardar ${formData.event_type}`}
+                    {loading ? 'Guardando...' : recurring && !match?.id && formData.event_type !== 'Torneo' ? 'Crear eventos recurrentes' : `Guardar ${formData.event_type}`}
                   </button>
                   {match?.id && (
                     <button type="button" onClick={handleDelete} disabled={loading} className="w-full mt-2 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
@@ -496,6 +540,13 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                 </form>
               ) : (
                 <div className="space-y-4 bg-black/20 p-4 rounded-xl border border-glass-border">
+                  <div>
+                    <p className="font-headline font-bold text-lg text-white leading-tight">{tituloPartido(match)}</p>
+                    <p className="text-xs uppercase tracking-wider mt-1 flex items-center gap-1.5" style={{ color: match.event_type === 'Torneo' ? '#ffd08b' : match.event_type === 'Recreacional' ? '#a78bfa' : '#44f3a9' }}>
+                      {match.event_type === 'Torneo' && <Trophy size={13} />}
+                      {match.event_type === 'Recreacional' ? 'Evento social' : match.event_type === 'Torneo' ? 'Torneo' : match.event_type === 'Amistoso' ? 'Amistoso' : 'Partido'}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-3">
                     <Clock className="text-soccer-green" size={20} />
                     <div>
@@ -519,7 +570,10 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                       </div>
                     </div>
                   )}
-                  <div className="mt-2 text-sm">
+                  {match.event_type === 'Recreacional' && match.description?.trim() && (
+                    <p className="text-sm text-white/80 whitespace-pre-wrap">{match.description}</p>
+                  )}
+                  <div className="mt-2 text-sm flex items-center justify-between gap-3">
                     <span className={`px-2 py-1 rounded-full ${
                       match.status === 'Programado' ? 'bg-blue-500/20 text-blue-400' :
                       match.status === 'Jugado' ? 'bg-emerald-500/20 text-emerald-400' :
@@ -527,6 +581,11 @@ export default function MatchDetailsModal({ isOpen, onClose, onSave, match }: Ma
                     }`}>
                       {match.status}
                     </span>
+                    {isAdmin && (
+                      <button type="button" onClick={() => setEditando(true)} className="flex items-center gap-1.5 text-sm font-bold text-soccer-green hover:underline cursor-pointer">
+                        <Pencil size={14} /> Editar
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

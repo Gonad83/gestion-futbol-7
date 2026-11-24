@@ -6,7 +6,7 @@ import { Plus, CalendarDays } from 'lucide-react';
 import MatchDetailsModal from '../components/MatchDetailsModal';
 import { Capa } from '../components/Capa';
 import { armarAgenda, cumplesDelMes, type JugadorCal, type PartidoCal } from './calendar/agenda';
-import { ItemAgenda, MesCompacto, YaJugados } from './calendar/BloquesCalendario';
+import { DetalleCumple, ItemAgenda, MesCompacto, YaJugados } from './calendar/BloquesCalendario';
 
 /**
  * Calendario. Diseño para celular basado en el concepto de Stitch
@@ -25,6 +25,7 @@ export default function Calendar() {
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [cumple, setCumple] = useState<{ jugador: JugadorCal; fecha: Date } | null>(null);
 
   const fetchMatches = useCallback(async () => {
     if (!teamId) return;
@@ -54,7 +55,7 @@ export default function Calendar() {
 
   useEffect(() => {
     if (!teamId) return;
-    supabase.from('players').select('id, name, nickname, birth_date').eq('team_id', teamId).not('birth_date', 'is', null)
+    supabase.from('players').select('id, name, nickname, birth_date, photo_url').eq('team_id', teamId).not('birth_date', 'is', null)
       .then(({ data }) => { if (data) setPlayers(data as JugadorCal[]); });
     supabase.from('players').select('id', { count: 'exact', head: true }).eq('team_id', teamId).eq('status', 'Activo')
       .then(({ count }) => setActivos(count ?? 0));
@@ -65,11 +66,14 @@ export default function Calendar() {
 
   const abrir = (m: PartidoCal) => { setSelectedMatch(m); setIsModalOpen(true); };
   const nuevo = () => { setSelectedMatch(null); setIsModalOpen(true); };
+  const abrirCumple = (jugador: JugadorCal, fecha: Date) => setCumple({ jugador, fecha });
 
   const tocarDia = (day: Date) => {
     setSelectedDay(day);
     const match = matches.find(m => isSameDay(new Date(m.date), day));
+    const delDia = cumples.find(c => isSameDay(c.fecha, day));
     if (match) abrir(match);
+    else if (delDia) abrirCumple(delDia.jugador, delDia.fecha);
     else if (isAdmin) { setSelectedMatch({ date: day.toISOString(), location: '', status: 'Programado' }); setIsModalOpen(true); }
   };
 
@@ -109,12 +113,12 @@ export default function Calendar() {
             <ul className="space-y-2">
               {proximos.map(e => (
                 <ItemAgenda key={e.tipo === 'partido' ? e.partido.id : `c-${e.jugador.id}`} evento={e} activos={activos}
-                  confirmados={e.tipo === 'partido' ? attendanceCounts[e.partido.id] || 0 : 0} abrir={abrir} />
+                  confirmados={e.tipo === 'partido' ? attendanceCounts[e.partido.id] || 0 : 0} abrir={abrir} abrirCumple={abrirCumple} />
               ))}
             </ul>
           )}
 
-          <YaJugados eventos={pasados} confirmados={attendanceCounts} activos={activos} abrir={abrir} />
+          <YaJugados eventos={pasados} confirmados={attendanceCounts} activos={activos} abrir={abrir} abrirCumple={abrirCumple} />
         </div>
       </div>
 
@@ -127,6 +131,8 @@ export default function Calendar() {
           </button>
         </Capa>
       )}
+
+      {cumple && <DetalleCumple jugador={cumple.jugador} fecha={cumple.fecha} cerrar={() => setCumple(null)} />}
 
       {isModalOpen && (
         <MatchDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={fetchMatches} match={selectedMatch} />
