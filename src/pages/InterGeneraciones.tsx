@@ -8,6 +8,8 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { aviso, confirmar } from '../lib/avisos';
+import TorneoInterGen from '../components/TorneoInterGen';
+import { tienePrograma } from '../lib/programaInterGen';
 
 /**
  * Inter Generaciones SSCC: una edición por año. Cada edición tiene su lista de
@@ -64,7 +66,7 @@ export default function InterGeneraciones() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [media, setMedia] = useState<Media[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'resumen' | 'jugadores' | 'galeria'>('jugadores');
+  const [tab, setTab] = useState<'resumen' | 'jugadores' | 'torneo' | 'galeria'>('jugadores');
   const [error, setError] = useState<string | null>(null);
 
   // ── Carga ────────────────────────────────────────────────────────────────
@@ -134,6 +136,10 @@ export default function InterGeneraciones() {
     [participants, playerById],
   );
 
+  const hayPrograma = tienePrograma(year);
+  // Un año sin programa cargado no tiene pestaña Torneo.
+  const tabActiva = tab === 'torneo' && !hayPrograma ? 'jugadores' : tab;
+
   const fee = edition?.fee ?? DEFAULT_FEE;
   const totalEsperado = roster.length * fee;
   const pagados = roster.filter(r => r.paid).length;
@@ -201,6 +207,7 @@ export default function InterGeneraciones() {
       {loading ? (
         <div className="flex justify-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-soccer-green" /></div>
       ) : !edition ? (
+        <>
         <div className="glass-card rounded-3xl p-10 text-center">
           <Trophy size={44} className="mx-auto mb-4" style={{ color: '#ffd08b' }} />
           <h2 className="font-headline font-bold text-xl text-white">Aún no hay edición {year}</h2>
@@ -215,6 +222,8 @@ export default function InterGeneraciones() {
             <p className="text-white/50 text-sm mt-2">El capitán todavía no la publica.</p>
           )}
         </div>
+        {hayPrograma && <TorneoInterGen year={year} />}
+        </>
       ) : (
         <>
           {/* KPIs */}
@@ -230,12 +239,13 @@ export default function InterGeneraciones() {
           <div className="flex gap-1 p-1 rounded-2xl w-full md:w-fit overflow-x-auto" style={{ background: '#0a0e14' }}>
             {([
               ['jugadores', `Jugadores (${roster.length})`, <Users size={15} key="j" />],
+              ...(hayPrograma ? [['torneo', 'Torneo', <Trophy size={15} key="t" />] as const] : []),
               ['resumen', 'Resumen y bases', <FileText size={15} key="r" />],
               ['galeria', `Fotos y videos (${media.length})`, <ImageIcon size={15} key="g" />],
             ] as const).map(([key, label, icon]) => (
               <button key={key} onClick={() => setTab(key)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
-                style={tab === key ? { background: 'rgba(68,243,169,0.12)', color: '#44f3a9' } : { color: 'rgba(255,255,255,0.45)' }}>
+                style={tabActiva === key ? { background: 'rgba(68,243,169,0.12)', color: '#44f3a9' } : { color: 'rgba(255,255,255,0.45)' }}>
                 {icon}{label}
               </button>
             ))}
@@ -243,16 +253,17 @@ export default function InterGeneraciones() {
           <BotonCopiarLista texto={resumenTexto} />
           </div>
 
-          {tab === 'resumen' && (
+          {tabActiva === 'resumen' && (
             <ResumenTab edition={edition} isAdmin={isAdmin} teamId={teamId!} resumenTexto={resumenTexto}
               stats={{ jugadores: roster.length, pagados, fotos, videos }}
               onSaved={setEdition} />
           )}
-          {tab === 'jugadores' && (
+          {tabActiva === 'torneo' && <TorneoInterGen year={year} />}
+          {tabActiva === 'jugadores' && (
             <JugadoresTab edition={edition} isAdmin={isAdmin} players={players} roster={roster}
               onChange={setParticipants} participants={participants} />
           )}
-          {tab === 'galeria' && (
+          {tabActiva === 'galeria' && (
             <GaleriaTab edition={edition} isAdmin={isAdmin} teamId={teamId!} userId={user?.id ?? null}
               media={media} onChange={setMedia} />
           )}
