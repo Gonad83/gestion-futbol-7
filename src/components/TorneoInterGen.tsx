@@ -87,6 +87,29 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
   );
 
   const nuestroGrupo = programa.grupos.find(gr => gr.equipos.some(e => e.nombre === NOSOTROS));
+
+  // Partidos de copa por código, con su día, hora y cancha, para armar los cuadros.
+  const deCopa = new Map<string, { partido: Partido; cuando: string }>();
+  for (const dia of programa.dias) {
+    for (const b of dia.bloques) {
+      if ('pausa' in b) continue;
+      for (const [p, cancha] of [[b.cancha1, 1], [b.cancha2, 2]] as const) {
+        if (p?.copa) deCopa.set(p.codigo, { partido: p, cuando: `${dia.titulo.slice(0, 3)} ${b.hora.split('–')[0]} · C${cancha}` });
+      }
+    }
+  }
+  const celdaCopa = (codigo: string) => {
+    const c = deCopa.get(codigo);
+    if (!c) return null;
+    return (
+      <CeldaPartido key={codigo} partido={c.partido} cancha={0}
+        titulo={`${codigo.startsWith('F') ? 'Final' : codigo} · ${c.cuando}`}
+        equipos={equipos(c.partido)} resultado={resultados.get(codigo)} puedeEditar={puedeEditar}
+        editando={editando === `copa:${codigo}`} onEditar={abrir => setEditando(abrir ? `copa:${codigo}` : null)}
+        onGuardar={guardar} onBorrar={() => borrar(codigo)} />
+    );
+  };
+  const campeon = (codigo: string) => ganadorDe(torneo.cruces[codigo], resultados.get(codigo));
   const faltan = torneo.totalGrupos - torneo.jugadosGrupos;
   const enOro = new Set(torneo.rankingOro.map(f => f.equipo));
   const enPlata = new Set(torneo.rankingPlata.map(f => f.equipo));
@@ -177,6 +200,14 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
         <h2 className="font-headline font-bold text-xl text-white mb-3 flex items-center gap-2">
           <Trophy size={18} style={{ color: ORO }} /> Copas
         </h2>
+        <div className="grid xl:grid-cols-5 gap-3 mb-3 items-start">
+          <CuadroCopa titulo="Copa Oro" color={ORO} campeon={campeon('FO')} className="xl:col-span-3"
+            fases={[['Cuartos de final', ['Q1', 'Q2', 'Q3', 'Q4']], ['Semifinales', ['S1', 'S2']], ['Final', ['FO']]]}
+            celda={celdaCopa} />
+          <CuadroCopa titulo="Copa Plata" color={PLATA} campeon={campeon('FP')} className="xl:col-span-2"
+            fases={[['Semifinales', ['SP1', 'SP2']], ['Final', ['FP']]]}
+            celda={celdaCopa} />
+        </div>
         {torneo.gruposCompletos ? (
           <div className="grid md:grid-cols-3 gap-3">
             <Ranking titulo="Copa Oro · ranking" color={ORO} filas={torneo.rankingOro} prefijo="" className="md:col-span-2" dosColumnas />
@@ -184,7 +215,7 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
           </div>
         ) : (
           <div className="rounded-2xl p-4 text-sm text-white/70" style={{ background: '#181c22' }}>
-            Los cruces de Copa Oro y Copa Plata se arman solos cuando estén los {torneo.totalGrupos} resultados de la fase de grupos.
+            Los equipos de cada cruce se completan solos cuando estén los {torneo.totalGrupos} resultados de la fase de grupos.
             {' '}<span className="text-white font-semibold">{faltan === 1 ? 'Falta 1 partido.' : `Faltan ${faltan} partidos.`}</span>
           </div>
         )}
@@ -230,7 +261,7 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
                         {([[b.cancha1, 1], [b.cancha2, 2]] as const).map(([p, cancha]) => p && (
                           <CeldaPartido key={p.codigo} partido={p} cancha={cancha} equipos={equipos(p)}
                             resultado={resultados.get(p.codigo)} puedeEditar={puedeEditar}
-                            editando={editando === p.codigo} onEditar={abrir => setEditando(abrir ? p.codigo : null)}
+                            editando={editando === `cal:${p.codigo}`} onEditar={abrir => setEditando(abrir ? `cal:${p.codigo}` : null)}
                             onGuardar={guardar} onBorrar={() => borrar(p.codigo)} />
                         ))}
                       </div>
@@ -289,6 +320,32 @@ function Ranking({ titulo, color, filas, prefijo, className = '', dosColumnas }:
   );
 }
 
+function CuadroCopa({ titulo, color, campeon, fases, celda, className = '' }: {
+  titulo: string; color: string; campeon?: string; className?: string;
+  fases: [string, string[]][]; celda: (codigo: string) => React.ReactNode;
+}) {
+  return (
+    <div className={`rounded-3xl overflow-hidden ${className}`} style={{ background: '#181c22' }}>
+      <div className="px-4 py-3 flex items-center justify-between gap-2 flex-wrap" style={{ background: '#0a0e14' }}>
+        <h3 className="font-headline font-bold flex items-center gap-2" style={{ color }}><Trophy size={16} /> {titulo}</h3>
+        {campeon && (
+          <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: color, color: '#10141a' }}>
+            Campeón: {campeon}
+          </span>
+        )}
+      </div>
+      <div className="p-2 grid gap-2 items-start" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(190px, 1fr))` }}>
+        {fases.map(([nombre, codigos]) => (
+          <div key={nombre} className="rounded-2xl p-2 space-y-2" style={{ background: '#1c2026' }}>
+            <p className="px-1 text-xs font-bold text-white/70">{nombre}</p>
+            {codigos.map(celda)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Leyenda({ color, texto }: { color: string; texto: string }) {
   return (
     <span className="flex items-center gap-1.5">
@@ -297,8 +354,8 @@ function Leyenda({ color, texto }: { color: string; texto: string }) {
   );
 }
 
-function CeldaPartido({ partido, cancha, equipos, resultado, puedeEditar, editando, onEditar, onGuardar, onBorrar }: {
-  partido: Partido; cancha: number; equipos: Cruce; resultado?: Resultado; puedeEditar: boolean;
+function CeldaPartido({ partido, cancha, titulo, equipos, resultado, puedeEditar, editando, onEditar, onGuardar, onBorrar }: {
+  partido: Partido; cancha: number; titulo?: string; equipos: Cruce; resultado?: Resultado; puedeEditar: boolean;
   editando: boolean; onEditar: (abrir: boolean) => void; onGuardar: (r: Resultado) => Promise<void>; onBorrar: () => void;
 }) {
   const definido = !!equipos.local && !!equipos.visita;
@@ -307,10 +364,10 @@ function CeldaPartido({ partido, cancha, equipos, resultado, puedeEditar, editan
   const ganador = resultado ? ganadorDe(equipos, resultado) : undefined;
   const penales = !!resultado && !!partido.copa && resultado.home_goals === resultado.away_goals && !!resultado.penalty_winner;
 
-  const linea = (equipo: string | undefined, goles: number | undefined) => (
+  const linea = (equipo: string | undefined, goles: number | undefined, lado: 0 | 1) => (
     <div className="flex items-center justify-between gap-2">
       <span className={`truncate ${equipo === NOSOTROS ? 'font-bold text-soccer-green' : equipo ? 'text-white' : 'text-white/50'} ${ganador && ganador === equipo ? 'font-bold' : ''}`}>
-        {equipo ?? 'Por definir'}
+        {equipo ?? partido.pendiente?.[lado] ?? 'Por definir'}
         {penales && ganador === equipo && <span className="text-[10px] font-bold text-white/60"> (penales)</span>}
       </span>
       {goles !== undefined && <span className="font-headline font-black text-white tabular-nums">{goles}</span>}
@@ -325,7 +382,7 @@ function CeldaPartido({ partido, cancha, equipos, resultado, puedeEditar, editan
       }}>
       <div className="flex items-center justify-between gap-2 mb-1 min-h-[22px]">
         <span className="text-[10px] font-bold uppercase tracking-wider truncate" style={{ color: color || 'rgba(255,255,255,0.5)' }}>
-          Cancha {cancha} · {partido.texto ? (partido.codigo.startsWith('F') ? partido.texto : `${partido.codigo} · ${partido.texto}`) : partido.codigo}
+          {titulo ?? <>Cancha {cancha} · {partido.texto ? (partido.codigo.startsWith('F') ? partido.texto : `${partido.codigo} · ${partido.texto}`) : partido.codigo}</>}
         </span>
         <span className="flex items-center gap-1.5 shrink-0">
           {nuestro && (
@@ -348,8 +405,8 @@ function CeldaPartido({ partido, cancha, equipos, resultado, puedeEditar, editan
           onCancelar={() => onEditar(false)} onGuardar={onGuardar} onBorrar={onBorrar} />
       ) : (
         <div className="text-sm space-y-0.5">
-          {linea(equipos.local, resultado?.home_goals)}
-          {linea(equipos.visita, resultado?.away_goals)}
+          {linea(equipos.local, resultado?.home_goals, 0)}
+          {linea(equipos.visita, resultado?.away_goals, 1)}
         </div>
       )}
     </div>

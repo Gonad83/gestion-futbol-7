@@ -16,6 +16,8 @@ export type Partido = {
   visita?: string;
   texto?: string;
   copa?: 'oro' | 'plata';
+  /** En copas: quién ocupa cada lado mientras no se conoce el equipo. */
+  pendiente?: [string, string];
 };
 
 type Bloque =
@@ -35,7 +37,8 @@ export type Programa = {
 };
 
 const g = (codigo: string, local: string, visita: string): Partido => ({ codigo, local, visita });
-const c = (codigo: string, texto: string, copa: 'oro' | 'plata'): Partido => ({ codigo, texto, copa });
+const c = (codigo: string, texto: string, copa: 'oro' | 'plata', a: string, b: string): Partido =>
+  ({ codigo, texto, copa, pendiente: [a, b] });
 
 export const PROGRAMAS: Record<number, Programa> = {
   2026: {
@@ -91,13 +94,13 @@ export const PROGRAMAS: Record<number, Programa> = {
           { hora: '10:30–11:15', cancha1: g('P15', 'Deportes Croto', 'G16'), cancha2: g('P16', 'Real Ebolo', 'Centenario FC') },
           { hora: '11:15–12:00', cancha1: g('P17', 'Equipo Malo', 'Salón Mario Illanes FC'), cancha2: g('P18', 'Confras 2024', 'AC Sed') },
           { hora: '12:00–13:00', pausa: 'Descanso general', nota: '1 hora' },
-          { hora: '13:00–13:45', cancha1: c('Q1', '1.º vs 8.º', 'oro'), cancha2: c('Q2', '4.º vs 5.º', 'oro') },
-          { hora: '13:45–14:30', cancha1: c('Q3', '2.º vs 7.º', 'oro'), cancha2: c('Q4', '3.º vs 6.º', 'oro') },
-          { hora: '14:30–15:15', cancha1: c('SP1', 'Plata 1 vs Plata 4', 'plata'), cancha2: c('SP2', 'Plata 2 vs Plata 3', 'plata') },
-          { hora: '15:15–16:00', cancha1: c('S1', 'Ganador Q1 vs Q2', 'oro'), cancha2: c('S2', 'Ganador Q3 vs Q4', 'oro') },
+          { hora: '13:00–13:45', cancha1: c('Q1', '1.º vs 8.º', 'oro', '1.º del ranking', '8.º del ranking'), cancha2: c('Q2', '4.º vs 5.º', 'oro', '4.º del ranking', '5.º del ranking') },
+          { hora: '13:45–14:30', cancha1: c('Q3', '2.º vs 7.º', 'oro', '2.º del ranking', '7.º del ranking'), cancha2: c('Q4', '3.º vs 6.º', 'oro', '3.º del ranking', '6.º del ranking') },
+          { hora: '14:30–15:15', cancha1: c('SP1', 'Plata 1 vs Plata 4', 'plata', 'Plata 1', 'Plata 4'), cancha2: c('SP2', 'Plata 2 vs Plata 3', 'plata', 'Plata 2', 'Plata 3') },
+          { hora: '15:15–16:00', cancha1: c('S1', 'Ganador Q1 vs Q2', 'oro', 'Ganador Q1', 'Ganador Q2'), cancha2: c('S2', 'Ganador Q3 vs Q4', 'oro', 'Ganador Q3', 'Ganador Q4') },
           { hora: '16:00–16:30', pausa: 'Pausa antes de finales', nota: '30 minutos' },
-          { hora: '16:30–17:15', cancha1: c('FP', 'Final Copa Plata', 'plata') },
-          { hora: '17:15–18:00', cancha1: c('FO', 'Final Copa Oro', 'oro') },
+          { hora: '16:30–17:15', cancha1: c('FP', 'Final Copa Plata', 'plata', 'Ganador SP1', 'Ganador SP2') },
+          { hora: '17:15–18:00', cancha1: c('FO', 'Final Copa Oro', 'oro', 'Ganador S1', 'Ganador S2') },
           { hora: '21:30', pausa: 'Fiesta de premiación', fiesta: true },
         ],
       },
