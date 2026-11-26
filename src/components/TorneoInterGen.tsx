@@ -143,7 +143,7 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
               <p className="font-headline font-black text-2xl text-white mt-1">{n.marcador ?? n.hora.split('–')[0]}</p>
               <p className="text-sm text-white mt-2">vs <span className="font-bold">{n.rival}</span></p>
               <p className="text-[11px] text-white/50 mt-1 flex items-center gap-1">
-                <MapPin size={11} /> Cancha {n.cancha} · {n.partido.texto ?? n.partido.codigo}
+                <MapPin size={11} /> Cancha {n.cancha} · {n.partido.codigo.startsWith('F') ? n.partido.texto : n.partido.codigo}
               </p>
             </div>
           ))}
@@ -382,7 +382,12 @@ function CeldaPartido({ partido, cancha, titulo, equipos, resultado, puedeEditar
       }}>
       <div className="flex items-center justify-between gap-2 mb-1 min-h-[22px]">
         <span className="text-[10px] font-bold uppercase tracking-wider truncate" style={{ color: color || 'rgba(255,255,255,0.5)' }}>
-          {titulo ?? <>Cancha {cancha} · {partido.texto ? (partido.codigo.startsWith('F') ? partido.texto : `${partido.codigo} · ${partido.texto}`) : partido.codigo}</>}
+          {titulo ?? <>Cancha {cancha} · {
+            // Con los equipos ya definidos sobra "1.º vs 8.º": el rival pudo reasignarse.
+            partido.codigo.startsWith('F') ? partido.texto
+              : partido.texto && !definido ? `${partido.codigo} · ${partido.texto}`
+              : partido.codigo
+          }</>}
         </span>
         <span className="flex items-center gap-1.5 shrink-0">
           {nuestro && (
