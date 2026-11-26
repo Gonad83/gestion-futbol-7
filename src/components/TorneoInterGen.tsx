@@ -73,13 +73,10 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
         .filter(([p]) => esNuestro(p))
         .map(([p, cancha]) => {
           const e = equipos(p!);
-          const somosLocal = e.local === NOSOTROS;
           const r = resultados.get(p!.codigo);
           const ganador = r ? ganadorDe(e, r) : undefined;
           return {
-            dia: dia.titulo, hora: b.hora, cancha, partido: p!,
-            rival: somosLocal ? e.visita! : e.local!,
-            marcador: r ? `${somosLocal ? r.home_goals : r.away_goals} – ${somosLocal ? r.away_goals : r.home_goals}` : null,
+            dia: dia.titulo, hora: b.hora, cancha, partido: p!, equipos: e, resultado: r, ganador,
             estado: !r ? null : ganador === NOSOTROS ? 'Ganamos' : ganador ? 'Perdimos' : 'Empate',
           };
         });
@@ -124,12 +121,20 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-soccer-green">{NOSOTROS}{nuestroGrupo ? ` · ${nuestroGrupo.nombre}` : ''}</p>
             <h2 className="font-headline font-bold text-xl text-white">Nuestros partidos</h2>
           </div>
-          <p className="text-xs text-white/60 flex items-center gap-1.5"><Clock size={13} /> {programa.minutos} minutos por partido</p>
+          <div className="flex items-center gap-2 flex-wrap text-xs text-white/70">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(10,14,20,0.6)' }}>
+              <CalendarDays size={13} className="text-soccer-green" /> {programa.fechas}
+            </span>
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(10,14,20,0.6)' }}>
+              <Clock size={13} className="text-soccer-green" /> {programa.minutos} min por partido
+            </span>
+          </div>
         </div>
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {nuestros.map(n => (
-            <div key={n.partido.codigo} className="rounded-2xl p-4" style={{ background: '#0a0e14' }}>
-              <div className="flex items-center justify-between gap-2">
+            <div key={n.partido.codigo} className="rounded-2xl p-4 relative overflow-hidden"
+              style={{ background: 'radial-gradient(120% 90% at 50% 0%, rgba(68,243,169,0.10) 0%, #0a0e14 60%)' }}>
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-soccer-green">{n.dia.split(' de ')[0]} · {n.hora.split('–')[0]}</p>
                 {n.estado && (
                   <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
@@ -140,9 +145,9 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
                   </span>
                 )}
               </div>
-              <p className="font-headline font-black text-2xl text-white mt-1">{n.marcador ?? n.hora.split('–')[0]}</p>
-              <p className="text-sm text-white mt-2">vs <span className="font-bold">{n.rival}</span></p>
-              <p className="text-[11px] text-white/50 mt-1 flex items-center gap-1">
+              <Duelo equipos={n.equipos} resultado={n.resultado} ganador={n.ganador} color={VERDE} grande
+                penales={!!n.resultado && !!n.partido.copa && n.resultado.home_goals === n.resultado.away_goals && !!n.resultado.penalty_winner} />
+              <p className="text-[11px] text-white/50 mt-4 flex items-center justify-center gap-1">
                 <MapPin size={11} /> Cancha {n.cancha} · {n.partido.codigo.startsWith('F') ? n.partido.texto : n.partido.codigo}
               </p>
             </div>
@@ -172,7 +177,13 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
               <div key={tabla.nombre} className="rounded-3xl overflow-hidden"
                 style={{ background: '#181c22', boxShadow: esNuestroGrupo ? 'inset 0 0 0 1.5px rgba(68,243,169,0.45)' : undefined }}>
                 <div className="px-4 py-3 flex items-center justify-between" style={{ background: '#0a0e14' }}>
-                  <h3 className="font-headline font-bold text-white">{tabla.nombre}</h3>
+                  <h3 className="font-headline font-bold text-white flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-base"
+                      style={esNuestroGrupo ? { background: VERDE, color: '#003822' } : { background: '#262a31', color: '#fff' }}>
+                      {tabla.nombre.split(' ').pop()}
+                    </span>
+                    {tabla.nombre}
+                  </h3>
                   {esNuestroGrupo && <span className="text-[10px] font-bold uppercase tracking-wider text-soccer-green">Nuestro grupo</span>}
                 </div>
                 <table className="w-full text-sm">
@@ -192,6 +203,11 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
               </div>
             );
           })}
+        </div>
+        <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-white/60 mt-3">
+          <Leyenda color={ORO} texto="1.º y 2.º: Copa Oro" />
+          <Leyenda color="rgba(255,255,255,0.5)" texto="3.º: los dos mejores a Oro, el otro a Plata" />
+          <Leyenda color={PLATA} texto="4.º: Copa Plata" />
         </div>
       </section>
 
@@ -256,7 +272,9 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
                     </div>
                   ) : (
                     <div key={b.hora} className="rounded-2xl p-2" style={{ background: '#1c2026' }}>
-                      <p className="px-1 pb-1.5 text-xs font-bold text-white/70">{b.hora}</p>
+                      <p className="px-1 pb-2 pt-0.5 text-xs font-bold text-white/80 flex items-center gap-1.5">
+                        <Clock size={12} className="text-soccer-green" /> {b.hora}
+                      </p>
                       <div className="grid sm:grid-cols-2 gap-2 items-start">
                         {([[b.cancha1, 1], [b.cancha2, 2]] as const).map(([p, cancha]) => p && (
                           <CeldaPartido key={p.codigo} partido={p} cancha={cancha} equipos={equipos(p)}
@@ -283,7 +301,12 @@ function FilaGrupo({ f, i, copa }: { f: FilaTabla; i: number; copa: 'oro' | 'pla
     <tr style={yo ? { background: 'rgba(68,243,169,0.12)' } : i % 2 === 0 ? { background: '#1c2026' } : undefined}>
       <td className="pl-4 py-2.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-4 text-xs font-bold text-white/50 shrink-0">{i + 1}</span>
+          <span className="w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-black shrink-0"
+            style={i < 2 ? { background: 'rgba(255,208,139,0.18)', color: ORO }
+              : i === 3 ? { background: 'rgba(154,203,255,0.18)', color: PLATA }
+              : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>
+            {i + 1}
+          </span>
           <div className="min-w-0">
             <p className={`truncate ${yo ? 'font-bold text-soccer-green' : 'text-white'}`}>{f.equipo}</p>
             <p className="text-[10px] text-white/50">
@@ -334,7 +357,7 @@ function CuadroCopa({ titulo, color, campeon, fases, celda, className = '' }: {
           </span>
         )}
       </div>
-      <div className="p-2 grid gap-2 items-start" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(190px, 1fr))` }}>
+      <div className="p-2 grid gap-2 items-start" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(210px, 1fr))` }}>
         {fases.map(([nombre, codigos]) => (
           <div key={nombre} className="rounded-2xl p-2 space-y-2" style={{ background: '#1c2026' }}>
             <p className="px-1 text-xs font-bold text-white/70">{nombre}</p>
@@ -354,6 +377,59 @@ function Leyenda({ color, texto }: { color: string; texto: string }) {
   );
 }
 
+/** Escudo con las iniciales del equipo. */
+function Escudo({ equipo, size }: { equipo?: string; size: number }) {
+  const palabras = (equipo ?? '').replace(/[^\p{L}\p{N} ]/gu, '').split(' ').filter(Boolean);
+  const iniciales = !equipo ? '?' : (palabras.length > 1 ? palabras[0][0] + palabras[1][0] : palabras[0].slice(0, 2)).toUpperCase();
+  const yo = equipo === NOSOTROS;
+  return (
+    <span aria-hidden className="rounded-full flex items-center justify-center font-headline font-black shrink-0"
+      style={{
+        width: size, height: size, fontSize: size * 0.36,
+        background: yo ? 'linear-gradient(135deg, #44f3a9, #00d68f)' : equipo ? '#262a31' : 'rgba(255,255,255,0.05)',
+        color: yo ? '#003822' : equipo ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.35)',
+        boxShadow: yo ? '0 0 16px rgba(68,243,169,0.35)' : undefined,
+      }}>
+      {iniciales}
+    </span>
+  );
+}
+
+/** Los dos equipos frente a frente: "VS" antes de jugarse, el marcador después. */
+function Duelo({ equipos, pendiente, resultado, ganador, penales, color, grande }: {
+  equipos: Cruce; pendiente?: [string, string]; resultado?: Resultado; ganador?: string;
+  penales?: boolean; color?: string; grande?: boolean;
+}) {
+  const lado = (equipo: string | undefined, i: 0 | 1) => (
+    <div className={`flex flex-col items-center gap-1.5 min-w-0 text-center ${ganador && ganador !== equipo ? 'opacity-55' : ''}`}>
+      <Escudo equipo={equipo} size={grande ? 46 : 32} />
+      <span className={`w-full leading-tight break-words ${grande ? 'text-sm' : 'text-xs'} ${
+        equipo === NOSOTROS ? 'font-bold text-soccer-green' : equipo ? 'font-semibold text-white' : 'text-white/50'}`}>
+        {equipo ?? pendiente?.[i] ?? 'Por definir'}
+      </span>
+    </div>
+  );
+  return (
+    <div className="grid items-center gap-2" style={{ gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)' }}>
+      {lado(equipos.local, 0)}
+      <div className="flex flex-col items-center gap-0.5">
+        {resultado ? (
+          <span className={`font-headline font-black text-white tabular-nums whitespace-nowrap ${grande ? 'text-3xl' : 'text-xl'}`}>
+            {resultado.home_goals}<span className="text-white/35 mx-1">–</span>{resultado.away_goals}
+          </span>
+        ) : (
+          <span className={`font-headline font-black italic rounded-lg ${grande ? 'text-base px-2.5 py-1' : 'text-[11px] px-2 py-1'}`}
+            style={{ background: '#262a31', color: color ?? 'rgba(255,255,255,0.75)', transform: 'skewX(-6deg)' }}>
+            VS
+          </span>
+        )}
+        {penales && <span className="text-[9px] font-bold uppercase tracking-wider text-white/60">Penales</span>}
+      </div>
+      {lado(equipos.visita, 1)}
+    </div>
+  );
+}
+
 function CeldaPartido({ partido, cancha, titulo, equipos, resultado, puedeEditar, editando, onEditar, onGuardar, onBorrar }: {
   partido: Partido; cancha: number; titulo?: string; equipos: Cruce; resultado?: Resultado; puedeEditar: boolean;
   editando: boolean; onEditar: (abrir: boolean) => void; onGuardar: (r: Resultado) => Promise<void>; onBorrar: () => void;
@@ -364,20 +440,10 @@ function CeldaPartido({ partido, cancha, titulo, equipos, resultado, puedeEditar
   const ganador = resultado ? ganadorDe(equipos, resultado) : undefined;
   const penales = !!resultado && !!partido.copa && resultado.home_goals === resultado.away_goals && !!resultado.penalty_winner;
 
-  const linea = (equipo: string | undefined, goles: number | undefined, lado: 0 | 1) => (
-    <div className="flex items-center justify-between gap-2">
-      <span className={`truncate ${equipo === NOSOTROS ? 'font-bold text-soccer-green' : equipo ? 'text-white' : 'text-white/50'} ${ganador && ganador === equipo ? 'font-bold' : ''}`}>
-        {equipo ?? partido.pendiente?.[lado] ?? 'Por definir'}
-        {penales && ganador === equipo && <span className="text-[10px] font-bold text-white/60"> (penales)</span>}
-      </span>
-      {goles !== undefined && <span className="font-headline font-black text-white tabular-nums">{goles}</span>}
-    </div>
-  );
-
   return (
     <div className="rounded-xl px-3 py-2.5"
       style={{
-        background: nuestro ? 'rgba(68,243,169,0.14)' : '#0a0e14',
+        background: nuestro ? 'linear-gradient(160deg, rgba(68,243,169,0.20) 0%, rgba(68,243,169,0.07) 100%)' : '#0a0e14',
         boxShadow: nuestro ? 'inset 0 0 0 1.5px rgba(68,243,169,0.55)' : color ? `inset 3px 0 0 ${color}` : undefined,
       }}>
       <div className="flex items-center justify-between gap-2 mb-1 min-h-[22px]">
@@ -409,9 +475,9 @@ function CeldaPartido({ partido, cancha, titulo, equipos, resultado, puedeEditar
         <EditorResultado partido={partido} equipos={equipos} resultado={resultado}
           onCancelar={() => onEditar(false)} onGuardar={onGuardar} onBorrar={onBorrar} />
       ) : (
-        <div className="text-sm space-y-0.5">
-          {linea(equipos.local, resultado?.home_goals, 0)}
-          {linea(equipos.visita, resultado?.away_goals, 1)}
+        <div className="pt-1.5 pb-1">
+          <Duelo equipos={equipos} pendiente={partido.pendiente} resultado={resultado} ganador={ganador} penales={penales}
+            color={color ?? undefined} />
         </div>
       )}
     </div>
