@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Clock, MapPin, Trophy, Users, Coffee, PartyPopper, Pencil, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CalendarDays, Clock, MapPin, Trophy, Users, Coffee, PartyPopper, Pencil, Trash2, ClipboardList } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { aviso, confirmar } from '../lib/avisos';
+import ConvocatoriaInterGen from './ConvocatoriaInterGen';
+import { contarConvocatoria, type Convocado, type EstadoConvocatoria, type JugadorPlantel } from '../lib/convocatoria';
 import {
   NOSOTROS, PROGRAMAS, calcularTorneo, ganadorDe,
   type Cruce, type FilaTabla, type Partido, type Resultado,
@@ -19,12 +21,58 @@ const VERDE = '#44f3a9';
 
 const CAMPOS = 'match_code, home_goals, away_goals, home_yellows, away_yellows, penalty_winner';
 
-type Props = { year: number; teamId: number; puedeEditar: boolean };
+type Props = {
+  year: number; teamId: number; puedeEditar: boolean;
+  /** Con la edición creada: los inscritos marcan a qué partidos van. */
+  convocatoria?: { edicionId: string; plantel: JugadorPlantel[]; miJugadorId: string | null };
+};
 
-export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
+export default function TorneoInterGen({ year, teamId, puedeEditar, convocatoria }: Props) {
   const programa = PROGRAMAS[year];
   const [resultados, setResultados] = useState<Map<string, Resultado>>(new Map());
   const [editando, setEditando] = useState<string | null>(null);
+  const [convocados, setConvocados] = useState<Convocado[]>([]);
+  const [convocatoriaAbierta, setConvocatoriaAbierta] = useState<string | null>(null);
+  const cerrarConvocatoria = useCallback(() => setConvocatoriaAbierta(null), []);
+  const edicionId = convocatoria?.edicionId;
+
+  useEffect(() => {
+    if (!edicionId) return;
+    let vigente = true;
+    (async () => {
+      const { data, error } = await supabase.from('intergen_callups')
+        .select('edition_id, match_code, player_id, status').eq('edition_id', edicionId);
+      if (!vigente) return;
+      if (error) { aviso.error('No se pudo cargar la convocatoria'); return; }
+      setConvocados((data as Convocado[]) || []);
+    })();
+    return () => { vigente = false; };
+  }, [edicionId]);
+
+  /** Respuestas por partido: código → (jugador → va / no va). */
+  const respuestasPorPartido = useMemo(() => {
+    const mapa = new Map<string, Map<string, EstadoConvocatoria>>();
+    for (const c of convocados) {
+      if (c.edition_id !== edicionId) continue; // quedó de otra edición mientras carga la nueva
+      if (!mapa.has(c.match_code)) mapa.set(c.match_code, new Map());
+      mapa.get(c.match_code)!.set(c.player_id, c.status);
+    }
+    return mapa;
+  }, [convocados, edicionId]);
+
+  const marcarConvocatoria = async (codigo: string, jugadorId: string, estado: EstadoConvocatoria | null) => {
+    if (!edicionId) return;
+    const antes = convocados;
+    const sinEl = antes.filter(c => !(c.match_code === codigo && c.player_id === jugadorId));
+    setConvocados(estado ? [...sinEl, { edition_id: edicionId, match_code: codigo, player_id: jugadorId, status: estado }] : sinEl);
+    const { error } = estado
+      ? await supabase.from('intergen_callups').upsert(
+          { edition_id: edicionId, match_code: codigo, player_id: jugadorId, status: estado, updated_at: new Date().toISOString() },
+          { onConflict: 'edition_id,match_code,player_id' })
+      : await supabase.from('intergen_callups').delete()
+          .eq('edition_id', edicionId).eq('match_code', codigo).eq('player_id', jugadorId);
+    if (error) { aviso.error('No se pudo guardar la convocatoria'); setConvocados(antes); }
+  };
 
   useEffect(() => {
     let vigente = true;
@@ -82,6 +130,8 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
         });
     }),
   );
+
+  const abierta = nuestros.find(n => n.partido.codigo === convocatoriaAbierta);
 
   const nuestroGrupo = programa.grupos.find(gr => gr.equipos.some(e => e.nombre === NOSOTROS));
 
@@ -150,6 +200,22 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
               <p className="text-[11px] text-white/50 mt-4 flex items-center justify-center gap-1">
                 <MapPin size={11} /> Cancha {n.cancha} · {n.partido.codigo.startsWith('F') ? n.partido.texto : n.partido.codigo}
               </p>
+              {convocatoria && (() => {
+                const respuestas = respuestasPorPartido.get(n.partido.codigo);
+                const { van } = contarConvocatoria(convocatoria.plantel, respuestas ?? new Map());
+                const inscrito = convocatoria.plantel.some(j => j.id === convocatoria.miJugadorId);
+                const faltaYo = inscrito && !n.resultado && !respuestas?.has(convocatoria.miJugadorId!);
+                return (
+                  <button onClick={() => setConvocatoriaAbierta(n.partido.codigo)}
+                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:brightness-110 active:scale-95"
+                    style={faltaYo
+                      ? { background: 'linear-gradient(135deg,#44f3a9,#00d68f)', color: '#003822' }
+                      : { background: 'rgba(68,243,169,0.12)', color: VERDE }}>
+                    <ClipboardList size={16} />
+                    {faltaYo ? '¿Vas? Responde la convocatoria' : `Convocatoria · ${van === 1 ? '1 va' : `${van} van`}`}
+                  </button>
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -291,9 +357,22 @@ export default function TorneoInterGen({ year, teamId, puedeEditar }: Props) {
           ))}
         </div>
       </section>
+
+      {convocatoria && abierta && (
+        <ConvocatoriaInterGen
+          titulo={`${abierta.equipos.local} vs ${abierta.equipos.visita}`}
+          cuando={`${abierta.dia} · ${abierta.hora.split('–')[0]} · Cancha ${abierta.cancha}`}
+          plantel={convocatoria.plantel}
+          respuestas={respuestasPorPartido.get(abierta.partido.codigo) ?? SIN_RESPUESTAS}
+          miJugadorId={convocatoria.miJugadorId} puedeEditar={puedeEditar}
+          onMarcar={(jugadorId, estado) => marcarConvocatoria(abierta.partido.codigo, jugadorId, estado)}
+          onCerrar={cerrarConvocatoria} />
+      )}
     </div>
   );
 }
+
+const SIN_RESPUESTAS = new Map<string, EstadoConvocatoria>();
 
 function FilaGrupo({ f, i, copa }: { f: FilaTabla; i: number; copa: 'oro' | 'plata' | null }) {
   const yo = f.equipo === NOSOTROS;

@@ -11,6 +11,7 @@ import { aviso, confirmar } from '../lib/avisos';
 import TorneoInterGen from '../components/TorneoInterGen';
 import ReglasInterGen from '../components/ReglasInterGen';
 import { tienePrograma } from '../lib/programaInterGen';
+import { copiarTexto } from '../lib/copiarTexto';
 
 /**
  * Inter Generaciones SSCC: una edición por año. Cada edición tiene su lista de
@@ -57,7 +58,7 @@ const limpiarNombre = (name: string) =>
   name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80);
 
 export default function InterGeneraciones() {
-  const { isAdmin, isMatchmaker, teamId, user } = useAuth();
+  const { isAdmin, isMatchmaker, teamId, user, playerProfile } = useAuth();
   const currentYear = new Date().getFullYear();
 
   const [years, setYears] = useState<number[]>([]);
@@ -135,6 +136,12 @@ export default function InterGeneraciones() {
       .filter(r => r.player)
       .sort((a, b) => a.player!.name.localeCompare(b.player!.name)),
     [participants, playerById],
+  );
+
+  // Los inscritos son a quienes se convoca a cada partido del torneo.
+  const plantel = useMemo(
+    () => roster.map(r => ({ id: r.player!.id, name: r.player!.name, photo_url: r.player!.photo_url })),
+    [roster],
   );
 
   const hayPrograma = tienePrograma(year);
@@ -262,7 +269,10 @@ export default function InterGeneraciones() {
               {hayPrograma && <ReglasInterGen year={year} />}
             </>
           )}
-          {tabActiva === 'torneo' && <TorneoInterGen year={year} teamId={teamId!} puedeEditar={isAdmin || isMatchmaker} />}
+          {tabActiva === 'torneo' && (
+            <TorneoInterGen year={year} teamId={teamId!} puedeEditar={isAdmin || isMatchmaker}
+              convocatoria={{ edicionId: edition.id, plantel, miJugadorId: playerProfile?.id ?? null }} />
+          )}
           {tabActiva === 'jugadores' && (
             <JugadoresTab edition={edition} isAdmin={isAdmin} players={players} roster={roster}
               onChange={setParticipants} participants={participants} />
@@ -279,24 +289,6 @@ export default function InterGeneraciones() {
 
 /** Copia la lista de jugadores listos para pegarla en WhatsApp. No abre
  *  WhatsApp: al pasar por su enlace, algunos equipos rompían los emojis. */
-async function copiarTexto(texto: string) {
-  try {
-    await navigator.clipboard.writeText(texto);
-    return true;
-  } catch {
-    // Navegadores sin acceso al portapapeles: copia "a la antigua".
-    const area = document.createElement('textarea');
-    area.value = texto;
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.appendChild(area);
-    area.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(area);
-    return ok;
-  }
-}
-
 function BotonCopiarLista({ texto }: { texto: string }) {
   const [copiado, setCopiado] = useState(false);
 
