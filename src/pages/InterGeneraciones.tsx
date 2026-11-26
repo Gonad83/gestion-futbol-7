@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { aviso, confirmar } from '../lib/avisos';
 import TorneoInterGen from '../components/TorneoInterGen';
+import ReglasInterGen from '../components/ReglasInterGen';
 import { tienePrograma } from '../lib/programaInterGen';
 
 /**
@@ -56,7 +57,7 @@ const limpiarNombre = (name: string) =>
   name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80);
 
 export default function InterGeneraciones() {
-  const { isAdmin, teamId, user } = useAuth();
+  const { isAdmin, isMatchmaker, teamId, user } = useAuth();
   const currentYear = new Date().getFullYear();
 
   const [years, setYears] = useState<number[]>([]);
@@ -222,7 +223,7 @@ export default function InterGeneraciones() {
             <p className="text-white/50 text-sm mt-2">El capitán todavía no la publica.</p>
           )}
         </div>
-        {hayPrograma && <TorneoInterGen year={year} />}
+        {hayPrograma && <TorneoInterGen year={year} teamId={teamId!} puedeEditar={isAdmin || isMatchmaker} />}
         </>
       ) : (
         <>
@@ -254,11 +255,14 @@ export default function InterGeneraciones() {
           </div>
 
           {tabActiva === 'resumen' && (
-            <ResumenTab edition={edition} isAdmin={isAdmin} teamId={teamId!} resumenTexto={resumenTexto}
-              stats={{ jugadores: roster.length, pagados, fotos, videos }}
-              onSaved={setEdition} />
+            <>
+              <ResumenTab edition={edition} isAdmin={isAdmin} teamId={teamId!} resumenTexto={resumenTexto}
+                stats={{ jugadores: roster.length, pagados, fotos, videos }}
+                onSaved={setEdition} />
+              {hayPrograma && <ReglasInterGen year={year} />}
+            </>
           )}
-          {tabActiva === 'torneo' && <TorneoInterGen year={year} />}
+          {tabActiva === 'torneo' && <TorneoInterGen year={year} teamId={teamId!} puedeEditar={isAdmin || isMatchmaker} />}
           {tabActiva === 'jugadores' && (
             <JugadoresTab edition={edition} isAdmin={isAdmin} players={players} roster={roster}
               onChange={setParticipants} participants={participants} />

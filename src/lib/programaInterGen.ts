@@ -24,7 +24,7 @@ type Bloque =
 
 type Dia = { titulo: string; resumen: string; bloques: Bloque[] };
 
-type Programa = {
+export type Programa = {
   fechas: string;
   minutos: number;
   grupos: Grupo[];
@@ -96,8 +96,8 @@ export const PROGRAMAS: Record<number, Programa> = {
           { hora: '14:30–15:15', cancha1: c('SP1', 'Plata 1 vs Plata 4', 'plata'), cancha2: c('SP2', 'Plata 2 vs Plata 3', 'plata') },
           { hora: '15:15–16:00', cancha1: c('S1', 'Ganador Q1 vs Q2', 'oro'), cancha2: c('S2', 'Ganador Q3 vs Q4', 'oro') },
           { hora: '16:00–16:30', pausa: 'Pausa antes de finales', nota: '30 minutos' },
-          { hora: '16:30–17:15', cancha1: c('Final', 'Final Copa Plata', 'plata') },
-          { hora: '17:15–18:00', cancha1: c('Final', 'Final Copa Oro', 'oro') },
+          { hora: '16:30–17:15', cancha1: c('FP', 'Final Copa Plata', 'plata') },
+          { hora: '17:15–18:00', cancha1: c('FO', 'Final Copa Oro', 'oro') },
           { hora: '21:30', pausa: 'Fiesta de premiación', fiesta: true },
         ],
       },
@@ -156,3 +156,177 @@ export const PROGRAMAS: Record<number, Programa> = {
 };
 
 export const tienePrograma = (year: number) => year in PROGRAMAS;
+
+// ── Resultados, tablas y cruces ─────────────────────────────────────────────
+
+export type Resultado = {
+  match_code: string;
+  home_goals: number;
+  away_goals: number;
+  home_yellows: number;
+  away_yellows: number;
+  /** Solo en copas, cuando el partido termina empatado. */
+  penalty_winner: 'local' | 'visita' | null;
+};
+
+export type FilaTabla = {
+  equipo: string;
+  generacion: number;
+  /** Letra del grupo: A, B o C. */
+  grupo: string;
+  /** Puesto dentro del grupo (1 a 4). */
+  puesto: number;
+  pj: number; g: number; e: number; p: number;
+  gf: number; gc: number; dg: number; pts: number;
+  amarillas: number;
+};
+
+export type Cruce = { local?: string; visita?: string };
+
+export type Torneo = {
+  tablas: { nombre: string; filas: FilaTabla[] }[];
+  jugadosGrupos: number;
+  totalGrupos: number;
+  gruposCompletos: boolean;
+  /** Los 8 de Copa Oro ordenados del 1.º al 8.º (solo con los grupos cerrados). */
+  rankingOro: FilaTabla[];
+  /** Los 4 de Copa Plata: Plata 1 a Plata 4. */
+  rankingPlata: FilaTabla[];
+  /** Equipos de cada partido de copa, por código, a medida que se conocen. */
+  cruces: Record<string, Cruce>;
+};
+
+/** Partidos del programa en orden, sin las pausas. */
+export function partidosDe(programa: Programa): Partido[] {
+  return programa.dias.flatMap(d =>
+    d.bloques.flatMap(b => ('pausa' in b ? [] : [b.cancha1, b.cancha2].filter((p): p is Partido => !!p))),
+  );
+}
+
+/** Quién ganó un partido de copa; si empataron, lo decide la tanda de penales. */
+export function ganadorDe(cruce: Cruce | undefined, r: Resultado | undefined): string | undefined {
+  if (!cruce?.local || !cruce.visita || !r) return undefined;
+  if (r.home_goals > r.away_goals) return cruce.local;
+  if (r.away_goals > r.home_goals) return cruce.visita;
+  if (r.penalty_winner === 'local') return cruce.local;
+  if (r.penalty_winner === 'visita') return cruce.visita;
+  return undefined;
+}
+
+export function calcularTorneo(programa: Programa, resultados: Map<string, Resultado>): Torneo {
+  const partidosGrupo = partidosDe(programa).filter(p => p.local && p.visita);
+
+  const filas = new Map<string, FilaTabla>();
+  for (const grupo of programa.grupos) {
+    const letra = grupo.nombre.replace('Grupo ', '');
+    for (const eq of grupo.equipos) {
+      filas.set(eq.nombre, {
+        equipo: eq.nombre, generacion: eq.generacion, grupo: letra, puesto: 0,
+        pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0, dg: 0, pts: 0, amarillas: 0,
+      });
+    }
+  }
+
+  let jugadosGrupos = 0;
+  /** Ganador del partido directo entre dos equipos, si se jugó y no fue empate. */
+  const directo = new Map<string, string>();
+  for (const p of partidosGrupo) {
+    const r = resultados.get(p.codigo);
+    const loc = filas.get(p.local!);
+    const vis = filas.get(p.visita!);
+    if (!r || !loc || !vis) continue;
+    jugadosGrupos++;
+    loc.pj++; vis.pj++;
+    loc.gf += r.home_goals; loc.gc += r.away_goals;
+    vis.gf += r.away_goals; vis.gc += r.home_goals;
+    loc.amarillas += r.home_yellows; vis.amarillas += r.away_yellows;
+    if (r.home_goals > r.away_goals) { loc.g++; vis.p++; loc.pts += 3; directo.set(`${loc.equipo}|${vis.equipo}`, loc.equipo); }
+    else if (r.home_goals < r.away_goals) { vis.g++; loc.p++; vis.pts += 3; directo.set(`${loc.equipo}|${vis.equipo}`, vis.equipo); }
+    else { loc.e++; vis.e++; loc.pts++; vis.pts++; }
+  }
+  for (const f of filas.values()) f.dg = f.gf - f.gc;
+
+  // Puntos, diferencia de goles, goles a favor, partido directo y menos amarillas.
+  const comparar = (a: FilaTabla, b: FilaTabla) => {
+    if (a.pts !== b.pts) return b.pts - a.pts;
+    if (a.dg !== b.dg) return b.dg - a.dg;
+    if (a.gf !== b.gf) return b.gf - a.gf;
+    const gano = directo.get(`${a.equipo}|${b.equipo}`) ?? directo.get(`${b.equipo}|${a.equipo}`);
+    if (gano) return gano === a.equipo ? -1 : 1;
+    return a.amarillas - b.amarillas;
+  };
+
+  const tablas = programa.grupos.map(grupo => {
+    // sort es estable: con todo igual se respeta el orden del sorteo.
+    const ordenadas = grupo.equipos.map(e => filas.get(e.nombre)!).sort(comparar);
+    ordenadas.forEach((f, i) => { f.puesto = i + 1; });
+    return { nombre: grupo.nombre, filas: ordenadas };
+  });
+
+  const totalGrupos = partidosGrupo.length;
+  const gruposCompletos = totalGrupos > 0 && jugadosGrupos === totalGrupos;
+
+  const cruces: Record<string, Cruce> = {};
+  let rankingOro: FilaTabla[] = [];
+  let rankingPlata: FilaTabla[] = [];
+
+  if (gruposCompletos) {
+    const enPuesto = (n: number) => tablas.map(t => t.filas[n - 1]).filter(Boolean);
+    const terceros = enPuesto(3).sort(comparar);
+    const mejoresTerceros = terceros.slice(0, 2);
+    const peorTercero = terceros.slice(2);
+
+    rankingOro = [...enPuesto(1), ...enPuesto(2), ...mejoresTerceros].sort(comparar);
+    rankingPlata = [...peorTercero, ...enPuesto(4)].sort(comparar);
+
+    if (rankingOro.length === 8) {
+      const rivales = asignarCuartos(rankingOro);
+      // Q1: 1.º · Q3: 2.º · Q4: 3.º · Q2: 4.º, cada uno con el rival asignado.
+      cruces.Q1 = { local: rankingOro[0].equipo, visita: rivales[0].equipo };
+      cruces.Q3 = { local: rankingOro[1].equipo, visita: rivales[1].equipo };
+      cruces.Q4 = { local: rankingOro[2].equipo, visita: rivales[2].equipo };
+      cruces.Q2 = { local: rankingOro[3].equipo, visita: rivales[3].equipo };
+    }
+    if (rankingPlata.length === 4) {
+      cruces.SP1 = { local: rankingPlata[0].equipo, visita: rankingPlata[3].equipo };
+      cruces.SP2 = { local: rankingPlata[1].equipo, visita: rankingPlata[2].equipo };
+    }
+  }
+
+  const gana = (codigo: string) => ganadorDe(cruces[codigo], resultados.get(codigo));
+  cruces.S1 = { local: gana('Q1'), visita: gana('Q2') };
+  cruces.S2 = { local: gana('Q3'), visita: gana('Q4') };
+  cruces.FO = { local: gana('S1'), visita: gana('S2') };
+  cruces.FP = { local: gana('SP1'), visita: gana('SP2') };
+
+  return { tablas, jugadosGrupos, totalGrupos, gruposCompletos, rankingOro, rankingPlata, cruces };
+}
+
+/**
+ * Rivales de cuartos para los puestos 1.º a 4.º. Se prueban las 24 formas de
+ * repartir a los puestos 5.º a 8.º, se descartan las que cruzan a dos equipos
+ * del mismo grupo y se favorece al 1.º (el rival de peor ranking posible),
+ * después al 2.º, al 3.º y al 4.º.
+ */
+export function asignarCuartos(ranking: FilaTabla[]): FilaTabla[] {
+  const cabezas = ranking.slice(0, 4);
+  const resto = ranking.slice(4, 8);
+  let mejor: number[] | null = null;
+
+  const probar = (orden: number[], libres: number[]) => {
+    if (orden.length === 4) {
+      const valida = orden.every((idx, i) => resto[idx].grupo !== cabezas[i].grupo);
+      if (!valida) return;
+      // Índice más alto = peor ranking: gana la opción que primero le da más al 1.º.
+      if (!mejor || orden.some((v, i) => v !== mejor![i] && orden.slice(0, i).every((x, j) => x === mejor![j]) && v > mejor![i])) {
+        mejor = orden;
+      }
+      return;
+    }
+    for (const idx of libres) probar([...orden, idx], libres.filter(x => x !== idx));
+  };
+  probar([], [0, 1, 2, 3]);
+
+  // Si ninguna combinación evita repetir grupo, queda el cuadro normal.
+  return (mejor ?? [3, 2, 1, 0]).map(idx => resto[idx]);
+}
