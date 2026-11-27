@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Copy, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { Check, Copy, ThumbsDown, ThumbsUp, UserX, X } from 'lucide-react';
 import { Capa } from './Capa';
 import { aviso } from '../lib/avisos';
 import { copiarTexto } from '../lib/copiarTexto';
@@ -14,6 +14,7 @@ import {
 
 const VERDE = '#44f3a9';
 const ROJO = '#f87171';
+const DORADO = '#ffd08b';
 
 type Props = {
   titulo: string;
@@ -35,15 +36,16 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
     return () => window.removeEventListener('keydown', tecla);
   }, [onCerrar]);
 
-  const { van, noVan, sinResponder } = contarConvocatoria(plantel, respuestas);
+  const { van, noVan, noLlegaron, sinResponder } = contarConvocatoria(plantel, respuestas);
   const yo = plantel.find(j => j.id === miJugadorId);
   const miRespuesta = yo ? respuestas.get(yo.id) : undefined;
 
-  // Tres listas separadas: los confirmados, los que no asisten y los que faltan por responder.
+  // Listas separadas: confirmados, los que avisaron que no pueden, los que no llegaron y los que faltan por responder.
   const lista = [...plantel].sort((a, b) => a.name.localeCompare(b.name));
   const grupos = [
     { titulo: 'Confirmados', color: VERDE, jugadores: lista.filter(j => respuestas.get(j.id) === 'va') },
-    { titulo: 'No asisten', color: ROJO, jugadores: lista.filter(j => respuestas.get(j.id) === 'no_va') },
+    { titulo: 'Avisaron que no pueden', color: ROJO, jugadores: lista.filter(j => respuestas.get(j.id) === 'no_va') },
+    { titulo: 'No llegaron', color: DORADO, jugadores: lista.filter(j => respuestas.get(j.id) === 'no_llego') },
     { titulo: 'Sin responder', color: 'rgba(255,255,255,0.7)', jugadores: lista.filter(j => !respuestas.has(j.id)) },
   ].filter(g => g.jugadores.length > 0);
 
@@ -59,6 +61,10 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
   /** Tocar la respuesta ya marcada la borra (vuelve a "sin responder"). */
   const alternar = (jugadorId: string, estado: EstadoConvocatoria) =>
     onMarcar(jugadorId, respuestas.get(jugadorId) === estado ? null : estado);
+
+  /** "No llegó" es para quien había confirmado: al desmarcarlo vuelve a confirmado. */
+  const alternarNoLlego = (jugadorId: string) =>
+    onMarcar(jugadorId, respuestas.get(jugadorId) === 'no_llego' ? 'va' : 'no_llego');
 
   return (
     <Capa>
@@ -79,9 +85,10 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
                 <X size={18} />
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-              <Contador n={van} texto="Confirmados"color={VERDE} />
-              <Contador n={noVan} texto="No asisten" color={ROJO} />
+            <div className="grid grid-cols-4 gap-2 mt-4 text-center">
+              <Contador n={van} texto="Confirmados" color={VERDE} />
+              <Contador n={noVan} texto="No pueden" color={ROJO} />
+              <Contador n={noLlegaron} texto="No llegaron" color={DORADO} />
               <Contador n={sinResponder} texto="Sin responder" color="rgba(255,255,255,0.7)" />
             </div>
           </div>
@@ -90,9 +97,10 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
             {yo && (
               <div className="rounded-2xl p-3" style={{ background: 'rgba(68,243,169,0.08)' }}>
                 <p className="text-sm font-semibold text-white mb-2">
-                  {miRespuesta === 'va' ? 'Estás convocado. ¡Nos vemos!' : miRespuesta === 'no_va' ? 'Avisaste que no puedes.' : '¿Puedes ir a este partido?'}
+                  {miRespuesta === 'va' ? 'Estás convocado. ¡Nos vemos!' : miRespuesta === 'no_va' ? 'Avisaste que no puedes.'
+                    : miRespuesta === 'no_llego' ? 'Habías confirmado y quedaste como que no llegaste.' : '¿Puedes ir a este partido?'}
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className={miRespuesta === 'no_llego' ? 'hidden' : 'grid grid-cols-2 gap-2'}>
                   <button onClick={() => alternar(yo.id, 'va')} aria-pressed={miRespuesta === 'va'}
                     className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
                     style={miRespuesta === 'va' ? { background: VERDE, color: '#003822' } : { background: '#262a31', color: '#fff' }}>
@@ -119,7 +127,8 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
               <div className="rounded-2xl overflow-hidden" style={{ background: '#1c2026' }}>
                 {g.jugadores.map((j, i) => {
                   const r = respuestas.get(j.id);
-                  const editable = puedeEditar || j.id === miJugadorId;
+                  // El jugador cambia su propia respuesta, salvo que el capitán lo haya dejado como "no llegó".
+                  const editable = puedeEditar || (j.id === miJugadorId && r !== 'no_llego');
                   return (
                     <div key={j.id} className="flex items-center gap-3 px-3 py-2" style={i % 2 ? { background: 'rgba(255,255,255,0.03)' } : undefined}>
                       <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 text-[10px] font-bold"
@@ -128,7 +137,7 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
                           ? <img src={j.photo_url} alt="" className="w-full h-full object-cover" />
                           : j.name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]!.toUpperCase()).join('')}
                       </div>
-                      <span className={`flex-1 min-w-0 truncate text-sm ${r === 'no_va' ? 'text-white/50 line-through' : 'text-white'}`}>
+                      <span className={`flex-1 min-w-0 truncate text-sm ${r === 'no_va' || r === 'no_llego' ? 'text-white/50 line-through' : 'text-white'}`}>
                         {j.name}{j.id === miJugadorId && <span className="text-soccer-green font-bold"> (tú)</span>}
                       </span>
                       {editable ? (
@@ -145,13 +154,22 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
                             style={r === 'no_va' ? { background: ROJO, color: '#3b0a0a' } : { background: '#262a31', color: 'rgba(255,255,255,0.6)' }}>
                             <X size={15} />
                           </button>
+                          {puedeEditar && (r === 'va' || r === 'no_llego') && (
+                            <button onClick={() => alternarNoLlego(j.id)} aria-pressed={r === 'no_llego'}
+                              aria-label={`${j.name} no llegó`} title="Confirmó y no llegó"
+                              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                              style={r === 'no_llego' ? { background: DORADO, color: '#3d2a00' } : { background: '#262a31', color: 'rgba(255,255,255,0.6)' }}>
+                              <UserX size={15} />
+                            </button>
+                          )}
                         </span>
                       ) : (
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md shrink-0"
                           style={r === 'va' ? { background: 'rgba(68,243,169,0.12)', color: VERDE }
                             : r === 'no_va' ? { background: 'rgba(248,113,113,0.12)', color: ROJO }
+                            : r === 'no_llego' ? { background: 'rgba(255,208,139,0.12)', color: DORADO }
                             : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' }}>
-                          {r === 'va' ? 'Va' : r === 'no_va' ? 'No puede' : 'Sin responder'}
+                          {r === 'va' ? 'Va' : r === 'no_va' ? 'No puede' : r === 'no_llego' ? 'No llegó' : 'Sin responder'}
                         </span>
                       )}
                     </div>
