@@ -39,9 +39,13 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
   const yo = plantel.find(j => j.id === miJugadorId);
   const miRespuesta = yo ? respuestas.get(yo.id) : undefined;
 
-  // Primero los que van, después los que faltan por responder y al final los que no pueden.
-  const orden = (j: JugadorPlantel) => { const r = respuestas.get(j.id); return r === 'va' ? 0 : r === 'no_va' ? 2 : 1; };
-  const lista = [...plantel].sort((a, b) => orden(a) - orden(b) || a.name.localeCompare(b.name));
+  // Tres listas separadas: los confirmados, los que no asisten y los que faltan por responder.
+  const lista = [...plantel].sort((a, b) => a.name.localeCompare(b.name));
+  const grupos = [
+    { titulo: 'Confirmados', color: VERDE, jugadores: lista.filter(j => respuestas.get(j.id) === 'va') },
+    { titulo: 'No asisten', color: ROJO, jugadores: lista.filter(j => respuestas.get(j.id) === 'no_va') },
+    { titulo: 'Sin responder', color: 'rgba(255,255,255,0.7)', jugadores: lista.filter(j => !respuestas.has(j.id)) },
+  ].filter(g => g.jugadores.length > 0);
 
   const copiar = async () => {
     if (await copiarTexto(textoConvocatoria(titulo, cuando, plantel, respuestas))) {
@@ -76,8 +80,8 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
               </button>
             </div>
             <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-              <Contador n={van} texto="Van" color={VERDE} />
-              <Contador n={noVan} texto="No pueden" color={ROJO} />
+              <Contador n={van} texto="Confirmados"color={VERDE} />
+              <Contador n={noVan} texto="No asisten" color={ROJO} />
               <Contador n={sinResponder} texto="Sin responder" color="rgba(255,255,255,0.7)" />
             </div>
           </div>
@@ -107,9 +111,13 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
               <p className="text-sm text-white/60 text-center py-8 px-4">
                 Todavía no hay jugadores inscritos. Agrégalos en la pestaña Jugadores para convocarlos.
               </p>
-            ) : (
+            ) : grupos.map(g => (
+              <section key={g.titulo} aria-label={g.titulo}>
+              <h3 className="px-1 mb-1.5 text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: g.color }}>
+                {g.titulo} ({g.jugadores.length})
+              </h3>
               <div className="rounded-2xl overflow-hidden" style={{ background: '#1c2026' }}>
-                {lista.map((j, i) => {
+                {g.jugadores.map((j, i) => {
                   const r = respuestas.get(j.id);
                   const editable = puedeEditar || j.id === miJugadorId;
                   return (
@@ -150,7 +158,8 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
                   );
                 })}
               </div>
-            )}
+              </section>
+            ))}
           </div>
 
           {plantel.length > 0 && (

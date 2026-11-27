@@ -17,8 +17,8 @@ describe('convocatoria del Inter Generaciones', () => {
   it('arma el texto para WhatsApp con cada grupo', () => {
     const texto = textoConvocatoria('G16 vs Real Ebolo', 'Viernes 4 de diciembre · 19:45 · Cancha 2', plantel, respuestas);
     expect(texto).toContain('*G16 vs Real Ebolo*');
-    expect(texto).toContain('*Van (2)*\n1. Ana Soto\n2. Dani Vera');
-    expect(texto).toContain('*No pueden (1)*\n- Beto Rojas');
+    expect(texto).toContain('*Confirmados (2)*\n1. Ana Soto\n2. Dani Vera');
+    expect(texto).toContain('*No asisten (1)*\n- Beto Rojas');
     expect(texto).toContain('*Sin responder (1)*\n- Caco Díaz');
   });
 
@@ -29,6 +29,8 @@ describe('convocatoria del Inter Generaciones', () => {
     );
     const jugador = dibujar(false);
     expect(jugador).toContain('¿Puedes ir a este partido?');
+    // Cada grupo va en su propia lista, con su cuenta.
+    for (const lista of ['Confirmados', 'No asisten', 'Sin responder']) expect(jugador).toContain(`aria-label="${lista}"`);
     expect(jugador).toContain('aria-label="Caco Díaz va"');
     expect(jugador).not.toContain('aria-label="Ana Soto va"');
     expect(dibujar(true)).toContain('aria-label="Ana Soto va"');

@@ -202,7 +202,7 @@ export default function TorneoInterGen({ year, teamId, puedeEditar, convocatoria
               </p>
               {convocatoria && (() => {
                 const respuestas = respuestasPorPartido.get(n.partido.codigo);
-                const { van } = contarConvocatoria(convocatoria.plantel, respuestas ?? new Map());
+                const { van, noVan } = contarConvocatoria(convocatoria.plantel, respuestas ?? new Map());
                 const inscrito = convocatoria.plantel.some(j => j.id === convocatoria.miJugadorId);
                 const faltaYo = inscrito && !n.resultado && !respuestas?.has(convocatoria.miJugadorId!);
                 return (
@@ -212,7 +212,7 @@ export default function TorneoInterGen({ year, teamId, puedeEditar, convocatoria
                       ? { background: 'linear-gradient(135deg,#44f3a9,#00d68f)', color: '#003822' }
                       : { background: 'rgba(68,243,169,0.12)', color: VERDE }}>
                     <ClipboardList size={16} />
-                    {faltaYo ? '¿Vas? Responde la convocatoria' : `Convocatoria · ${van === 1 ? '1 va' : `${van} van`}`}
+                    {faltaYo ? '¿Vas? Responde la convocatoria' : `Convocatoria · ${van === 1 ? '1 va' : `${van} van`}${noVan ? ` · ${noVan === 1 ? '1 no asiste' : `${noVan} no asisten`}` : ''}`}
                   </button>
                 );
               })()}

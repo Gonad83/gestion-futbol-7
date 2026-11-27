@@ -21,8 +21,8 @@ export function textoConvocatoria(titulo: string, cuando: string, plantel: Jugad
   const van = plantel.filter(j => respuestas.get(j.id) === 'va');
   const noVan = plantel.filter(j => respuestas.get(j.id) === 'no_va');
   const faltan = plantel.filter(j => !respuestas.has(j.id));
-  const lineas = [`⚽ *${titulo}*`, `🗓️ ${cuando}`, '', `✅ *Van (${van.length})*`, ...van.map((j, i) => `${i + 1}. ${j.name}`)];
-  if (noVan.length) lineas.push('', `❌ *No pueden (${noVan.length})*`, ...noVan.map(j => `- ${j.name}`));
+  const lineas = [`⚽ *${titulo}*`, `🗓️ ${cuando}`, '', `✅ *Confirmados (${van.length})*`, ...van.map((j, i) => `${i + 1}. ${j.name}`)];
+  if (noVan.length) lineas.push('', `❌ *No asisten (${noVan.length})*`, ...noVan.map(j => `- ${j.name}`));
   if (faltan.length) lineas.push('', `❓ *Sin responder (${faltan.length})*`, ...faltan.map(j => `- ${j.name}`));
   return lineas.join('\n');
 }
