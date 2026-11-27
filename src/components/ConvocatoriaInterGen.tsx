@@ -92,7 +92,7 @@ export default function ConvocatoriaInterGen({ titulo, cuando, plantel, respuest
                   <button onClick={() => alternar(yo.id, 'va')} aria-pressed={miRespuesta === 'va'}
                     className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
                     style={miRespuesta === 'va' ? { background: VERDE, color: '#003822' } : { background: '#262a31', color: '#fff' }}>
-                    <ThumbsUp size={16} /> Voy
+                    <ThumbsUp size={16} /> Confirmo
                   </button>
                   <button onClick={() => alternar(yo.id, 'no_va')} aria-pressed={miRespuesta === 'no_va'}
                     className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
